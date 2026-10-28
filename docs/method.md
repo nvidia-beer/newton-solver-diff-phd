@@ -15,7 +15,7 @@ For $F_e=D_sD_m^{-1}$ and $J_e=\det F_e>0$, Neo-Hookean mode uses
 
 $$
 E(q)=\sum_e V_e\psi_e(F_e),\qquad
-\psi_e(F)=\frac{\mu_e}{2}\bigl(\operatorname{tr}(F^TF)-3\bigr)
+\psi_e(F)=\frac{\mu_e}{2}\bigl(\mathrm{tr}(F^TF)-3\bigr)
 -\mu_e\log J+\frac{\lambda_e}{2}(\log J)^2.
 $$
 
