@@ -3,8 +3,9 @@ ARG UV_VERSION=0.13.6
 ARG CUDA_IMAGE=nvidia/cuda:13.0.3-runtime-ubuntu24.04
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
 
-# Pin the same profiler build on both architectures. Extract on the build host;
-# only the CLI installation (including its licenses) enters the runtime image.
+# Profiling requires an explicit Nsight Systems CLI installation in the image.
+# The CUDA runtime base does not include it; this stage installs the pinned version.
+# Extract on the build host; copy only the CLI and its licenses into the runtime image.
 FROM --platform=$BUILDPLATFORM ${CUDA_IMAGE} AS nsight
 ARG TARGETARCH
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \
