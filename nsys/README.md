@@ -15,26 +15,19 @@ From the repository root, after the normal Docker build:
 ./docker/run.sh --nsys --all
 ```
 
-Install [NVIDIA Nsight Systems](https://developer.nvidia.com/nsight-systems) on
-the host. Docker selects the newest usable installation from `PATH`,
-`${XDG_DATA_HOME:-$HOME/.local/share}/nsight-systems/`, and standard `/opt/nvidia`
-and CUDA locations. An explicit `NSYS_ROOT=/path/to/nsight-systems` (the directory
-containing `bin/nsys`) takes precedence. The installation is mounted read-only
-for profiling. Use the host CPU architecture and a CUDA-capable NVIDIA GPU.
-Rebuild an older solver image to install the new optional profiling dependency.
+The Docker build installs pinned NVIDIA Nsight Systems CLI 2026.5.1 for the
+image's x86-64 or ARM64 SBSA architecture. Rebuild older images with
+`./docker/build.sh`. Profiling uses the image's CLI and requires the native host
+architecture and a CUDA-capable NVIDIA GPU. A host Nsight Systems GUI is optional
+for opening `capture.nsys-rep`.
 
-For a user installation without administrator access, download NVIDIA's CLI
-`.deb` for the host architecture, then extract its version directory:
+To debug with another profiler version, explicitly set
+`NSYS_ROOT=/path/to/nsight-systems` to an installation containing `bin/nsys`.
+The launcher mounts that installation read-only and uses it for that run.
 
-```bash
-nsys_unpack=$(mktemp -d)
-dpkg-deb -x /path/to/nsight-systems-cli.deb "$nsys_unpack"
-mkdir -p "${XDG_DATA_HOME:-$HOME/.local/share}/nsight-systems"
-cp -a "$nsys_unpack"/opt/nvidia/nsight-systems-cli/* "${XDG_DATA_HOME:-$HOME/.local/share}/nsight-systems/"
-rm -r "$nsys_unpack"
-```
-
-For local development, put `nsys` on `PATH` or set `NSYS_PATH` to its executable:
+For local development outside Docker, install
+[NVIDIA Nsight Systems](https://developer.nvidia.com/nsight-systems), then put
+`nsys` on `PATH` or set `NSYS_PATH` to its executable:
 
 ```bash
 uv sync --locked --extra examples --extra profiling

@@ -65,7 +65,7 @@ def make_readme(root=ROOT, *, require_videos=False):
             [
                 "## Profiling\n",
                 "```bash\n./docker/run.sh --nsys --list\n./docker/run.sh --nsys <example>\n./docker/run.sh --nsys --all\n```\n",
-                "Install NVIDIA Nsight Systems on the host; set `NSYS_ROOT` if its installation is not discovered. "
+                "The Docker image includes pinned NVIDIA Nsight Systems CLI 2026.5.1; rebuild older images with `./docker/build.sh`. "
                 "The profiler runs only examples with README videos, using their recorded settings and scripted interactions. "
                 "It captures fresh initialization/training and live simulation after independent warmup, with "
                 "solver/linear-solve/gradient phase markers. The default null viewer retains visualization preparation; "

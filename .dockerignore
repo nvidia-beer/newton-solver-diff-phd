@@ -9,6 +9,7 @@ build
 dist
 imgui.ini
 results
+nsys/results
 *.nsys-rep
 *.ncu-rep
 *.sqlite

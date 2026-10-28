@@ -130,8 +130,8 @@ def check_profiler_version(version, examples):
         if minimum and actual < tuple(map(int, minimum.split("."))):
             raise ValueError(
                 f"{name} requires Nsight Systems >= {minimum} for profiling this workload; "
-                f"found {version!r}. Install a current CLI and select it with NSYS_ROOT (Docker) "
-                "or NSYS_PATH (local)."
+                f"found {version!r}. Rebuild with ./docker/build.sh and remove any NSYS_ROOT override, "
+                "or select a current local CLI with NSYS_PATH."
             )
 
 
@@ -451,7 +451,7 @@ def main():
             return
         if not nsys:
             parser.error(
-                "nsys is not installed; install NVIDIA Nsight Systems or use docker/run.sh --nsys with NSYS_ROOT"
+                "nsys is not installed; rebuild with ./docker/build.sh and use docker/run.sh --nsys, or set NSYS_PATH locally"
             )
         version = query([nsys, "--version"])
         if not version:

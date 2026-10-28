@@ -30,10 +30,9 @@ Options:
 With no example, opens an interactive menu. Examples are discovered from example_*.py.
 Visual examples use CUDA and X11 by default. Terminal-only examples need no display.
 Profiling defaults to the null viewer. Use --nsys EXAMPLE --viewer gl for rendering.
-NSYS_ROOT selects a host Nsight Systems installation (containing bin/nsys).
-The newest usable installation on PATH, in ~/.local/share/nsight-systems/
-(or $XDG_DATA_HOME/nsight-systems/), or in standard /opt/nvidia and CUDA
-locations is mounted read-only during profiling. Reports persist under nsys/results/.
+The Docker image includes the pinned Nsight CLI. NSYS_ROOT optionally overrides it
+with a host installation (containing bin/nsys) for debugging.
+Reports persist under nsys/results/.
 EOF
 }
 
@@ -81,7 +80,7 @@ if ((profile)); then
         printf 'Nsight CUDA profiling requires a GPU; omit --cpu.\n' >&2
         exit 2
     fi
-    # A host profiler cannot run under an emulated container architecture.
+    # CUDA profiling requires a native container architecture.
     case $(uname -m) in
         aarch64) host_platform=linux/arm64; nsys_arch=sbsa-armv8 ;;
         x86_64) host_platform=linux/amd64; nsys_arch=x64 ;;
@@ -91,38 +90,15 @@ if ((profile)); then
         printf 'Nsight profiling requires the host platform %s.\n' "$host_platform" >&2
         exit 2
     fi
-    nsys_root=${NSYS_ROOT:-}
-    if [[ -z $nsys_root ]]; then
-        candidates=()
-        while IFS= read -r host_nsys; do
-            resolved=$(readlink -f -- "$host_nsys") || continue
-            candidates+=("$(dirname -- "$(dirname -- "$resolved")")")
-        done < <(type -a -p nsys || true)
-        shopt -s nullglob
-        candidates+=("${XDG_DATA_HOME:-$HOME/.local/share}"/nsight-systems/*
-            /opt/nvidia/nsight-systems/* /opt/nvidia/nsight-systems-cli/*
-            /usr/local/cuda/nsight-systems-* /usr/local/cuda-*/nsight-systems-*)
-        shopt -u nullglob
-        newest_version=
-        for candidate in "${candidates[@]}"; do
-            [[ -x $candidate/bin/nsys && -x $candidate/target-linux-$nsys_arch/nsys ]] || continue
-            version_output=$("$candidate/bin/nsys" --version 2>/dev/null) || continue
-            [[ $version_output =~ ([0-9]{4}\.[0-9]+\.[0-9]+(\.[0-9]+)?) ]] || continue
-            version=${BASH_REMATCH[1]}
-            # Compare actual versions, independent of PATH order and directory names.
-            if [[ -z $newest_version || $(printf '%s\n' "$newest_version" "$version" | sort -V | tail -n 1) == "$version" ]]; then
-                nsys_root=$candidate
-                newest_version=$version
-            fi
-        done
+    if [[ -n ${NSYS_ROOT:-} ]]; then
+        if [[ ! -x $NSYS_ROOT/bin/nsys || ! -x $NSYS_ROOT/target-linux-$nsys_arch/nsys ]]; then
+            printf 'NSYS_ROOT must contain bin/nsys and the native target-linux-%s/nsys executable.\n' "$nsys_arch" >&2
+            exit 1
+        fi
+        nsys_root=$(cd -- "$NSYS_ROOT" && pwd)
+        profile_mounts=(--mount "type=bind,src=$nsys_root,dst=/opt/nsight-systems,readonly"
+            --env NSYS_PATH=/opt/nsight-systems/bin/nsys)
     fi
-    if [[ -z $nsys_root || ! -x $nsys_root/bin/nsys ]]; then
-        printf 'Install Nsight Systems on the host and set NSYS_ROOT to its installation directory (containing bin/nsys).\n' >&2
-        exit 1
-    fi
-    nsys_root=$(cd -- "$nsys_root" && pwd)
-    profile_mounts=(--mount "type=bind,src=$nsys_root,dst=/opt/nsight-systems,readonly"
-        --env NSYS_PATH=/opt/nsight-systems/bin/nsys)
     if [[ ${NSYS_CONFIG_DIRECTIVES+x} ]]; then
         profile_mounts+=(--env "NSYS_CONFIG_DIRECTIVES=$NSYS_CONFIG_DIRECTIVES")
     fi
