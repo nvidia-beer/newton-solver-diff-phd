@@ -2,6 +2,7 @@
 
 import json
 import os
+import platform
 import shutil
 import subprocess
 import tempfile
@@ -42,6 +43,15 @@ class TestDocker(unittest.TestCase):
         self.environment["PATH"] = str(commands) + os.pathsep + self.environment["PATH"]
         self.environment.pop("SOLVER_IMAGE", None)
         self.environment.pop("DISPLAY", None)
+        self.profiler = self.directory / "nsight install with spaces"
+        (self.profiler / "bin").mkdir(parents=True)
+        (self.profiler / "bin/nsys").write_text("#!/bin/sh\nexit 0\n")
+        (self.profiler / "bin/nsys").chmod(0o755)
+        self.environment["NSYS_ROOT"] = str(self.profiler)
+        (self.checkout / "nsys").mkdir()
+        (self.checkout / "nsys/profile_examples.py").write_text(
+            "import json, sys\nprint(json.dumps({'profile_args': sys.argv[1:]}))\n"
+        )
 
     def invoke(self, script, *arguments, check=True):
         return subprocess.run(
@@ -116,6 +126,77 @@ class TestDocker(unittest.TestCase):
                 result = self.invoke("run.sh", *arguments, check=False)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertNotIn('"run"', result.stdout)
+
+    def test_nsys_metadata_commands_do_not_need_docker_or_profiler(self):
+        self.environment["NSYS_ROOT"] = str(self.directory / "missing")
+        for arguments in (("--list",), ("--help",), ("visual", "--dry-run")):
+            with self.subTest(arguments=arguments):
+                result = self.invoke("run.sh", "--nsys", *arguments)
+                self.assertEqual(json.loads(result.stdout), {"profile_args": list(arguments)})
+        result = self.invoke("run.sh", "--nsys")
+        self.assertEqual(json.loads(result.stdout), {"profile_args": ["--help"]})
+
+    def test_nsys_launch_mounts_host_profiler_and_preserves_profile_arguments(self):
+        argv = json.loads(
+            self.invoke("run.sh", "--nsys", "visual", "--frames", "5", "--", "--sample-name", "two words").stdout
+        )
+        self.assertIn(f"type=bind,src={self.profiler},dst=/opt/nsight-systems,readonly", argv)
+        self.assertIn("NSYS_PATH=/opt/nsight-systems/bin/nsys", argv)
+        self.assertIn("NVIDIA_DRIVER_CAPABILITIES=compute,utility", argv)
+        self.assertNotIn("--privileged", argv)
+        self.assertNotIn("--cap-add", argv)
+        self.assertNotIn("--security-opt", argv)
+        image = argv.index("newton-solver-launch-check:local")
+        self.assertEqual(
+            argv[image + 1 :],
+            [
+                "python",
+                "/workspace/nsys/profile_examples.py",
+                "--device",
+                "cuda:0",
+                "visual",
+                "--frames",
+                "5",
+                "--",
+                "--sample-name",
+                "two words",
+            ],
+        )
+
+    def test_nsys_discovers_complete_installation_from_path(self):
+        target = self.profiler / ("target-linux-sbsa-armv8" if platform.machine() == "aarch64" else "target-linux-x64")
+        target.mkdir()
+        (target / "nsys").write_text("#!/bin/sh\nexit 0\n")
+        (target / "nsys").chmod(0o755)
+        (self.profiler / "bin/nsys").unlink()
+        (self.profiler / "bin/nsys").symlink_to(target / "nsys")
+        self.environment.pop("NSYS_ROOT")
+        self.environment["PATH"] = str(self.profiler / "bin") + os.pathsep + self.environment["PATH"]
+        argv = json.loads(self.invoke("run.sh", "--nsys", "visual").stdout)
+        self.assertIn(f"type=bind,src={self.profiler},dst=/opt/nsight-systems,readonly", argv)
+
+    def test_nsys_validation_and_explicit_gl_fail_before_docker(self):
+        for arguments in (("--cpu", "--nsys", "visual"), ("--nsys", "visual", "--viewer", "gl")):
+            with self.subTest(arguments=arguments):
+                result = self.invoke("run.sh", *arguments, check=False)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn('"run"', result.stdout)
+        self.environment["NSYS_ROOT"] = str(self.directory / "missing")
+        result = self.invoke("run.sh", "--nsys", "visual", check=False)
+        self.assertIn("NSYS_ROOT", result.stderr)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn('"run"', result.stdout)
+
+    def test_nsys_uses_last_viewer_and_ignores_example_arguments_for_docker(self):
+        for arguments in (
+            ("--viewer", "gl", "--viewer", "null"),
+            ("--viewer=gl", "--viewer=null"),
+            ("--", "--help", "--viewer", "gl"),
+        ):
+            with self.subTest(arguments=arguments):
+                argv = json.loads(self.invoke("run.sh", "--nsys", "visual", *arguments).stdout)
+                self.assertIn("NVIDIA_DRIVER_CAPABILITIES=compute,utility", argv)
+                self.assertNotIn("--hostname", argv)
 
     def test_metadata_mismatch_prevents_command_execution(self):
         fake_cmp = self.directory / "commands" / "cmp"

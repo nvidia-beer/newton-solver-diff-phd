@@ -27,6 +27,18 @@ Linux x86-64 or ARM64, Python 3.12. CUDA runs need an NVIDIA driver compatible w
 
 Installed runtime packages: `newton==1.7.0`, `warp-lang==1.17.0`, `numpy>=2,<3`. No sibling solver package or external source checkout is required. The `examples` extra supplies the viewer and any USD/robot dependencies; `uv.lock` fixes their versions. Example-specific data requirements are listed below.
 
+## Profiling
+
+```bash
+./docker/run.sh --nsys --list
+./docker/run.sh --nsys <example>
+./docker/run.sh --nsys --all
+```
+
+Install NVIDIA Nsight Systems on the host; set `NSYS_ROOT` if its installation is not discovered. The profiler runs only examples with README videos, using their recorded settings and scripted interactions. It captures fresh initialization/training and live simulation after independent warmup, with solver/linear-solve/gradient phase markers. The default null viewer retains visualization preparation; add `--viewer gl` to include drawing.
+
+Reports, completion metadata and local history are saved under `nsys/results/` and ignored by Git. See [profiling instructions](nsys/README.md) for local setup, comparisons and reading bottlenecks. Ordinary runs have no profiling instrumentation; captured timings include profiler overhead.
+
 ## Example controls and local data
 
 The standard launcher discovers two examples. After `./docker/build.sh`, run

@@ -23,3 +23,9 @@ Run `uv run --locked ruff check .`, `uv run --locked ruff format --check .`, and
 Example launchers discover runnable `examples/**/example_*.py` files. Give each a
 module docstring and a `__main__` guard; use `HEADLESS = True` for terminal-only
 examples. Do not add hard-coded example lists to Docker or Python launchers.
+
+Use `nsys/profile_examples.py` for opt-in profiles of README video workloads.
+Keep their resolution, numerical budgets and scripted interactions intact;
+separate initialization/training, physics and rendering costs. Inspect raw CUDA
+and NVTX evidence before making performance claims. Profiling output belongs in
+ignored `nsys/results/`, never in the solver runtime or generated example assets.

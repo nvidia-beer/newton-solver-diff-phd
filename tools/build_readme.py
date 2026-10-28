@@ -60,6 +60,21 @@ def make_readme(root=ROOT, *, require_videos=False):
         "The `examples` extra supplies the viewer and any USD/robot dependencies; "
         "`uv.lock` fixes their versions. Example-specific data requirements are listed below.\n",
     ]
+    if (root / "nsys" / "profile_examples.py").is_file():
+        text.extend(
+            [
+                "## Profiling\n",
+                "```bash\n./docker/run.sh --nsys --list\n./docker/run.sh --nsys <example>\n./docker/run.sh --nsys --all\n```\n",
+                "Install NVIDIA Nsight Systems on the host; set `NSYS_ROOT` if its installation is not discovered. "
+                "The profiler runs only examples with README videos, using their recorded settings and scripted interactions. "
+                "It captures fresh initialization/training and live simulation after independent warmup, with "
+                "solver/linear-solve/gradient phase markers. The default null viewer retains visualization preparation; "
+                "add `--viewer gl` to include drawing.\n",
+                "Reports, completion metadata and local history are saved under `nsys/results/` and ignored by Git. "
+                "See [profiling instructions](nsys/README.md) for local setup, comparisons and reading bottlenecks. "
+                "Ordinary runs have no profiling instrumentation; captured timings include profiler overhead.\n",
+            ]
+        )
     usage = root / "docs" / "usage.md"
     if usage.exists():
         text.append(document_text(usage, root) + "\n")
