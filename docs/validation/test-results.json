@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-28",
+  "cpu": {
+    "platform": "Linux ARM64",
+    "tests": 32,
+    "seconds": 88.064,
+    "passed": true
+  },
+  "cuda": {
+    "device": "NVIDIA GB10 / cuda:0",
+    "tests": 32,
+    "seconds": 12.015,
+    "passed": true
+  },
+  "relocated_legacy_tests": {
+    "tests": 5,
+    "seconds": 6.752,
+    "passed": true
+  },
+  "ur5_cli": {
+    "training": {
+      "device": "cpu",
+      "display_frames": 38,
+      "physical_intervals_per_rollout": 35,
+      "optimizer_updates": 1,
+      "loss_after_update": 0.018971847006848678,
+      "passed_test_flag": true
+    },
+    "live_inference": {
+      "device": "cpu",
+      "display_frames": 40,
+      "passed_test_flag": true
+    },
+    "declared_dependency_startup": {
+      "passed": true,
+      "trimesh": "4.12.2",
+      "scipy": "1.18.1",
+      "missing_dependency_tracebacks": false
+    }
+  },
+  "limits": [
+    "Poke full trajectory has a 2.017% Y finite-difference discrepancy whose cause has not been isolated; its optional 1% gate remains failed and is reported separately.",
+    "ARM64 hardware validation only; x86_64 execution remains untested."
+  ]
+}

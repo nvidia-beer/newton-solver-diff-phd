@@ -1,0 +1,21 @@
+{
+  "mode": "training",
+  "device": "cuda:0",
+  "nodes": 276,
+  "tetrahedra": 768,
+  "dt": 0.008,
+  "trajectory_frames": 100,
+  "setup_seconds": 11.257203265995486,
+  "iterations": 1,
+  "initial_loss": 0.008408372753441471,
+  "loss": 0.004158461920959945,
+  "loss_history": [
+    0.008408372753441471,
+    0.004158461920959945
+  ],
+  "update_seconds": [
+    9.459008415986318
+  ],
+  "gradient_norm": 0.03676757334487782,
+  "checkpoint_source": "new run"
+}

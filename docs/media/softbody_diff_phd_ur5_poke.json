@@ -1,0 +1,24 @@
+{
+  "example": "softbody_diff_phd_ur5_poke",
+  "module": "newton_solver_diff_phd.examples.example_softbody_diff_phd_ur5_poke",
+  "caption": "Live deformable contact with the fitted die placement, prescribed UR5 motion and a translucent recorded scan. Requires private PokeFlex data and a locally trained alignment checkpoint; material values are not experimentally verified.",
+  "arguments": [
+    "--load-alignment",
+    "outputs/diff_phd_poke/alignment_fast.json",
+    "--show-target",
+    "--test"
+  ],
+  "device": "cuda:0",
+  "frames": 120,
+  "fps": 30,
+  "width": 960,
+  "height": 540,
+  "recording_wall_seconds": 44.01569976699966,
+  "playback_is_performance_benchmark": false,
+  "simulation_time": [],
+  "dependencies": {
+    "newton_solver_diff_phd": "0.1.0",
+    "newton": "1.7.0",
+    "warp-lang": "1.17.0+cu13"
+  }
+}

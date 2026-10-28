@@ -1,0 +1,42 @@
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
+
+[project]
+name = "newton-solver-diff-phd"
+version = "0.1.0"
+description = "Differentiable implicit tetrahedral mechanics with frictional contact for Newton"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = "Apache-2.0"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md", "src/newton_solver_diff_phd/examples/assets/universal_robots_ur5e/LICENSE"]
+dependencies = ["newton==1.7.0", "warp-lang==1.17.0", "numpy>=2,<3"]
+
+[project.optional-dependencies]
+examples = ["usd-exchange>=2.2,<3; sys_platform == 'linux' and platform_machine == 'aarch64'", "usd-core>=25.5,<27; sys_platform != 'linux' or platform_machine != 'aarch64'", "trimesh==4.12.2", "scipy==1.18.1", "pyglet>=2.1.6,<3", "imgui-bundle>=1.92,<2", "Pillow>=11.3", "PyOpenGL>=3.1.9,<4"]
+
+[dependency-groups]
+dev = ["ruff==0.17.3"]
+
+[tool.uv]
+environments = ["sys_platform == 'linux' and platform_machine == 'aarch64'", "sys_platform == 'linux' and platform_machine == 'x86_64'"]
+
+[tool.uv.build-backend]
+# PokeFlex is user-local data, never a redistributable package asset.
+source-exclude = ["src/newton_solver_diff_phd/examples/assets/pokeflex_local/**"]
+wheel-exclude = ["newton_solver_diff_phd/examples/assets/pokeflex_local/**"]
+
+[tool.uv.sources]
+warp-lang = [
+    { url = "https://github.com/NVIDIA/warp/releases/download/v1.17.0/warp_lang-1.17.0%2Bcu13-py3-none-manylinux_2_34_aarch64.whl", marker = "platform_machine == 'aarch64'" },
+    { url = "https://github.com/NVIDIA/warp/releases/download/v1.17.0/warp_lang-1.17.0%2Bcu13-py3-none-manylinux_2_28_x86_64.whl", marker = "platform_machine == 'x86_64'" },
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# Warp typed initializers distinguish mutable loop variables from constants.
+ignore = ["E501", "UP018"]

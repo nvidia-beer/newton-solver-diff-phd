@@ -1,0 +1,14 @@
+#usda 1.0
+(
+    defaultPrim = "DropCube"
+    doc = "Geometry baked from the original DiffPhD drop: 2 x 1 x 1 cells, 0.15 m cube, alternating five-tetrahedron split. Material and placement are supplied by the example."
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def TetMesh "DropCube"
+{
+    point3f[] points = [(0, 0, 0), (0, 0, 0.15), (0, 0.15, 0), (0, 0.15, 0.15), (0.075, 0, 0), (0.075, 0, 0.15), (0.075, 0.15, 0), (0.075, 0.15, 0.15), (0.15, 0, 0), (0.15, 0, 0.15), (0.15, 0.15, 0), (0.15, 0.15, 0.15)]
+    int4[] tetVertexIndices = [(4, 5, 6, 0), (1, 0, 3, 5), (2, 3, 0, 6), (7, 6, 5, 3), (6, 5, 3, 0), (4, 8, 6, 5), (9, 5, 11, 8), (10, 6, 8, 11), (7, 11, 5, 6), (6, 8, 11, 5)]
+}
+

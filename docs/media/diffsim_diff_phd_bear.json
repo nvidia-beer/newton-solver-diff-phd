@@ -1,0 +1,22 @@
+{
+  "example": "diffsim_diff_phd_bear",
+  "module": "newton_solver_diff_phd.examples.example_diffsim_diff_phd_bear",
+  "caption": "Live simulation with the bundled learned muscle controller: resolution-10 bear, 276 nodes and 768 tetrahedra; playback at 60 fps, not a real-time benchmark.",
+  "arguments": [
+    "--trained",
+    "--test"
+  ],
+  "device": "cuda:0",
+  "frames": 240,
+  "fps": 60,
+  "width": 960,
+  "height": 540,
+  "recording_wall_seconds": 64.24685833800004,
+  "playback_is_performance_benchmark": false,
+  "simulation_time": [],
+  "dependencies": {
+    "newton_solver_diff_phd": "0.1.0",
+    "newton": "1.7.0",
+    "warp-lang": "1.17.0+cu13"
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "mode": "inference",
+  "device": "cuda:0",
+  "device_name": "NVIDIA GB10",
+  "nodes": 276,
+  "tetrahedra": 768,
+  "dt": 0.008,
+  "frames": 200,
+  "simulated_seconds": 1.6,
+  "setup_seconds": 0.2805237419961486,
+  "total_step_seconds": 15.032012993935496,
+  "warm_step_median_ms": 73.65159300388768,
+  "warm_step_p95_ms": 100.6237186869839,
+  "warm_realtime_factor": 0.10952970066841422,
+  "min_j": 0.7604693739704956,
+  "min_z": 9.999902249546722e-05,
+  "com_travel_m": [
+    0.019520014694072597,
+    0.008399952670037302,
+    -0.007125129778717959
+  ],
+  "contacts_in_steps": 200,
+  "state_buffers": 2,
+  "control_buffers": 1,
+  "samples": [
+    {
+      "frame": 1,
+      "min_j": 0.8944651721811524,
+      "max_speed": 1.2381623983383179,
+      "step_ms": 416.9695180025883
+    },
+    {
+      "frame": 26,
+      "min_j": 0.8381250700109943,
+      "max_speed": 0.3632626235485077,
+      "step_ms": 92.35876600723714
+    },
+    {
+      "frame": 51,
+      "min_j": 0.9303096300514005,
+      "max_speed": 0.6070630550384521,
+      "step_ms": 88.4862290113233
+    },
+    {
+      "frame": 76,
+      "min_j": 0.8346489805207449,
+      "max_speed": 0.36513227224349976,
+      "step_ms": 64.77142599760555
+    },
+    {
+      "frame": 101,
+      "min_j": 0.8036955689867851,
+      "max_speed": 0.36312970519065857,
+      "step_ms": 68.44090498634614
+    },
+    {
+      "frame": 126,
+      "min_j": 0.7931754081238385,
+      "max_speed": 0.3635695278644562,
+      "step_ms": 67.1928969968576
+    },
+    {
+      "frame": 151,
+      "min_j": 0.8401347303939448,
+      "max_speed": 0.5672637224197388,
+      "step_ms": 53.055305004818365
+    },
+    {
+      "frame": 176,
+      "min_j": 0.8815109943505575,
+      "max_speed": 0.6663457155227661,
+      "step_ms": 68.29856699914671
+    },
+    {
+      "frame": 200,
+      "min_j": 0.7718985497606695,
+      "max_speed": 0.24568675458431244,
+      "step_ms": 77.47504001599737
+    }
+  ],
+  "timing_scope": "Synchronized live forward step; rendering, per-step validation and telemetry excluded."
+}

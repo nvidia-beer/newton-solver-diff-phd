@@ -1,0 +1,46 @@
+{
+  "initial_loss": 0.02773213028811917,
+  "initial_xy": [
+    0.73,
+    0.115
+  ],
+  "initial_contacts": 28,
+  "initial_residual": 9.688480003921993e-07,
+  "initial_gradient": {
+    "analytic": [
+      0.5698052991122822,
+      0.5982416692653805
+    ],
+    "finite_difference": [
+      0.5653370190582957,
+      0.586172373270629
+    ],
+    "relative_error": [
+      0.00784176640853946,
+      0.020174616070412064
+    ],
+    "epsilon": 0.0001
+  },
+  "final_loss": 0.01034612848025788,
+  "final_xy": [
+    0.704074744821169,
+    0.08533953153503918
+  ],
+  "iterations": 6,
+  "contacts": 25,
+  "max_residual": 9.93695615427863e-07,
+  "elapsed": 170.12653228099225,
+  "rms_mm": 17.19312859442722,
+  "device": "NVIDIA GB10 / cuda:0",
+  "nodes": 135,
+  "die_tetrahedra": 362,
+  "prescribed_probe_tetrahedra": 36,
+  "frame_dt": 0.03333333333333333,
+  "substeps": 1,
+  "recorded_intervals": 35,
+  "iteration_budget": 12,
+  "stop_reason": "line search found no further accepted decrease",
+  "gradient_gate_passed": false,
+  "gradient_scope": "The full recorded-trajectory 1% finite-difference gate fails in Y. The discrepancy may reflect changes in contact geometry or nearest associations, solver tolerance, or finite-difference step size; its cause has not been isolated. Supported fixed-branch derivatives are tested separately.",
+  "timing_scope": "Whole validation including cold compilation, initial differentiation, finite-difference diagnostic rollouts, optimization and console progress; not live step timing."
+}

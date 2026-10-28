@@ -1,0 +1,26 @@
+.venv/
+.cache/
+__pycache__/
+*.py[cod]
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+results/
+*.nsys-rep
+*.sqlite
+outputs/
+src/newton_solver_diff_phd/examples/assets/pokeflex_local/
+
+# Viewer layout
+imgui.ini
+
+# Test and coverage artifacts
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Nsight Compute reports
+*.ncu-rep

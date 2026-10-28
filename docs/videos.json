@@ -1,0 +1,16 @@
+{
+  "diffsim_diff_phd_bear": {
+    "frames": 240,
+    "fps": 60,
+    "args": ["--trained", "--test"],
+    "caption": "Live simulation with the bundled learned muscle controller: resolution-10 bear, 276 nodes and 768 tetrahedra; playback at 60 fps, not a real-time benchmark.",
+    "label": "learned controller | live physics | simulation playback"
+  },
+  "softbody_diff_phd_ur5_poke": {
+    "frames": 120,
+    "fps": 30,
+    "args": ["--load-alignment", "outputs/diff_phd_poke/alignment_fast.json", "--show-target", "--test"],
+    "caption": "Live deformable contact with the fitted die placement, prescribed UR5 motion and a translucent recorded scan. Requires private PokeFlex data and a locally trained alignment checkpoint; material values are not experimentally verified.",
+    "label": "fitted placement | live contact + scan | local research preview"
+  }
+}
