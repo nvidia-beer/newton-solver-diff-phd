@@ -5,6 +5,7 @@ import csv
 import importlib.util
 import json
 import shutil
+import sqlite3
 import sys
 import tempfile
 import unittest
@@ -42,6 +43,15 @@ def options(directory):
 
 
 class TestProfiling(unittest.TestCase):
+    def test_known_incompatible_profiler_is_rejected_before_capture(self):
+        entries = {"bear": {"minimum_nsys_version": "2026.5.1"}}
+        for version in ("NVIDIA Nsight Systems version 2025.3.2.474", "unknown"):
+            with self.subTest(version=version), self.assertRaisesRegex(ValueError, "bear requires Nsight"):
+                profiling.check_profiler_version(version, entries)
+        for version in ("NVIDIA Nsight Systems version 2026.5.1.161", "2026.10.1.1"):
+            profiling.check_profiler_version(version, entries)
+        profiling.check_profiler_version("2025.3.2.474", {"other": {}})
+
     def test_input_changes_are_detected_with_either_argument_syntax(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -124,6 +134,10 @@ class TestProfiling(unittest.TestCase):
         command = profiling.profile_command("nsys", "scene", {"frames": 540}, opts, opts.output_dir)
         self.assertFalse(any(arg.startswith("--capture-range") for arg in command))
         self.assertTrue(any(arg.startswith("--trace=") and "opengl" in arg for arg in command))
+        opts.cuda_trace = "cuda-sw"
+        command = profiling.profile_command("nsys", "scene", {"frames": 540}, opts, opts.output_dir)
+        self.assertIn("--trace=cuda-sw,nvtx,osrt,cusparse,cusolver,opengl", command)
+        self.assertIn("--cuda-graph-trace=node", command)
 
     def test_failed_capture_retains_history_and_error(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -158,13 +172,16 @@ class TestProfiling(unittest.TestCase):
             entry = {"frames": 1, "module": "scene", "terminal": False, "arguments": [], "config": {}}
             command_builder = profiling.profile_command
 
-            def complete_without_gpu(command, log_path, timeout):
+            def complete_without_gpu(command, log_path, timeout, *, env=None):
                 output = Path(command[command.index("--output") + 1]).parent
                 if command[1] == "profile":
                     (output / "capture.nsys-rep").touch()
                     (output / "workload.json").write_text(json.dumps({"status": "completed", "frames_completed": 1}))
                 else:
                     (output / "stats_cuda_gpu_kern_sum.csv").write_text("Total Time (ns),Name\n1000000,kernel\n")
+                    with sqlite3.connect(output / "capture.sqlite") as connection:
+                        connection.execute("CREATE TABLE CUPTI_ACTIVITY_KIND_KERNEL (graphNodeId INTEGER)")
+                        connection.execute("INSERT INTO CUPTI_ACTIVITY_KIND_KERNEL VALUES (0)")
                 return 0
 
             def capture(revision, *, frequency="200"):
@@ -204,6 +221,12 @@ class TestProfiling(unittest.TestCase):
             metadata = json.loads((changed_flags / "run.json").read_text())
             self.assertEqual(metadata["profiling"]["runner_sha256"], profiling.digest(runner))
             self.assertEqual(metadata["profiling"]["collection_settings"]["--python-sampling-frequency"], "100")
+            with patch.dict("os.environ", {"NSYS_CONFIG_DIRECTIVES": "CuptiDeviceBufferSizeMb=64"}):
+                changed_buffers = capture("solver revision two")
+            with self.assertRaisesRegex(ValueError, "not comparable"):
+                report.compare(changed_buffers, baseline)
+            metadata = json.loads((changed_buffers / "run.json").read_text())
+            self.assertEqual(metadata["profiling"]["nsys_config_directives"], "CuptiDeviceBufferSizeMb=64")
 
     def test_collection_settings_ignore_locations_order_and_option_syntax(self):
         first = [

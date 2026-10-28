@@ -2,6 +2,7 @@
 
 import csv
 import json
+import re
 import sqlite3
 import statistics
 from contextlib import closing
@@ -18,6 +19,114 @@ REPORTS = (
     "nvtx_kern_sum",
     "osrt_sum",
 )
+
+
+def inspect_graph_coverage(directory):
+    """Count recorded graph kernels and explicit CUPTI losses, without inferring completeness."""
+    database = Path(directory) / "capture.sqlite"
+    if not database.is_file():
+        raise ValueError("Cannot validate CUDA graph coverage: capture.sqlite is missing")
+    coverage = {
+        "kernel_events": 0,
+        "graph_kernel_events": 0,
+        "whole_graph_events": 0,
+        "unique_graph_nodes": None,
+        "unique_graphs": None,
+        "graph_launch_api_calls": {},
+        "cupti_lost_records": 0,
+        "diagnostics": [],
+    }
+    try:
+        with closing(sqlite3.connect(database.resolve().as_uri() + "?mode=ro", uri=True)) as connection:
+            tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+
+            def columns(table):
+                return {row[1] for row in connection.execute(f"PRAGMA table_info({table})")}
+
+            table = "CUPTI_ACTIVITY_KIND_KERNEL"
+            if table in tables:
+                available = columns(table)
+                coverage["kernel_events"] = connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                markers = [name for name in ("graphNodeId", "graphId") if name in available]
+                if not markers:
+                    raise ValueError("Unsupported Nsight kernel schema: missing graphNodeId and graphId")
+                condition = " OR ".join(f"{name} > 0" for name in markers)
+                coverage["graph_kernel_events"] = connection.execute(
+                    f"SELECT COUNT(*) FROM {table} WHERE {condition}"
+                ).fetchone()[0]
+                for column, label in (("graphNodeId", "unique_graph_nodes"), ("graphId", "unique_graphs")):
+                    if column in available:
+                        coverage[label] = connection.execute(
+                            f"SELECT COUNT(DISTINCT {column}) FROM {table} WHERE {column} > 0"
+                        ).fetchone()[0]
+            table = "CUPTI_ACTIVITY_KIND_GRAPH_TRACE"
+            if table in tables:
+                if not {"start", "end"} <= columns(table):
+                    raise ValueError("Unsupported Nsight graph schema: missing start or end")
+                if connection.execute(
+                    f"SELECT 1 FROM {table} WHERE start IS NULL OR end IS NULL OR end < start LIMIT 1"
+                ).fetchone():
+                    raise ValueError("Invalid timestamps in Nsight graph events")
+                coverage["whole_graph_events"] = connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            for table in ("CUPTI_ACTIVITY_KIND_RUNTIME", "CUPTI_ACTIVITY_KIND_DRIVER"):
+                if table not in tables:
+                    continue
+                if (
+                    "nameId" not in columns(table)
+                    or "StringIds" not in tables
+                    or not {"id", "value"} <= columns("StringIds")
+                ):
+                    raise ValueError("Unsupported Nsight CUDA API schema: missing API name mapping")
+                coverage["graph_launch_api_calls"][table] = connection.execute(
+                    f"SELECT COUNT(*) FROM {table} a JOIN StringIds s ON a.nameId=s.id "
+                    "WHERE s.value LIKE 'cudaGraphLaunch%' OR s.value LIKE 'cuGraphLaunch%'"
+                ).fetchone()[0]
+            if "DIAGNOSTIC_EVENT" in tables:
+                if not {"severity", "text"} <= columns("DIAGNOSTIC_EVENT"):
+                    raise ValueError("Unsupported Nsight diagnostic schema: missing severity or text")
+                for severity, message, count in connection.execute(
+                    "SELECT severity, text, COUNT(*) FROM DIAGNOSTIC_EVENT GROUP BY severity, text"
+                ):
+                    lost = 0
+                    if message and "cupti" in message.lower():
+                        patterns = (
+                            r"\b(?:dropped|incomplete)\s+(?:CUPTI\s+)?(\d[\d,]*)\s+(?:records|events)\b",
+                            r"\b(\d[\d,]*)\s+(?:dropped|incomplete)\s+(?:CUPTI\s+)?(?:records|events)\b",
+                            r"\b(?:incomplete\s+)?CUPTI\s+(?:records|events)\s+dropped:\s*(\d[\d,]*)\b",
+                        )
+                        lost = sum(
+                            int(value.replace(",", ""))
+                            for pattern in patterns
+                            for value in re.findall(pattern, message, re.I)
+                        )
+                    coverage["cupti_lost_records"] += lost * count
+                    if (severity is not None and severity >= 2) or lost:
+                        coverage["diagnostics"].append({"severity": severity, "message": message, "count": count})
+    except sqlite3.Error as error:
+        raise ValueError(f"Cannot read Nsight CUDA graph coverage: {error}") from error
+    return coverage
+
+
+def validate_graph_coverage(coverage, requested_mode):
+    """Reject explicit record loss or missing events for the requested graph detail."""
+    if coverage["cupti_lost_records"]:
+        raise ValueError(
+            f"Incomplete CUDA capture: CUPTI reports {coverage['cupti_lost_records']} dropped/incomplete records"
+        )
+    if (
+        requested_mode.split(":")[0] == "node"
+        and any(coverage["graph_launch_api_calls"].values())
+        and not coverage["graph_kernel_events"]
+    ):
+        raise ValueError("Incomplete CUDA node capture: graph-launch APIs were recorded but no graph kernel events")
+    if (
+        requested_mode.split(":")[0] == "graph"
+        and any(coverage["graph_launch_api_calls"].values())
+        and not coverage["whole_graph_events"]
+    ):
+        raise ValueError(
+            "Incomplete CUDA graph capture: graph-launch APIs were recorded but no whole-graph duration events"
+        )
 
 
 def export_graph_summary(directory):
@@ -136,6 +245,9 @@ def write_summary(directory, metadata):
         "summed_event_ms": totals(tables),
         "reports": tables,
     }
+    coverage = metadata.get("profiling", {}).get("graph_coverage")
+    if coverage is not None:
+        summary["graph_coverage"] = coverage
     (directory / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     lines = [
         f"# {metadata['example']} — {metadata['status']}",
@@ -153,6 +265,23 @@ def write_summary(directory, metadata):
     ]
     if metadata.get("error"):
         lines += [f"Run error: {metadata['error']}", "See `capture.log` and `stats.log`.", ""]
+    if coverage is not None:
+        lines += [
+            "## CUDA graph coverage",
+            "",
+            f"Recorded {coverage['kernel_events']:,} kernel events, including "
+            f"{coverage['graph_kernel_events']:,} attributed to CUDA graphs. "
+            f"Whole-graph duration events: {coverage['whole_graph_events']:,}. "
+            f"Explicit CUPTI dropped/incomplete records: {coverage['cupti_lost_records']:,}.",
+            "Graph membership comes from the exported graphNodeId/graphId fields. "
+            "These counts establish recorded coverage; they do not prove that every expected event was collected. "
+            "Runtime and driver graph-launch API counts may describe the same launch and are kept separate in JSON.",
+            "",
+        ]
+        for diagnostic in coverage["diagnostics"]:
+            message = str(diagnostic["message"]).replace("\n", " ")
+            lines.append(f"- Nsight diagnostic ({diagnostic['count']}): {message}")
+        lines.append("")
     if workload:
         lines += ["## Work completed and host timings", ""]
         for key in (

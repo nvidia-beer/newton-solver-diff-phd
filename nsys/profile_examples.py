@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import platform
+import re
 import runpy
 import shutil
 import signal
@@ -16,7 +17,15 @@ from datetime import UTC, datetime
 from importlib import metadata as packages
 from pathlib import Path
 
-from report import REPORTS, compare, export_graph_summary, read_reports, write_summary
+from report import (
+    REPORTS,
+    compare,
+    export_graph_summary,
+    inspect_graph_coverage,
+    read_reports,
+    validate_graph_coverage,
+    write_summary,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -96,6 +105,8 @@ def video_examples(root=ROOT):
             "config": config,
             "sidecar": recorded,
             "cuda_graph_trace": profiling.get(name, {}).get("cuda_graph_trace", "node"),
+            "minimum_nsys_version": profiling.get(name, {}).get("minimum_nsys_version"),
+            "nsys_config_directives": profiling.get(name, {}).get("nsys_config_directives", ""),
         }
         if selected[name]["cuda_graph_trace"] not in {"node", "graph"}:
             raise ValueError(f"{name}: nsys/config.json cuda_graph_trace must be node or graph")
@@ -108,6 +119,20 @@ def query(command, cwd=ROOT):
         return result.stdout.strip() if result.returncode == 0 else None
     except (OSError, subprocess.TimeoutExpired):
         return None
+
+
+def check_profiler_version(version, examples):
+    """Reject known incompatible collectors before starting expensive workloads."""
+    match = re.search(r"\b(\d{4})\.(\d+)\.(\d+)\b", version or "")
+    actual = tuple(map(int, match.groups())) if match else ()
+    for name, entry in examples.items():
+        minimum = entry.get("minimum_nsys_version")
+        if minimum and actual < tuple(map(int, minimum.split("."))):
+            raise ValueError(
+                f"{name} requires Nsight Systems >= {minimum} for profiling this workload; "
+                f"found {version!r}. Install a current CLI and select it with NSYS_ROOT (Docker) "
+                "or NSYS_PATH (local)."
+            )
 
 
 def source_state(root=ROOT):
@@ -133,7 +158,10 @@ def profile_command(nsys, name, entry, options, output):
     command = [
         nsys,
         "profile",
-        "--trace=cuda,nvtx,osrt,cusparse,cusolver" + (",opengl" if options.viewer == "gl" else ""),
+        "--trace="
+        + getattr(options, "cuda_trace", "cuda")
+        + ",nvtx,osrt,cusparse,cusolver"
+        + (",opengl" if options.viewer == "gl" else ""),
         "--sample=process-tree" if options.cpu_sampling else "--sample=none",
         "--cpuctxsw=process-tree" if options.cpu_sampling else "--cpuctxsw=none",
         "--python-sampling=true",
@@ -185,11 +213,13 @@ def collection_settings(command):
     return settings
 
 
-def run_logged(command, log_path, timeout):
+def run_logged(command, log_path, timeout, *, env=None):
     # Leave the example's full output in the run folder, without buffering an
     # unbounded training log in RAM. A process group also cleans up on timeout.
     with log_path.open("w") as stream:
-        process = subprocess.Popen(command, cwd=ROOT, stdout=stream, stderr=subprocess.STDOUT, start_new_session=True)
+        process = subprocess.Popen(
+            command, cwd=ROOT, stdout=stream, stderr=subprocess.STDOUT, start_new_session=True, env=env
+        )
         try:
             return process.wait(timeout=timeout)
         except (subprocess.TimeoutExpired, KeyboardInterrupt):
@@ -216,6 +246,10 @@ def capture(name, entry, package, options, nsys):
         except packages.PackageNotFoundError:
             dependencies[dependency] = None
     input_hashes = input_fingerprints((*entry["arguments"], *options.arguments))
+    environment = os.environ.copy()
+    directives = environment.get("NSYS_CONFIG_DIRECTIVES", entry.get("nsys_config_directives", ""))
+    if directives:
+        environment["NSYS_CONFIG_DIRECTIVES"] = directives
     settings = {
         key: getattr(options, key)
         for key in ("device", "viewer", "width", "height", "warmup", "include_startup", "cpu_sampling", "arguments")
@@ -226,6 +260,7 @@ def capture(name, entry, package, options, nsys):
     profiling = {
         "runner_sha256": digest(ROOT / "nsys/runner.py"),
         "collection_settings": collection_settings(command),
+        "nsys_config_directives": directives,
     }
     comparable = {
         "example": name,
@@ -267,7 +302,7 @@ def capture(name, entry, package, options, nsys):
     start = time.perf_counter()
     interrupted = False
     try:
-        code = run_logged(command, output / "capture.log", options.timeout)
+        code = run_logged(command, output / "capture.log", options.timeout, env=environment)
         metadata["capture_exit_code"] = code
         if code:
             raise RuntimeError(f"Nsight/example exited with code {code}; see capture.log")
@@ -298,6 +333,9 @@ def capture(name, entry, package, options, nsys):
         metadata["stats_exit_code"] = run_logged(stats_command, output / "stats.log", options.timeout)
         if metadata["stats_exit_code"]:
             raise RuntimeError("Nsight statistics failed; see stats.log (the raw capture is retained)")
+        coverage = inspect_graph_coverage(output)
+        metadata["profiling"]["graph_coverage"] = coverage
+        validate_graph_coverage(coverage, settings["cuda_graph_trace"])
         export_graph_summary(output)
         tables = read_reports(output)
         if not (tables.get("cuda_gpu_kern_sum") or tables.get("cuda_graph_sum")):
@@ -415,8 +453,15 @@ def main():
             parser.error(
                 "nsys is not installed; install NVIDIA Nsight Systems or use docker/run.sh --nsys with NSYS_ROOT"
             )
-        if not query([nsys, "--version"]):
+        version = query([nsys, "--version"])
+        if not version:
             parser.error("Cannot execute nsys; check NSYS_PATH")
+        check_profiler_version(version, {name: examples[name] for name in selected})
+        # Recent Nsight releases default to hardware tracing on Blackwell. Use
+        # software tracing explicitly: HES can omit graph kernels on GB10/R580.
+        # Older releases use software tracing for the existing 'cuda' selector.
+        help_text = query([nsys, "profile", "--help"]) or ""
+        options.cuda_trace = "cuda-sw" if "cuda-sw" in help_text else "cuda"
         try:
             packages.version("nvtx")
         except packages.PackageNotFoundError:

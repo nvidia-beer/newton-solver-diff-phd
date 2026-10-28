@@ -31,8 +31,9 @@ With no example, opens an interactive menu. Examples are discovered from example
 Visual examples use CUDA and X11 by default. Terminal-only examples need no display.
 Profiling defaults to the null viewer. Use --nsys EXAMPLE --viewer gl for rendering.
 NSYS_ROOT selects a host Nsight Systems installation (containing bin/nsys).
-Standard /opt/nvidia and CUDA installations are discovered automatically and
-mounted read-only only during profiling. Reports persist under nsys/results/.
+The newest usable installation on PATH, in ~/.local/share/nsight-systems/
+(or $XDG_DATA_HOME/nsight-systems/), or in standard /opt/nvidia and CUDA
+locations is mounted read-only during profiling. Reports persist under nsys/results/.
 EOF
 }
 
@@ -93,19 +94,25 @@ if ((profile)); then
     nsys_root=${NSYS_ROOT:-}
     if [[ -z $nsys_root ]]; then
         candidates=()
-        host_nsys=$(command -v nsys || true)
-        if [[ -n $host_nsys ]]; then
-            resolved=$(readlink -f -- "$host_nsys")
+        while IFS= read -r host_nsys; do
+            resolved=$(readlink -f -- "$host_nsys") || continue
             candidates+=("$(dirname -- "$(dirname -- "$resolved")")")
-        fi
+        done < <(type -a -p nsys || true)
         shopt -s nullglob
-        candidates+=(/opt/nvidia/nsight-systems/* /opt/nvidia/nsight-systems-cli/*
+        candidates+=("${XDG_DATA_HOME:-$HOME/.local/share}"/nsight-systems/*
+            /opt/nvidia/nsight-systems/* /opt/nvidia/nsight-systems-cli/*
             /usr/local/cuda/nsight-systems-* /usr/local/cuda-*/nsight-systems-*)
         shopt -u nullglob
+        newest_version=
         for candidate in "${candidates[@]}"; do
-            if [[ -x $candidate/bin/nsys && -x $candidate/target-linux-$nsys_arch/nsys ]]; then
+            [[ -x $candidate/bin/nsys && -x $candidate/target-linux-$nsys_arch/nsys ]] || continue
+            version_output=$("$candidate/bin/nsys" --version 2>/dev/null) || continue
+            [[ $version_output =~ ([0-9]{4}\.[0-9]+\.[0-9]+(\.[0-9]+)?) ]] || continue
+            version=${BASH_REMATCH[1]}
+            # Compare actual versions, independent of PATH order and directory names.
+            if [[ -z $newest_version || $(printf '%s\n' "$newest_version" "$version" | sort -V | tail -n 1) == "$version" ]]; then
                 nsys_root=$candidate
-                break
+                newest_version=$version
             fi
         done
     fi
@@ -116,6 +123,9 @@ if ((profile)); then
     nsys_root=$(cd -- "$nsys_root" && pwd)
     profile_mounts=(--mount "type=bind,src=$nsys_root,dst=/opt/nsight-systems,readonly"
         --env NSYS_PATH=/opt/nsight-systems/bin/nsys)
+    if [[ ${NSYS_CONFIG_DIRECTIVES+x} ]]; then
+        profile_mounts+=(--env "NSYS_CONFIG_DIRECTIVES=$NSYS_CONFIG_DIRECTIVES")
+    fi
     viewer=null
     remaining=("$@")
     for ((i=0; i<${#remaining[@]}; i++)); do

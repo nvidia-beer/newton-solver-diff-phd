@@ -16,11 +16,23 @@ From the repository root, after the normal Docker build:
 ```
 
 Install [NVIDIA Nsight Systems](https://developer.nvidia.com/nsight-systems) on
-the host. Docker discovers standard installation paths, or use
-`NSYS_ROOT=/path/to/nsight-systems` (the directory containing `bin/nsys`). The
-installation is mounted read-only for profiling. Use the host CPU architecture
-and a CUDA-capable NVIDIA GPU. Rebuild an older solver image to install the new
-optional profiling dependency.
+the host. Docker selects the newest usable installation from `PATH`,
+`${XDG_DATA_HOME:-$HOME/.local/share}/nsight-systems/`, and standard `/opt/nvidia`
+and CUDA locations. An explicit `NSYS_ROOT=/path/to/nsight-systems` (the directory
+containing `bin/nsys`) takes precedence. The installation is mounted read-only
+for profiling. Use the host CPU architecture and a CUDA-capable NVIDIA GPU.
+Rebuild an older solver image to install the new optional profiling dependency.
+
+For a user installation without administrator access, download NVIDIA's CLI
+`.deb` for the host architecture, then extract its version directory:
+
+```bash
+nsys_unpack=$(mktemp -d)
+dpkg-deb -x /path/to/nsight-systems-cli.deb "$nsys_unpack"
+mkdir -p "${XDG_DATA_HOME:-$HOME/.local/share}/nsight-systems"
+cp -a "$nsys_unpack"/opt/nvidia/nsight-systems-cli/* "${XDG_DATA_HOME:-$HOME/.local/share}/nsight-systems/"
+rm -r "$nsys_unpack"
+```
 
 For local development, put `nsys` on `PATH` or set `NSYS_PATH` to its executable:
 
@@ -71,6 +83,10 @@ CUDA graphs replay without calling the Python methods again. Inspect graph nodes
 and kernel names inside the frame/step range for those paths. Whole-graph mode
 instead reports graph IDs, replay counts and GPU durations in `stats_cuda_graph_sum.csv`;
 its kernel table covers only work outside graphs. `summary.md` marks this limit.
+The collector selects software CUDA tracing (`cuda-sw` when supported) so
+conditional graph kernels are resolved on the tested GB10/driver stack. Captures
+with explicit CUPTI record loss or missing graph events fail validation; their
+raw diagnostics remain available for inspection.
 The optional `nsys/config.json` holds profiling overrides, not an example list;
 discovery still selects only README video workloads. Host phase timings
 measure asynchronous submission, including any synchronization already performed
@@ -87,7 +103,7 @@ Each run creates a unique timestamped directory under `nsys/results/`:
 | `summary.md` | Completed work, host timing summaries and largest reported costs. |
 | `capture.nsys-rep` | Full CPU/GPU timeline for the Nsight Systems GUI. |
 | `stats_*.csv`, `summary.json` | Full kernel, CUDA API, memory, NVTX and OS reports. |
-| `run.json` | Command, workload settings, Git revision/source digest, versions, GPU information and completion status. |
+| `run.json` | Command, workload settings, Git revision/source digest, versions, GPU information, graph coverage, collector directives and completion status. |
 | `workload.json` | Initialization/warmup durations, completed frames and individual host phase timings. |
 | `capture.log`, `stats.log` | Complete application/profiler output and errors. |
 

@@ -3,6 +3,7 @@
 import json
 import os
 import platform
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -43,6 +44,8 @@ class TestDocker(unittest.TestCase):
         self.environment["PATH"] = str(commands) + os.pathsep + self.environment["PATH"]
         self.environment.pop("SOLVER_IMAGE", None)
         self.environment.pop("DISPLAY", None)
+        self.environment.pop("NSYS_CONFIG_DIRECTIVES", None)
+        self.environment["XDG_DATA_HOME"] = str(self.directory / "user data")
         self.profiler = self.directory / "nsight install with spaces"
         (self.profiler / "bin").mkdir(parents=True)
         (self.profiler / "bin/nsys").write_text("#!/bin/sh\nexit 0\n")
@@ -62,6 +65,40 @@ class TestDocker(unittest.TestCase):
             text=True,
             check=check,
         )
+
+    def isolate_profiler_discovery(self):
+        """Use fake installed releases without depending on the host's Nsight/PATH."""
+        commands = self.directory / "commands"
+        for command in ("bash", "python3", "dirname", "readlink", "uname", "id", "mkdir", "sort", "tail"):
+            (commands / command).symlink_to(shutil.which(command))
+        self.environment["PATH"] = str(commands)
+        self.environment.pop("NSYS_ROOT", None)
+        installations = self.directory / "installed Nsight releases"
+        installations.mkdir()
+        script = self.checkout / "docker/run.sh"
+        content = script.read_text()
+        for index, pattern in enumerate(
+            (
+                "/opt/nvidia/nsight-systems/*",
+                "/opt/nvidia/nsight-systems-cli/*",
+                "/usr/local/cuda/nsight-systems-*",
+                "/usr/local/cuda-*/nsight-systems-*",
+            )
+        ):
+            location = installations if index == 0 else self.directory / f"absent-installation-{index}"
+            content = content.replace(pattern, shlex.quote(str(location)) + "/*")
+        script.write_text(content)
+        return installations
+
+    def fake_profiler(self, root, version, *, target_arch=None, exit_code=0):
+        architecture = target_arch or ("sbsa-armv8" if platform.machine() == "aarch64" else "x64")
+        target = root / f"target-linux-{architecture}" / "nsys"
+        target.parent.mkdir(parents=True)
+        target.write_text(f'#!/bin/sh\nprintf "NVIDIA Nsight Systems version {version}\\n"\nexit {exit_code}\n')
+        target.chmod(0o755)
+        (root / "bin").mkdir()
+        (root / "bin/nsys").symlink_to(target)
+        return root
 
     def test_build_uses_project_name_and_quoted_context(self):
         argv = json.loads(self.invoke("build.sh", "--platform", "linux/arm64", "--", "--no-cache").stdout)
@@ -164,16 +201,55 @@ class TestDocker(unittest.TestCase):
         )
 
     def test_nsys_discovers_complete_installation_from_path(self):
-        target = self.profiler / ("target-linux-sbsa-armv8" if platform.machine() == "aarch64" else "target-linux-x64")
-        target.mkdir()
-        (target / "nsys").write_text("#!/bin/sh\nexit 0\n")
-        (target / "nsys").chmod(0o755)
-        (self.profiler / "bin/nsys").unlink()
-        (self.profiler / "bin/nsys").symlink_to(target / "nsys")
-        self.environment.pop("NSYS_ROOT")
-        self.environment["PATH"] = str(self.profiler / "bin") + os.pathsep + self.environment["PATH"]
+        self.isolate_profiler_discovery()
+        profiler = self.fake_profiler(self.directory / "PATH install with spaces", "2025.3.2.474")
+        self.environment["PATH"] = str(profiler / "bin") + os.pathsep + self.environment["PATH"]
+        argv = json.loads(self.invoke("run.sh", "--nsys", "visual").stdout)
+        self.assertIn(f"type=bind,src={profiler},dst=/opt/nsight-systems,readonly", argv)
+
+    def test_nsys_prefers_newest_usable_installed_version_over_path(self):
+        installations = self.isolate_profiler_discovery()
+        older = self.fake_profiler(self.directory / "old PATH install", "2025.3.2.474")
+        self.environment["PATH"] = str(older / "bin") + os.pathsep + self.environment["PATH"]
+        # Names and lexical ordering must not override actual numeric versions.
+        newest = self.fake_profiler(installations / "a-newest", "2026.10.1.7")
+        self.fake_profiler(installations / "z-older", "2026.9.1.9")
+        self.fake_profiler(installations / "unusable", "2027.1.0.1", exit_code=1)
+        wrong_arch = "x64" if platform.machine() == "aarch64" else "sbsa-armv8"
+        self.fake_profiler(installations / "wrong-architecture", "2028.1.0.1", target_arch=wrong_arch)
+        self.fake_profiler(installations / "unrecognized-version", "unknown")
+        argv = json.loads(self.invoke("run.sh", "--nsys", "visual").stdout)
+        self.assertIn(f"type=bind,src={newest},dst=/opt/nsight-systems,readonly", argv)
+
+    def test_nsys_checks_all_path_installations_and_preserves_explicit_root(self):
+        self.isolate_profiler_discovery()
+        older = self.fake_profiler(self.directory / "old PATH install", "2025.3.2.474")
+        newest = self.fake_profiler(self.directory / "new PATH install", "2026.5.1.1")
+        self.environment["PATH"] = os.pathsep.join((str(older / "bin"), str(newest / "bin"), self.environment["PATH"]))
+        argv = json.loads(self.invoke("run.sh", "--nsys", "visual").stdout)
+        self.assertIn(f"type=bind,src={newest},dst=/opt/nsight-systems,readonly", argv)
+        self.environment["NSYS_ROOT"] = str(self.profiler)
         argv = json.loads(self.invoke("run.sh", "--nsys", "visual").stdout)
         self.assertIn(f"type=bind,src={self.profiler},dst=/opt/nsight-systems,readonly", argv)
+
+    def test_nsys_prefers_newer_user_installation_without_root_permissions(self):
+        installations = self.isolate_profiler_discovery()
+        self.fake_profiler(installations / "system release", "2025.3.2.474")
+        user_installations = Path(self.environment["XDG_DATA_HOME"]) / "nsight-systems"
+        newest = self.fake_profiler(user_installations / "2026.5.1", "2026.5.1.1")
+        argv = json.loads(self.invoke("run.sh", "--nsys", "visual").stdout)
+        self.assertIn(f"type=bind,src={newest},dst=/opt/nsight-systems,readonly", argv)
+
+    def test_nsys_forwards_explicit_directives_including_empty_override(self):
+        argv = json.loads(self.invoke("run.sh", "--nsys", "visual").stdout)
+        self.assertFalse(any(argument.startswith("NSYS_CONFIG_DIRECTIVES=") for argument in argv))
+        for directives in ("CuptiDeviceBufferSizeMb=64", ""):
+            with self.subTest(directives=directives):
+                self.environment["NSYS_CONFIG_DIRECTIVES"] = directives
+                argv = json.loads(self.invoke("run.sh", "--nsys", "visual").stdout)
+                self.assertIn(f"NSYS_CONFIG_DIRECTIVES={directives}", argv)
+                ordinary = json.loads(self.invoke("run.sh", "--cpu", "--headless", "visual").stdout)
+                self.assertFalse(any(argument.startswith("NSYS_CONFIG_DIRECTIVES=") for argument in ordinary))
 
     def test_nsys_validation_and_explicit_gl_fail_before_docker(self):
         for arguments in (("--cpu", "--nsys", "visual"), ("--nsys", "visual", "--viewer", "gl")):
