@@ -41,7 +41,8 @@ without requiring CUDA or Nsight. `--help` lists all options. Extra example
 arguments follow `--`; they are recorded alongside the video defaults.
 
 The recorded poke video's defaults use `--forward-only --show-target --test`;
-the retained clip is historical and does not validate the current solver.
+the current clip shows the original penalty contact's unresolved penetration.
+Completing this workload does not validate nonpenetration.
 To capture training instead, omit those defaults explicitly:
 
 ```bash
@@ -67,6 +68,12 @@ scripted cuts, pressure changes, steering and learning events. Training performe
 by an example's constructor is included in the `initialization` range, separately
 from the frame loop. Warmup can still leave first-use compilation in later
 branches; the trace makes those costs visible.
+
+The media sidecar's `frames` field counts example updates. `encoded_frames`
+also includes held initial/final images; profiling does not run those presentation
+holds. The cantilever workload executes 25 axial steps, switches motion, then
+executes all 100 twist steps. The poke workload uses 36 updates: one initial draw
+and 35 motion intervals of 30 physics substeps each.
 
 For terminal optimization examples, video frames only animate a result chart.
 The profiler runs the actual optimization once, with one independent optimization

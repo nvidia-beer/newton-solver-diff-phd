@@ -16,20 +16,31 @@ rerun has a heterogeneous backward parity failure, and the prepared poke scene
 still permits deep overlap. See
 [reference compatibility](reference_compatibility.md) for their scope.
 
-The [current Hex8 regression snapshot](validation/cantilever-tests-2026-11-02.json)
+After removing the swept-contact extension, complete discovery passes **179
+tests** on each device: CPU has **174 passes/five skips** (119.599 s), and CUDA
+has **178 passes/one skip** (101.404 s). Original penalty and frictional contact,
+Tet/Hex mechanics and adjoint regressions remain covered. All three videos were
+recorded afresh with their final checks enabled, and their encoded frame counts,
+arguments and captions match the media metadata. The cantilever clip includes
+both complete motions. Ruff, README checks, profiling command generation, and
+source/wheel builds pass. This cleanup does not fix UR5 penetration.
+
+The [preceding Hex8 regression snapshot](validation/cantilever-tests-2026-11-02.json)
 passes **217 tests** on each device: CPU has **211 passes/six skips**
 (125.152 s); CUDA has **216 passes/one skip** (106.214 s). Ruff checks,
 generated documentation, actual demonstration media, source and wheel builds
 pass. Both complete cantilever motions and UI mode-switch restart behavior are
-covered. These results do not fix the recorded UR5 contact failure.
+covered. That snapshot predates removal of the swept-contact experiment; its
+test count includes tests that are no longer retained. These results do not fix
+the recorded UR5 penalty-contact failure.
 
 The [preceding asset and tessellation audit](validation/tessellation-2026-11-02.json)
 passes complete discovery on both devices. The final CPU suite has **206 tests**,
 with **201 passes and five skips** (222.223 s); CUDA on GB10 has **205 passes and
 one CPU-only skip** (124.531 s). These suites add original-asset round trips,
-complete embedding containment, dependent contact constraints and independent
-sparse-factor checks. The original recorded deep poke still
-fails; these regressions do not establish full-motion nonpenetration.
+complete embedding containment and independent sparse-factor checks, alongside
+the now-removed contact experiment. These historical regressions do not
+establish full-motion nonpenetration for the retained penalty-contact solver.
 
 The [preceding regression report](validation/solver-validation-2026-11-02.json)
 uses identical source fingerprints for both devices. That snapshot passes
@@ -37,9 +48,9 @@ uses identical source fingerprints for both devices. That snapshot passes
 GB10 has **196 passes and one CPU-only skip** (118.562 s). Ruff check and format
 check pass for 103 Python files. Source and wheel builds pass; the wheel includes
 the new public geometry and excludes the private recording. These checks
-include the complete synthetic cycle, independent contact/energy tests,
-reference-mode regressions and explicit failure rollback. They do not turn the
-recorded UR5 failure below into a successful full rollout.
+include reference-mode regressions and the now-removed synthetic/contact
+experiment. Their source fingerprints and paths describe that historical
+snapshot; they are not current API or reproduction instructions.
 
 ## Original Hex8 cantilever validation
 
@@ -79,11 +90,14 @@ viewer model. Tests compare each switched trajectory with a fresh simulation,
 including graphs rebuilt for the changed timestep/tolerance. The actual OpenGL
 viewer was inspected at the initial pose and during the oscillation. Mesh edges
 and tip angle identify the rotation; interactive twist begins with a 1.5-second
-hold of its initial state. The bundled movie records the complete axial problem.
+hold of its initial state. The bundled movie records the complete 25-step axial
+problem and a fresh 100-step twist release at 24 fps, with presentation holds
+before and after each motion. Those holds do not add physics steps.
 
 The [performance report](validation/cantilever-performance-2026-11-02.json)
-contains Nsight measurements for the actual axial video workload. Playback
-frame rate and the interactive initial hold are not solver throughput.
+contains Nsight measurements for the earlier axial-only video workload. It
+does not measure the new combined axial/twist presentation. Playback frame
+rate and initial/final pose holds are not solver throughput.
 Hex8 is forward-only; no new adjoint or UR5 contact validation is claimed.
 
 ## Bunny reference diagnostic
@@ -124,38 +138,12 @@ rest-frame rendering were rechecked. Genuine scan protrusion beyond the
 decimated collision hull remains explicit (maximum 0.523 mm at rest), and cannot
 explain centimetre-scale penetration.
 
-The [audit](validation/tessellation-2026-11-02.json) also tests a remesh with
-5,353 die vertices / 29,022 tetrahedra. It preserves the outer surface and
-volume and aligns cells with the clamp plane. The lowest-percentile shape
-quality improves, but the worst shape is worse because of small boundary
-segments. It is **not adopted as the default**. With the contact correction
-below it accepts 481 steps and rejects step 482: six well-shaped rest elements
-inside the cube collapse under the probe. They have no pinned or surface nodes,
-rest mean-ratio qualities 0.880–0.977, and are about 200 mm above the clamp.
-All six already invert in the unconstrained mechanical update, before contact
-correction. Thus fixing the old clamp element does not establish a stable full
-trajectory.
-
-A second mesh grades resolution to roughly 6 mm along the complete probe sweep,
-with **12,586 vertices / 67,725 tetrahedra**. Its minimum mean-ratio quality rises
-from 0.00996 to 0.02061 and first-percentile quality from 0.177 to 0.343. Boundary
-refinement changes the sampled surface by at most 0.233 mm and volume by
--0.00175%. Nevertheless, the final solver rejects **step 424** for inversion,
-after 423 accepted steps. Six surface elements fail; their rest qualities are
-0.722–0.964 and edge lengths 2.72–6.61 mm, with no pinned nodes. Their incoming
-centroids are 0.785–1.379 mm from the actual probe surface. Five already invert
-before contact correction; the sixth inverts during that correction, while the
-contact and QP residuals pass. This candidate is also retained only as a
-diagnostic; it does not replace the runtime mesh or establish a tessellation-only
-fix. These audits use the original solver rest basis, not the preceding deformed
-state.
-
-The original asset with final production code accepts **479 / 1,050** steps and
-rejects **step 480**. Its single inverted tetrahedron is at the loaded surface,
-has no fixed vertices, and has rest mean-ratio quality 0.527. The incoming
-determinant ratio is 0.00401; the contact-corrected candidate reaches -0.14004.
-The contact residuals pass their unchanged tolerances. This is a different
-failure location from the older fine-mesh clamp failure below.
+The [historical tessellation audit](validation/tessellation-2026-11-02.json)
+also contains clamp-aligned and locally refined remeshing trials under the
+now-removed swept-contact experiment. None completed the recorded deep poke;
+those meshes were not adopted. The JSON preserves that original investigation,
+including source fingerprints and old commands. Its swept-contact results and
+packaging entries are archival, not current supported features or instructions.
 
 Matched-input penalty-contact updates agree with compiled native AlgPhD at five
 steps, including contact: maximum position difference **33.62 nm**, force
@@ -169,106 +157,24 @@ that method from `pd_eigen_alg_phd`.
 Sparse-factor preparation now uses vectorized updates while preserving arithmetic
 order. Three alternating paired measurements of the complete 3,500-row setup
 give median **32.35 s → 4.35 s** (7.44×). All six factor CSR arrays are bitwise
-identical, also on the full original swept and penalty matrices. This measures
-CPU setup, not GPU stepping or viewer FPS. The latest complete 90-frame Nsight
-graph capture records 380 graph events and zero explicit dropped records, with
-collection warnings retained. Per-node captures lost records and are rejected
-as quantitative performance evidence. The audit includes their raw locations.
+identical, including the complete original-asset penalty matrix. This measures
+CPU setup, not GPU stepping or viewer FPS. The same historical audit also
+contains profiles of the removed synthetic scene; those are not current
+example-performance measurements.
 
-## Optional swept-contact validation
+## Removed contact experiment
 
-The synthetic swept-poke demo and its scene-specific reports have been removed.
-The extension and independent solver tests remain because the UR5 diagnostic
-still uses them. The larger recorded UR5 demonstration is **still incomplete**.
+The experimental swept-contact solver, its CLI option, synthetic scene, tests
+and dedicated reports have been removed. It was not part of either original
+paper's solver and did not resolve the recorded deep poke. Its historical
+implementation and diagnostics remain available in Git history before this
+cleanup. Mixed historical reports retained here also contain original-mode
+and asset evidence; any swept-contact paths or commands in those snapshots
+refer to the removed experiment.
 
-Independent checks exposed and corrected these errors in the extension:
-
-- Anderson accelerated the unconstrained elastic map, whose residual contains
-  a nonzero contact reaction even at equilibrium. It now accelerates the
-  constrained map `F(x)=P(T(x))`.
-- A small accelerated update could stop the solver without establishing
-  equilibrium. Stopping now tests the unaccelerated `F(x)-x` residual and the
-  material-projection residual, and returns the iterate actually checked.
-- Frozen contact planes could exert force after their features separated.
-  Accepted response now uses current closest points and normals, geometric
-  complementarity, mechanical force consistency and a fresh physical sweep.
-- Loose inner QP accuracy let almost parallel contact planes produce micrometre
-  displacement errors despite nanometre gap errors. The inner solve now uses
-  `1e-5` times the outer contact tolerance. An analytic two-plane test checks
-  the unique metric projection and both contact forces.
-- An overly large numerical pivot cutoff rejected a valid active-row exchange
-  for nearly duplicate contacts and sent it to a slowly converging fallback.
-  The normalized cutoff is now 1e-14; the physical KKT tolerance is unchanged.
-  An independently solved three-row problem checks the constrained optimum,
-  with a 67-row version exercising the other factorization path.
-- Truly dependent entering rows could still stall the coordinate fallback.
-  A feasible descent exchange now removes a blocking old row before solving
-  again, without changing the quadratic or its tolerance. Independent 3-row
-  and 67-row cases check both the primal optimum and all original constraints.
-
-The [independent equilibrium report](validation/poke-swept-equilibrium-2026-11-02.json)
-checks a broad-plate press and hold for both PD and Neo-Hookean material.
-A separate NumPy/SciPy energy minimization uses exact plate inequalities;
-it does not reuse the production contact response or material projection.
-Across four cases, maximum nodal discrepancy is **3.69 nm**, force-stationarity
-residual is at most **5.05 microNewtons**, and the minimum element determinant
-ratio is **0.842**. The Neo-Hookean comparison uses the reference's proximal
-energy envelope, which is the forward algorithm actually implemented; it is
-not a comparison to an unmodified hyperelastic stress law.
-
-The [Nsight measurement](validation/poke-swept-performance-2026-11-02.json)
-uses ten repetitions of an identical loaded physical step after warmup.
-Parallel entering-contact selection reduced profiled mean step time from
-**381.7 ms to 256.1 ms**, with identical final float32 positions and 14 iterations.
-The trace records 71,250 kernels, including 71,190 graph kernels, with no
-explicitly lost records. Both captures retain CUDA/NVTX collection warnings,
-so that does not establish complete trace collection. The matched measurements
-used inner QP tolerance 1e-8, before the later tightening to 1e-12. This measures
-that optimization snapshot and contact step, not current full-scene FPS.
-The longer attempted capture reported dropped records and was rejected as a
-performance measurement. Continuous queries remain the largest measured cost.
-
-### Full recorded scene remains unresolved
-
-The [earlier fine-mesh rerun](validation/poke-swept-current-2026-11-02.json),
-before the dependent-row correction and original-asset preparation above,
-accepted **472 of 1,050** substeps, then rejected step **473** for an inverted
-tetrahedron beside the fixed clamp. Contact certification passed: nonlinear
-residual 4.96e-8 against 1e-7, and inner QP residual 8.40e-19 against 1e-12.
-No step reached its mechanical iteration cap; the maximum was 24 iterations.
-The accepted prefix reached 59.50 mm maximum nodal displacement. Its saved
-states had zero sampled overlap with both the tetrahedral and displayed
-surfaces; this is not a completed full-motion nonpenetration result.
-
-An earlier run with the same strict tolerances rejected step 438 because of
-the premature numerical pivot cutoff. The corrected cutoff resolves that
-saved QP to residual 4.80e-19 and gets past that failure, without relaxing
-physical tolerances. The final clamp failure remains.
-
-The last accepted determinant ratio was 0.00430. Three of the failing
-element's four nodes are fixed, and its
-free node receives no direct active contact force. The first unaccelerated
-mechanical iteration of an independently replayed earlier clamp-failure state
-already inverts it. Rejecting only Anderson extrapolations therefore does not
-fix that case. In the final run, the unconstrained material update also already
-inverts the same element before its small contact correction.
-
-A diagnostic that keeps every numerical iterate positive stalls while its
-unchanged equilibrium residual is roughly 919 times the stopping threshold.
-That experiment was rejected and is not enabled in the solver. A positive
-geometric configuration exists at the complete commanded probe position; these
-results do **not** prove that the command requires inversion or that all possible
-positive mechanical equilibria are absent. The remaining failure needs further
-numerical investigation. Rejected steps restore positions and velocities and
-do not advance the example's command clock.
-
-The [earlier 477-step report](validation/poke-swept-contact-2026-11-02.json)
-and [matched-frame blue/white comparison](validation/poke-swept-blue-white-prefix-2026-11-02.json)
-precede these corrections. They are historical diagnostics, not validation of
-the current implementation. The old matched-prefix RMS was 30.465 mm with swept
-contact versus 30.649 mm with the reference penalty. This 0.60% reduction was
-not an accepted fit: initial placement and prescribed robot motion were
-unfitted. No complete recording fit or full-motion nonpenetration is claimed.
+The retained UR5 scene uses the original two-way penalty force. Its known
+penetration and derivative limitations remain documented below; removing the
+extension does not establish collision prevention or a successful recording fit.
 
 ## Reference-mode checks
 
@@ -331,6 +237,15 @@ This `--test` checks numerical output; it is not a nonpenetration test. The
 geometric diagnostic below records the observed overlap separately.
 
 ## Current recorded forward diagnostic
+
+The bundled UR5 video is a fresh forward-only run with the original penalty
+contact, without a fitted checkpoint. It shows the initial state and all 35
+recorded-motion intervals: 1,050 physics substeps at 1/900 s. Playback is 15 fps
+with initial/final presentation holds. Its white simulated surface and blue
+recorded surface expose the unresolved pass-through. Completing this video and
+the example's finite-state check is not a nonpenetration validation. The
+quantitative geometric measurements below come from the separate diagnostic
+reports, not from measuring the rendered frames.
 
 The [original-training forward report](validation/poke-reference-training-2026-11-02.json)
 runs the current `build_poke_scene` and untaped `Example._Forward` on the GB10.

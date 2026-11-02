@@ -85,7 +85,7 @@ These are distinct from the frictional boundary solver.
 
 `deformation_determinants(state)` reports det(F) at every cell/sample. The
 cantilever audits these values at every step. Hex8 currently rejects Warp Tape
-recording and frictional/mesh/swept contact: its supported scope is forward
+recording and frictional/mesh contact: its supported scope is forward
 elastic, muscle and vertex-plane energies. Existing Tet4 derivatives retain
 their documented scope below. No Hex8 adjoint is claimed.
 
@@ -233,89 +233,3 @@ recorded rollout is required to establish those properties; see
 alternate contact QP, material model or clamp remeshing. Poke alignment versions 1–4 are incompatible
 and must be refitted (current format: version 5); checkpoints record both a
 physics signature and the loaded scene fingerprint.
-
-## Optional swept mesh contact
-
-`SolverDiffPhD(..., swept_contact=(clearance, split, faces_left, faces_right))`
-selects an extension to the reference contact algorithm. The left body is
-deformable; every particle of the right probe is prescribed. It is mutually
-exclusive with the reference penalty and frictional-boundary modes. The UR5
-example selects it with `--forward-only --swept-contact`. Its material
-projections and mechanical matrix remain those above.
-
-`ccd.py` checks both vertex/triangle directions and cross-body edge/edge
-pairs. Swept endpoint AABBs reject separated pairs. Narrowphase uses FP64
-closest features and conservative advancement for linear vertex trajectories:
-for vertex/triangle distance the relative speed bound is
-`L = max_i ||delta_vertex - delta_triangle_i||`; for two edges it is the
-maximum relative endpoint speed. An advance smaller than `(distance-radius)/L`
-cannot pass a proximity event in exact arithmetic. Separating-plane checks
-handle parallel near-contact trajectories. An exhausted proximity search can
-conservatively add its last witness as a contact row; the independent physical
-intersection search must still certify the sweep. An unresolved physical
-search can trigger correction when an endpoint row is violated, but the
-corrected sweep must pass a fresh search. An unresolved feasible endpoint or
-an exhausted correction budget rejects the step. The implementation is a numerical CCD algorithm, not an interval
-arithmetic proof for arbitrary floating-point input.
-
-Each detected feature supplies up to four global particle indices, affine
-coefficients and a normal. With prescribed coordinates substituted, the row is
-`J_i x - clearance >= 0`. `swept_contact.py` retains feature identities and
-computes the mechanical response from the unconstrained endpoint `y`:
-
-```text
-W = J A^{-1} J^T
-g = J y - clearance
-0 <= lambda perpendicular to g + W lambda >= 0
-x = y + A^{-1} J^T lambda
-```
-
-`swept_qp.py` checks the original normal complementarity residual before
-accepting its active-set solve. When a newly added row is dependent on the
-current independent active set, the solver follows its normalized null direction
-to the first multiplier bound and exchanges the blocking row. The step must
-decrease the unchanged quadratic. All original rows remain in pricing and the
-final certificate; an active-set exchange does not remove a physical constraint.
-Other dependent systems can use coordinate descent without diagonal
-regularization, with the same final residual check. No iteration budget is
-interpreted as a convergence result.
-Both Cholesky paths test dimensionless pivots after diagonal normalization.
-Their roundoff cutoff is `1e-14` (about 45 binary64 epsilons). A larger `1e-12`
-cutoff prematurely rejected valid near-dependent directions needed to exchange
-active contact rows. Accepting that intermediate factor does not relax the
-final physical complementarity certificate or multiplier positivity check.
-After a fresh sweep is physically clear, closest-point coefficients and normals
-are recomputed at the corrected endpoint. The response is resolved with this
-current geometry and the same unconstrained `y`. Acceptance requires both the
-current geometric complementarity residual
-`max_i |min(distance_i(x)-clearance, W_ii lambda_i)|` and the mechanical residual
-`max_node ||x-y-A^{-1}J(x)^T lambda||` to be at most the contact tolerance.
-The inner linear QP uses `1e-5` times this tolerance: nearly parallel features
-can amplify a small gap error into a much larger displacement error. The
-subsequent geometry update and force-consistency check still use the outer
-contact tolerance. On CUDA, the entering-contact scan uses parallel min/max
-reductions with the same first-index tie rule as the serial CPU implementation.
-Before the sweep is clear, CCD witness normals retain the collision side.
-This avoids obsolete planes exerting forces on separated features. The final
-sweep must be physically clear; this does not certify the full clearance
-radius throughout the intervening path.
-
-For this extension, the fixed-point map is `F(x)=P(T(x))`, where `T` is the
-mechanical local/global update and `P` is the contact response above. Anderson
-uses `F(x)-x`, which vanishes at constrained equilibrium. The convergence test
-uses that unaccelerated residual and the projection residual; a small Anderson
-update alone cannot terminate the solve. On convergence, it returns the iterate
-whose residual was tested. Otherwise the accelerated endpoint receives its own
-contact projection and full sweep before the next iteration. With Anderson
-disabled, the already certified constrained update is retained without a
-redundant second projection. The reference
-mode retains its original iteration order.
-
-This mode is frictionless and supports forward simulation only. Recording it
-on a Warp Tape is rejected; the reference contact adjoint is not reused for
-these new constraints. CCD or response failure sets status 32, and an inverted
-or degenerate final tetrahedron sets status 64. This element check covers both
-the internal double coordinates and the float32 coordinates written to Newton's
-state. The CCD query itself uses the internal double trajectory. Any failed swept step restores
-the input positions and velocities. This validity check does not change the
-material energy or provide self-collision prevention within either body.

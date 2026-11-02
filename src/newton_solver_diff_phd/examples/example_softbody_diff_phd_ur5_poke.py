@@ -169,10 +169,6 @@ class Example:
                     self.dt,
                     dirichlet_positions=self.dirichlet_positions,
                 )
-                if self.scene.get("swept_contact", False):
-                    # A rejected swept step must not advance the trajectory clock
-                    # or silently render the restored state as a successful poke.
-                    self.solver.check_status()
                 if self.velocity_damping != 1.0:
                     wp.launch(
                         damp_poke_velocities,
@@ -189,9 +185,6 @@ class Example:
                 self.elapsed_steps += 1
 
     def __init__(self, viewer, args):
-        self.swept_contact = bool(getattr(args, "swept_contact", False))
-        if self.swept_contact and (not args.forward_only or args.load_alignment):
-            raise ValueError("--swept-contact requires --forward-only; training and saved fits need a contact adjoint")
         if args.train_iters < 0:
             raise ValueError("train-iters must be nonnegative")
         if args.refinement is not None:
@@ -219,15 +212,7 @@ class Example:
             if checkpoint
             else 0.30
         )
-        friction = (
-            args.friction
-            if args.friction is not None
-            else checkpoint["friction"]
-            if checkpoint
-            else 0.0
-            if self.swept_contact
-            else FRICTION
-        )
+        friction = args.friction if args.friction is not None else checkpoint["friction"] if checkpoint else FRICTION
         contact_radius = (
             args.contact_radius
             if args.contact_radius is not None
@@ -270,7 +255,6 @@ class Example:
             poisson=poisson,
             friction=friction,
             contact_radius=contact_radius,
-            swept_contact=self.swept_contact,
         )
         self.young, self.poisson = float(young), float(poisson)
         self.recording_hash = hashlib.sha256(self.recording_path.read_bytes()).hexdigest()
@@ -405,13 +389,7 @@ class Example:
             ),
             flush=True,
         )
-        print(
-            "Contact mode: swept CCD, kinematic probe, frictionless."
-            if self.swept_contact
-            else "Contact mode: original reference penalty; CCD is off. "
-            "Use --forward-only --swept-contact for swept collision.",
-            flush=True,
-        )
+        print("Contact mode: original reference penalty; penetration is possible.", flush=True)
 
     def step(self):
         if self._first_frame:
@@ -582,11 +560,7 @@ class Example:
 
     def gui(self, ui):
         ui.text("UR5e / recorded PokeFlex die")
-        ui.text(
-            "Swept mesh contact; kinematic probe; frictionless; forward only"
-            if self.swept_contact
-            else "Original training demo's mesh contact force; penetration is possible"
-        )
+        ui.text("Original training demo's mesh contact force; penetration is possible")
         ui.text(f"Young's modulus: {self.young / 1000:.3f} kPa; Poisson ratio: {self.poisson:.3f}")
         ui.text("Hand-authored reference robot trajectory; no measured probe poses")
         ui.text("White: simulated die; blue: recorded scan")
@@ -823,11 +797,6 @@ class Example:
         )
         parser.add_argument(
             "--show-target", action="store_true", help="Overlay the recorded target at the current frame."
-        )
-        parser.add_argument(
-            "--swept-contact",
-            action="store_true",
-            help="Enable swept mesh collision response with a kinematic probe. Requires --forward-only; friction=0.",
         )
         parser.add_argument(
             "--target-rms-mm",

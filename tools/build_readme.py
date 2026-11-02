@@ -6,6 +6,7 @@ import json
 import posixpath
 import re
 import runpy
+import shlex
 import tomllib
 from pathlib import Path
 
@@ -93,6 +94,8 @@ def make_readme(root=ROOT, *, require_videos=False):
         ]
     )
     cells = []
+    profiles_path = root / "docs" / "videos.json"
+    profiles = json.loads(profiles_path.read_text()) if profiles_path.is_file() else {}
     for example, (description, _, module) in examples.items():
         media = root / "docs" / "media"
         clip = media / f"{example}.mp4"
@@ -101,18 +104,24 @@ def make_readme(root=ROOT, *, require_videos=False):
         )
         source = "src/" + package + "/examples/" + module.replace(".", "/") + ".py"
         cell = f"**[{example}]({source})**<br>{html.escape(description)}<br>"
+        recorded = {}
         if clip.is_file() and preview:
             cell += f'<a href="docs/media/{clip.name}"><img src="docs/media/{preview.name}" width="420" alt="{html.escape(description, quote=True)}"></a><br>'
             sidecar = media / f"{example}.json"
             if sidecar.is_file():
-                caption = json.loads(sidecar.read_text()).get("caption", "")
+                recorded = json.loads(sidecar.read_text())
+                caption = recorded.get("caption", "")
                 if caption:
                     cell += html.escape(caption) + "<br>"
         elif require_videos:
             raise ValueError(f"Missing video or preview for {example}")
         else:
             cell += f"Video not recorded yet: `uv run --locked python tools/record_examples.py {example}`<br>"
-        cell += f"`./docker/run.sh {example}`"
+        profile = profiles.get(example, {})
+        arguments = [arg for arg in recorded.get("arguments", profile.get("args", [])) if arg != "--test"]
+        cell += "<br>".join(
+            "`" + shlex.join(["./docker/run.sh", example, *args]) + "`" for args in profile.get("run_args", [arguments])
+        )
         cells.append(cell.replace("|", "&#124;"))
     text.append("| Example | Example |\n| --- | --- |")
     text.extend(f"| {cells[i]} | {cells[i + 1] if i + 1 < len(cells) else ''} |" for i in range(0, len(cells), 2))
@@ -124,7 +133,8 @@ def make_readme(root=ROOT, *, require_videos=False):
             "Recording needs the `examples` extra, `ffmpeg`, and OpenGL. "
             "`docs/videos.json` stores optional capture arguments; it does not define the example list. "
             "`tools/video_scenarios.py`, when present, scripts interactions for recording. "
-            "Each clip has a metadata file recording arguments, frame count and capture conditions.\n",
+            "Each clip has a metadata file recording arguments, simulation frame count and capture conditions. "
+            "Encoded frame counts also include presentation holds, which never advance physics.\n",
             "## Validate\n",
             "```bash\nuv run --locked ruff check .\nuv run --locked ruff format --check .\nuv run --locked python -m unittest discover -s tests -v\nNEWTON_TEST_DEVICE=cuda:0 uv run --locked python -m unittest discover -s tests -v\nuv build\n```\n",
         ]

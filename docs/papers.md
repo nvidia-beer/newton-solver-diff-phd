@@ -85,43 +85,6 @@ the grouped local Jacobian. Native AlgPhD state adjoints also omit contact,
 making launch gradients through impact approximate even after fixing that
 grouping mismatch. See the [validation report](validation.md).
 
-## Optional swept contact extension
-
-`SolverDiffPhD(swept_contact=(clearance, split, faces_left, faces_right))`
-selects an added contact algorithm, outside the reference and paper mapping
-above. The reference contact modes remain the default. The extension keeps the
-selected material projection and implicit matrix; it requires the entire right
-mesh to be prescribed and supports forward, frictionless motion only. It
-rejects a `wp.Tape`, friction, restitution and simultaneous reference contact
-modes.
-
-`ccd.SweptMeshCCD` checks moving vertex–triangle and edge–edge pairs along the
-linear paths from the incoming state to a proposed endpoint. `SweptContact.project`
-transfers contact response to free face vertices using four-node contact rows
-and the coupled matrix $W=JA^{-1}J^T$. `swept_qp.CertifiedNormalQP` checks the
-normal QP's complementarity conditions. Correction rounds refresh closest
-features and check both nonlinear gap complementarity and mechanical force
-consistency, followed by a fresh sweep; a finite search or response budget is not
-treated as convergence. Failure restores the incoming positions and velocities
-with status 32. The added final element check similarly rejects inverted or
-degenerate tetrahedra with status 64; it does not change the material law.
-
-[CCD tests](../tests/test_diff_phd_ccd.py),
-[normal-response tests](../tests/test_diff_phd_swept_qp.py) and
-[solver integration tests](../tests/test_diff_phd_swept_contact.py) cover
-between-endpoint crossings, resting contact, complete prescribed indentation
-with deformation, rejection of immobile collisions and CUDA graph replay.
-These are tests of the extension, not evidence of reference parity or a
-derivative through continuous contact.
-
-The [independent equilibrium test](../tests/test_diff_phd_swept_equilibrium.py)
-minimizes the homogeneous reference PD energy or Neo-Hookean proximal envelope
-with independent NumPy/SciPy calculations and flat-plate inequalities. It checks
-one-step press/hold equilibrium without reusing the solver's projection or
-contact routines. The [current-geometry tests](../tests/test_diff_phd_swept_geometry.py)
-and [near-parallel accuracy test](../tests/test_diff_phd_swept_accuracy.py) have
-analytic contact solutions.
-
 ## `SolverDiffPD`
 
 `SolverDiffPD` follows the executed code of

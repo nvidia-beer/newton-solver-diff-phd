@@ -134,7 +134,6 @@ def build_poke_scene(
     poisson=0.40,
     friction=FRICTION,
     contact_radius=CONTACT_RADIUS,
-    swept_contact=False,
 ) -> dict:
     """Build the native tetrahedral die/probe model and prescribed trajectory.
 
@@ -152,15 +151,9 @@ def build_poke_scene(
     included in the reference projection's mean Lame parameters.
     Tool poses use Warp's XYZ+XYZW convention. Their local +Z axis is the
     original end-effector's +X probe axis, for direct native robot IK use.
-
-    ``swept_contact=True`` opts into a forward-only, frictionless CCD extension.
-    The complete probe is kinematic in that mode and the penalty force is
-    replaced by swept mesh contact response; material equations are unchanged.
     """
     if not np.isfinite(young) or young <= 0.0 or not np.isfinite(poisson) or not 0.0 <= poisson < 0.5:
         raise ValueError("young must be finite and positive and poisson must be in [0, 0.5)")
-    if swept_contact and friction != 0.0:
-        raise ValueError("Swept probe contact is currently frictionless; set friction=0")
     joints = reference_joint_trajectory(substeps)
     if recording is None:
         name = "recording_reference.json" if reference else "recording_fine.json"
@@ -201,38 +194,13 @@ def build_poke_scene(
     tool_root_indices = soft_count + np.flatnonzero(tool_local[:, 2] - tool_local[:, 2].min() < 1.0e-4)
     for i in tool_root_indices:
         builder.particle_mass[i] = 0.0
-    if swept_contact:
-        for i in range(soft_count, len(builder.particle_q)):
-            builder.particle_mass[i] = 0.0
     model = builder.finalize(device=device, requires_grad=True)
     tets = np.asarray(builder.tet_indices, dtype=np.int32)
     oriented = tets[len(data["tets"]) :]
     faces = oriented[:, ((1, 2, 3), (0, 3, 2), (0, 1, 3), (0, 2, 1))].reshape(-1, 3)
     _, first, counts = np.unique(np.sort(faces, axis=1), axis=0, return_index=True, return_counts=True)
     tool_faces = faces[first[counts == 1]]
-    contact_options = (
-        {"swept_contact": (contact_radius, soft_count, data["faces"], tool_faces)}
-        if swept_contact
-        else {
-            "mesh_contact": (
-                contact_radius,
-                POKE_PHYSICS["contact_kn_left"],
-                POKE_PHYSICS["contact_kn_right"],
-                POKE_PHYSICS["contact_kf"],
-                friction,
-                data["faces"],
-                tool_faces,
-            )
-        }
-    )
     physics = dict(POKE_PHYSICS)
-    if swept_contact:
-        # Resolve the constrained equilibrium more tightly than the original
-        # penalty demo: its norm-relative threshold allows millimetre errors
-        # over this many particles in world coordinates.
-        physics.update(
-            contact_mode="swept_mesh_extension", probe_prescription="all_nodes_kinematic", adjoint=False, rel_tol=1.0e-7
-        )
     solver = SolverDiffPhD(
         model,
         density=POKE_PHYSICS["density"],
@@ -241,7 +209,15 @@ def build_poke_scene(
         abs_tol=POKE_PHYSICS["abs_tol"],
         rel_tol=physics["rel_tol"],
         anderson_window=POKE_PHYSICS["anderson_window"],
-        **contact_options,
+        mesh_contact=(
+            contact_radius,
+            POKE_PHYSICS["contact_kn_left"],
+            POKE_PHYSICS["contact_kn_right"],
+            POKE_PHYSICS["contact_kf"],
+            friction,
+            data["faces"],
+            tool_faces,
+        ),
     )
     return {
         "data": data,
@@ -265,5 +241,4 @@ def build_poke_scene(
         "friction": float(friction),
         "contact_radius": float(contact_radius),
         "physics": physics,
-        "swept_contact": bool(swept_contact),
     }

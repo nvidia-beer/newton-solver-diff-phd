@@ -77,8 +77,10 @@ The viewer's **Motion** selector switches between **Axial stretch** and
 The twist mode uses relative tolerance 1e-6; axial retains the source's 1e-4.
 Interactive twist playback holds the initial pose for 1.5 seconds. Mesh edges
 and a live tip-rotation readout make the release visible.
-The default video shows the 25 axial steps at 12 fps; playback duration is not
-a solver-throughput measurement.
+The demonstration video shows both complete motions: 25 axial steps followed
+by a fresh 100-step twist release. It plays at 24 fps with initial and final
+pose holds; these presentation frames do not advance physics. Playback duration
+is not a solver-throughput measurement.
 
 The other retained examples are the DiffPD duck and experimental recorded UR5 scene:
 
@@ -86,12 +88,13 @@ The other retained examples are the DiffPD duck and experimental recorded UR5 sc
 ./docker/run.sh softbody_diff_pd_duck
 ./docker/run.sh softbody_diff_phd_ur5_poke --forward-only
 ./docker/run.sh softbody_diff_phd_ur5_poke --reference --forward-only
-./docker/run.sh softbody_diff_phd_ur5_poke --forward-only --swept-contact --show-target
+./docker/run.sh softbody_diff_phd_ur5_poke --forward-only --show-target
 ```
 
 The bear gait, basic block drop and synthetic swept-poke demos have been removed.
-The generic swept-contact extension remains available to the UR5 diagnostic.
-Its deep recorded poke still fails; it is not a validated complete demonstration.
+The experimental swept-contact extension and its command-line option have also
+been removed. The retained UR5 example uses the original penalty contact;
+deep penetration remains unresolved.
 
 The UR5 example requires your authorized, prepared PokeFlex recording. Its
 optional local default is `examples/assets/pokeflex_local/recording_fine.json`.
@@ -121,36 +124,6 @@ so the 30 Hz timing is assumed. The default initial placement offsets the white
 cube by +30 mm in X and +26 mm in Y from the recording, as an initial guess for
 position fitting; `--forward-only` does not fit that offset.
 
-`--forward-only --swept-contact` selects the optional swept collision extension.
-It checks vertex/triangle sweeps in both directions and edge/edge sweeps over
-each physics step, then applies contact response through the implicit mechanical
-matrix. This mode prescribes every probe vertex, defaults to zero friction and
-does not use the original thin-shell penalty force. The material equations are
-unchanged. Both meshes must start separated. The sweeps interpolate mesh vertices
-linearly between physics endpoints; they do not test self-collision within the
-die or an exact continuous rigid rotation between endpoints.
-
-The swept mode rejects unresolved collision searches, uncertified contact
-response, nonconverged mechanical steps and inverted/degenerate final elements.
-It restores the rejected step's input state and raises an error before advancing
-the poke clock. A successful collision response therefore must move the free
-die while preserving prescribed probe positions; silently stopping the probe is
-not used as a substitute. This mode currently supports forward simulation only:
-training, saved alignment files, nonzero friction and recorded Warp Tapes are
-rejected because the extension has no contact adjoint yet.
-
-An earlier implementation of the prepared deep poke completed 477 of 1,050
-substeps, then rejected an inverted element near the fixed clamp. Independent
-checks found errors in contact geometry and convergence, which have been
-corrected. The earlier fine-mesh rerun accepts 472 substeps and rejects step 473
-for an inverted element near the clamp. The latest original-asset run
-(`--reference`) accepts 479 substeps and rejects step 480 for an inverted
-element at the loaded surface; its contact solve passes. Separate clamp-aligned
-and locally refined remeshing experiments also fail, at steps 482 and 424;
-neither replaces the default. The failed
-command restores its input state and raises an error;
-it is not silently accepted. See the [measured validation](docs/validation.md#optional-swept-contact-validation).
-
 Private scans and derived geometry are excluded from release packages and
 Docker images; local checkout mounts can access your copy. Use only media
 permitted by your dataset access terms. Asset attribution/access notices are in
@@ -167,8 +140,7 @@ The prepared recording determines mesh resolution. The default is 30 substeps
 per 30 Hz observation with 0.30 retained velocity on every particle after each
 substep, including prescribed roots. Independent endpoint positions constrain
 the root without replacing the physical velocity used by contact. The forward
-iteration budget is 5,000, relative tolerance 1e-4 and Anderson window 5. Swept
-contact uses the stricter relative tolerance 1e-7. The optional
+iteration budget is 5,000, relative tolerance 1e-4 and Anderson window 5. The optional
 `--reference` flag selects a separately prepared mesh and full-scan objective;
 it loads `pokeflex_local/recording_reference.json`. The reference preparation
 uses the original frame-18 convex hull, 85% decimation, TetGen volume and
@@ -218,11 +190,19 @@ see [validation](docs/validation.md).
 
 ## Recording the examples
 
-`python tools/record_examples.py --all` uses `docs/videos.json`. Poke capture uses `--forward-only` and the prepared
-local recording; it does not require an old fitted checkpoint. To record a new
-fit, supply its compatible version-5 alignment explicitly. Existing alignment
-files need refitting. Historical clips use earlier physics and do not validate
-the restored solver or certify the material parameters.
+`python tools/record_examples.py --all` uses `docs/videos.json`. The duck clip
+records all 200 steps at 60 fps. The cantilever clip records both complete
+motions at 24 fps. The current poke clip uses `--forward-only --show-target`
+with the prepared local recording: its initial state and 35 motion intervals
+cover all 1,050 physics substeps, played at 15 fps. It uses no fitted checkpoint
+and explicitly shows the unresolved penetration under the original penalty law.
+It does not establish successful contact or fitted material parameters.
+
+Each clip has held initial and final poses. Sidecar `frames` counts calls to the
+example update, while `encoded_frames` includes those extra presentation frames.
+Nsight uses the update count and the same motion-switch script, without the
+presentation holds. Existing alignment files from older physics need refitting;
+inference with a fitted result requires a compatible version-5 alignment.
 
 Poke previews include the private scanned surface. The [dataset access
 terms](https://pokeflex.ait.ethz.ch/) restrict use to noncommercial academic
@@ -318,7 +298,7 @@ These are distinct from the frictional boundary solver.
 
 `deformation_determinants(state)` reports det(F) at every cell/sample. The
 cantilever audits these values at every step. Hex8 currently rejects Warp Tape
-recording and frictional/mesh/swept contact: its supported scope is forward
+recording and frictional/mesh contact: its supported scope is forward
 elastic, muscle and vertex-plane energies. Existing Tet4 derivatives retain
 their documented scope below. No Hex8 adjoint is claimed.
 
@@ -467,92 +447,6 @@ alternate contact QP, material model or clamp remeshing. Poke alignment versions
 and must be refitted (current format: version 5); checkpoints record both a
 physics signature and the loaded scene fingerprint.
 
-## Optional swept mesh contact
-
-`SolverDiffPhD(..., swept_contact=(clearance, split, faces_left, faces_right))`
-selects an extension to the reference contact algorithm. The left body is
-deformable; every particle of the right probe is prescribed. It is mutually
-exclusive with the reference penalty and frictional-boundary modes. The UR5
-example selects it with `--forward-only --swept-contact`. Its material
-projections and mechanical matrix remain those above.
-
-`ccd.py` checks both vertex/triangle directions and cross-body edge/edge
-pairs. Swept endpoint AABBs reject separated pairs. Narrowphase uses FP64
-closest features and conservative advancement for linear vertex trajectories:
-for vertex/triangle distance the relative speed bound is
-`L = max_i ||delta_vertex - delta_triangle_i||`; for two edges it is the
-maximum relative endpoint speed. An advance smaller than `(distance-radius)/L`
-cannot pass a proximity event in exact arithmetic. Separating-plane checks
-handle parallel near-contact trajectories. An exhausted proximity search can
-conservatively add its last witness as a contact row; the independent physical
-intersection search must still certify the sweep. An unresolved physical
-search can trigger correction when an endpoint row is violated, but the
-corrected sweep must pass a fresh search. An unresolved feasible endpoint or
-an exhausted correction budget rejects the step. The implementation is a numerical CCD algorithm, not an interval
-arithmetic proof for arbitrary floating-point input.
-
-Each detected feature supplies up to four global particle indices, affine
-coefficients and a normal. With prescribed coordinates substituted, the row is
-`J_i x - clearance >= 0`. `swept_contact.py` retains feature identities and
-computes the mechanical response from the unconstrained endpoint `y`:
-
-```text
-W = J A^{-1} J^T
-g = J y - clearance
-0 <= lambda perpendicular to g + W lambda >= 0
-x = y + A^{-1} J^T lambda
-```
-
-`swept_qp.py` checks the original normal complementarity residual before
-accepting its active-set solve. When a newly added row is dependent on the
-current independent active set, the solver follows its normalized null direction
-to the first multiplier bound and exchanges the blocking row. The step must
-decrease the unchanged quadratic. All original rows remain in pricing and the
-final certificate; an active-set exchange does not remove a physical constraint.
-Other dependent systems can use coordinate descent without diagonal
-regularization, with the same final residual check. No iteration budget is
-interpreted as a convergence result.
-Both Cholesky paths test dimensionless pivots after diagonal normalization.
-Their roundoff cutoff is `1e-14` (about 45 binary64 epsilons). A larger `1e-12`
-cutoff prematurely rejected valid near-dependent directions needed to exchange
-active contact rows. Accepting that intermediate factor does not relax the
-final physical complementarity certificate or multiplier positivity check.
-After a fresh sweep is physically clear, closest-point coefficients and normals
-are recomputed at the corrected endpoint. The response is resolved with this
-current geometry and the same unconstrained `y`. Acceptance requires both the
-current geometric complementarity residual
-`max_i |min(distance_i(x)-clearance, W_ii lambda_i)|` and the mechanical residual
-`max_node ||x-y-A^{-1}J(x)^T lambda||` to be at most the contact tolerance.
-The inner linear QP uses `1e-5` times this tolerance: nearly parallel features
-can amplify a small gap error into a much larger displacement error. The
-subsequent geometry update and force-consistency check still use the outer
-contact tolerance. On CUDA, the entering-contact scan uses parallel min/max
-reductions with the same first-index tie rule as the serial CPU implementation.
-Before the sweep is clear, CCD witness normals retain the collision side.
-This avoids obsolete planes exerting forces on separated features. The final
-sweep must be physically clear; this does not certify the full clearance
-radius throughout the intervening path.
-
-For this extension, the fixed-point map is `F(x)=P(T(x))`, where `T` is the
-mechanical local/global update and `P` is the contact response above. Anderson
-uses `F(x)-x`, which vanishes at constrained equilibrium. The convergence test
-uses that unaccelerated residual and the projection residual; a small Anderson
-update alone cannot terminate the solve. On convergence, it returns the iterate
-whose residual was tested. Otherwise the accelerated endpoint receives its own
-contact projection and full sweep before the next iteration. With Anderson
-disabled, the already certified constrained update is retained without a
-redundant second projection. The reference
-mode retains its original iteration order.
-
-This mode is frictionless and supports forward simulation only. Recording it
-on a Warp Tape is rejected; the reference contact adjoint is not reused for
-these new constraints. CCD or response failure sets status 32, and an inverted
-or degenerate final tetrahedron sets status 64. This element check covers both
-the internal double coordinates and the float32 coordinates written to Newton's
-state. The CCD query itself uses the internal double trajectory. Any failed swept step restores
-the input positions and velocities. This validity check does not change the
-material energy or provide self-collision prevention within either body.
-
 ## Papers and reference code
 
 The default forward solver follows the **executed code** of the public DiffPhD
@@ -640,43 +534,6 @@ the grouped local Jacobian. Native AlgPhD state adjoints also omit contact,
 making launch gradients through impact approximate even after fixing that
 grouping mismatch. See the [validation report](docs/validation.md).
 
-## Optional swept contact extension
-
-`SolverDiffPhD(swept_contact=(clearance, split, faces_left, faces_right))`
-selects an added contact algorithm, outside the reference and paper mapping
-above. The reference contact modes remain the default. The extension keeps the
-selected material projection and implicit matrix; it requires the entire right
-mesh to be prescribed and supports forward, frictionless motion only. It
-rejects a `wp.Tape`, friction, restitution and simultaneous reference contact
-modes.
-
-`ccd.SweptMeshCCD` checks moving vertex–triangle and edge–edge pairs along the
-linear paths from the incoming state to a proposed endpoint. `SweptContact.project`
-transfers contact response to free face vertices using four-node contact rows
-and the coupled matrix $W=JA^{-1}J^T$. `swept_qp.CertifiedNormalQP` checks the
-normal QP's complementarity conditions. Correction rounds refresh closest
-features and check both nonlinear gap complementarity and mechanical force
-consistency, followed by a fresh sweep; a finite search or response budget is not
-treated as convergence. Failure restores the incoming positions and velocities
-with status 32. The added final element check similarly rejects inverted or
-degenerate tetrahedra with status 64; it does not change the material law.
-
-[CCD tests](tests/test_diff_phd_ccd.py),
-[normal-response tests](tests/test_diff_phd_swept_qp.py) and
-[solver integration tests](tests/test_diff_phd_swept_contact.py) cover
-between-endpoint crossings, resting contact, complete prescribed indentation
-with deformation, rejection of immobile collisions and CUDA graph replay.
-These are tests of the extension, not evidence of reference parity or a
-derivative through continuous contact.
-
-The [independent equilibrium test](tests/test_diff_phd_swept_equilibrium.py)
-minimizes the homogeneous reference PD energy or Neo-Hookean proximal envelope
-with independent NumPy/SciPy calculations and flat-plate inequalities. It checks
-one-step press/hold equilibrium without reusing the solver's projection or
-contact routines. The [current-geometry tests](tests/test_diff_phd_swept_geometry.py)
-and [near-parallel accuracy test](tests/test_diff_phd_swept_accuracy.py) have
-analytic contact solutions.
-
 ## `SolverDiffPD`
 
 `SolverDiffPD` follows the executed code of
@@ -704,8 +561,8 @@ One demonstration clip per example. Click a preview to open its MP4. Videos show
 
 | Example | Example |
 | --- | --- |
-| **[softbody_diff_pd_duck](src/newton_solver_diff_phd/examples/example_softbody_diff_pd_duck.py)**<br>SolverDiffPD: slide a soft duck down a curved ramp onto the ground toward a target.<br><a href="docs/media/softbody_diff_pd_duck.mp4"><img src="docs/media/softbody_diff_pd_duck.gif" width="420" alt="SolverDiffPD: slide a soft duck down a curved ramp onto the ground toward a target."></a><br>Live SolverDiffPD forward rollout of the reference duck scene: 5,130 vertices and 21,438 tetrahedra, original material and contact parameters. All 200 steps use dt=0.005 s, totaling one simulated second; playback is 60 fps (3.33 seconds), not solver throughput.<br>`./docker/run.sh softbody_diff_pd_duck` | **[softbody_diff_phd_cantilever](src/newton_solver_diff_phd/examples/example_softbody_diff_phd_cantilever.py)**<br>SolverDiffPhD: the original Hex8 cantilever under axial loading, with optional twist release.<br><a href="docs/media/softbody_diff_phd_cantilever.mp4"><img src="docs/media/softbody_diff_phd_cantilever.gif" width="420" alt="SolverDiffPhD: the original Hex8 cantilever under axial loading, with optional twist release."></a><br>Live forward simulation of the released DiffPhD cantilever_3d.py axial benchmark: 756 nodes, 500 intact Hex8 cells, original heterogeneous material, muscle and vertex-plane energies, fixed root and per-tip-vertex axial force ramp. All 25 steps use dt=0.01 s, totaling 0.25 simulated seconds; shown at 12 fps. No tetrahedral subdivision. Playback is not solver throughput.<br>`./docker/run.sh softbody_diff_phd_cantilever` |
-| **[softbody_diff_phd_ur5_poke](src/newton_solver_diff_phd/examples/example_softbody_diff_phd_ur5_poke.py)**<br>SolverDiffPhD: fit a die&#x27;s placement, stiffness or compressibility to PokeFlex deformations.<br><a href="docs/media/softbody_diff_phd_ur5_poke.mp4"><img src="docs/media/softbody_diff_phd_ur5_poke.gif" width="420" alt="SolverDiffPhD: fit a die&#x27;s placement, stiffness or compressibility to PokeFlex deformations."></a><br>Historical recording from the uncommitted port; not rerun for the restored solver. Live simulation with the fitted die placement, prescribed UR5 motion and a translucent recorded scan. The probe pushes the die through the reference DiffPhD mesh_contact force (5 mm contact radius). Requires private PokeFlex data and a locally trained alignment checkpoint.<br>`./docker/run.sh softbody_diff_phd_ur5_poke` |  |
+| **[softbody_diff_pd_duck](src/newton_solver_diff_phd/examples/example_softbody_diff_pd_duck.py)**<br>SolverDiffPD: slide a soft duck down a curved ramp onto the ground toward a target.<br><a href="docs/media/softbody_diff_pd_duck.mp4"><img src="docs/media/softbody_diff_pd_duck.gif" width="420" alt="SolverDiffPD: slide a soft duck down a curved ramp onto the ground toward a target."></a><br>Fresh SolverDiffPD forward rollout of the reference duck scene: 5,130 vertices and 21,438 tetrahedra, original material and contact parameters. All 200 steps use dt=0.005 s, totaling one simulated second. Playback at 60 fps includes held initial and final poses; playback rate is not solver throughput.<br>`./docker/run.sh softbody_diff_pd_duck` | **[softbody_diff_phd_cantilever](src/newton_solver_diff_phd/examples/example_softbody_diff_phd_cantilever.py)**<br>SolverDiffPhD: the original Hex8 cantilever under axial loading, with optional twist release.<br><a href="docs/media/softbody_diff_phd_cantilever.mp4"><img src="docs/media/softbody_diff_phd_cantilever.gif" width="420" alt="SolverDiffPhD: the original Hex8 cantilever under axial loading, with optional twist release."></a><br>Two fresh forward simulations on the original 756-node, 500-cell Hex8 cantilever: the released axial benchmark (25 steps at dt=0.01 s), then a 30-degree twist release (100 steps at dt=0.001 s). The twist initial angle is an explicit example setting, not recovered from the paper. Mesh edges and tip angle show the rotation. Slow-motion playback at 24 fps includes held initial and final poses; holds do not advance physics.<br>`./docker/run.sh softbody_diff_phd_cantilever`<br>`./docker/run.sh softbody_diff_phd_cantilever --motion twist` |
+| **[softbody_diff_phd_ur5_poke](src/newton_solver_diff_phd/examples/example_softbody_diff_phd_ur5_poke.py)**<br>SolverDiffPhD: fit a die&#x27;s placement, stiffness or compressibility to PokeFlex deformations.<br><a href="docs/media/softbody_diff_phd_ur5_poke.mp4"><img src="docs/media/softbody_diff_phd_ur5_poke.gif" width="420" alt="SolverDiffPhD: fit a die&#x27;s placement, stiffness or compressibility to PokeFlex deformations."></a><br>Current forward-only simulation with the original penalty contact and root-prescribed probe, overlaid with the recorded blue surface. Includes the initial state and all 35 prescribed-motion frames (1,050 physics substeps, dt=1/900 s). No fitted checkpoint or training. Deep probe penetration remains unresolved; this clip shows the limitation and is not a successful contact validation. Requires private prepared PokeFlex data. Slow-motion playback at 15 fps includes held initial and final poses.<br>`./docker/run.sh softbody_diff_phd_ur5_poke --forward-only --show-target` |  |
 
 ## Regenerate documentation
 
@@ -716,7 +573,7 @@ uv run --locked python tools/record_examples.py --all
 python3 tools/build_readme.py --require-videos
 ```
 
-README generation uses only Python's standard library and discovers examples from their launcher. Recording needs the `examples` extra, `ffmpeg`, and OpenGL. `docs/videos.json` stores optional capture arguments; it does not define the example list. `tools/video_scenarios.py`, when present, scripts interactions for recording. Each clip has a metadata file recording arguments, frame count and capture conditions.
+README generation uses only Python's standard library and discovers examples from their launcher. Recording needs the `examples` extra, `ffmpeg`, and OpenGL. `docs/videos.json` stores optional capture arguments; it does not define the example list. `tools/video_scenarios.py`, when present, scripts interactions for recording. Each clip has a metadata file recording arguments, simulation frame count and capture conditions. Encoded frame counts also include presentation holds, which never advance physics.
 
 ## Validate
 

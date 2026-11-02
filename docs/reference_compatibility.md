@@ -27,10 +27,6 @@ derivative branch. The current native-reference report passes all 16 forward
 fixtures but fails one unconverged heterogeneous backward comparison. Current
 and historical results are separated in [validation](validation.md).
 
-The optional `swept_contact` mode is an explicit extension, not part of these
-reference-parity claims. The original contact modes and default material
-equations are unchanged; its supported scope is described below.
-
 The oracle in [tests/reference_oracle.py](../tests/reference_oracle.py) is a
 dense NumPy transcription of the reference: dense solves, the literal contact
 panels, and finite-difference projection Jacobians.
@@ -59,37 +55,8 @@ panels, and finite-difference projection Jacobians.
 | [forward_gpu.cpp#L456](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L456), [forward_gpu.cpp#L1112](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L1112), [forward_gpu.cpp#L1486](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L1486), [mesh_frictional_boundary.cpp](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/friction/mesh_frictional_boundary.cpp) | Mesh frictional boundary between two bodies: vertices below `split_index` against `faces_right`, others against `faces_left`. Candidates are registered vertices within `GetDistance` $\le 5r$ at the step start; the normal is anchored there as $(p-c)/\lVert p-c\rVert$ with Gram-Schmidt tangents; each iteration's gap is `GetSignedDistanceWithReferenceNormal` against the surface at the iterate; restitution slop $0.1r$. The backward tape keeps the forward's anchored normals, $\omega$ and $\lambda$. | `MeshFrictionalBoundary`, `SetFrictionalBoundary("mesh")` | `contact.FrictionalContact` (`begin_mesh_step`, `mesh_contact_scalars`, `apply_mesh_restitution`) | Filtered vertices stay in fixed-size arrays with $\omega=\lambda=0$ (identical products, graph-capturable) instead of a shorter list; their warm start restarts at zero as in the reference's node-keyed lookup. | Swept soft–soft CCD contact | `tests/test_diff_phd_mesh_boundary.py`; `mesh_boundary_poke` in the [reference parity report](validation/parity-reference-cpu.json) | Matched |
 | [mesh_contact_state_force.cpp](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/state_force/mesh_contact_state_force.cpp), [deformable_state_force.cpp#L86](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_state_force.cpp#L86), [forward_gpu.cpp#L435](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L435) | `mesh_contact` state force between two bodies: every vertex of A against every face of B (`kn_left`) and of B against A (`kn_right`); within `contact_radius`, $k_n(r-d)\,n$ plus friction $-\min(k_f,\mu f_n/(\lVert v_t\rVert+\epsilon))\,v_t$ on the vertex and the barycentric opposite on the face. It is evaluated on the start-of-step $(q,v)$ and added to $\tilde q$ as $h^2/m\,f$. `BackwardForce` is zero. | `MeshContactStateForce::ForwardForce`, `ClosestPointTriangle` | `mesh_contact.MeshContact`, `closest_point_triangle`, `add_state_force` | Each particle's force is summed in a fixed order instead of the reference loop order. The bounding-box early exit is omitted because it cannot change the force. | Swept soft–soft CCD contact | `test_force_matches_reference_transcription`, `test_step_matches_reference_with_state_force_in_the_target`, `test_gradients_hold_the_state_force_fixed`; `mesh_contact_poke` in the [reference parity report](validation/parity-reference-cpu.json) | Matched |
 | None (not in the reference) | Self-contact, mass damping, native Newton `Contacts`. | None | None | Removed by decision; the old keyword arguments no longer exist. | `contact.py`, `response.py`, `mass_damping` | `test_invalid_configuration_is_rejected` (native `Contacts`, removed keyword arguments) | Unsupported |
-| None | Device status bits replace exceptions: 1 not converged, 2 singular volume projection, 4 invalid activation, 8 adjoint not converged, 16 backward safeguard modified a contribution; optional swept mode adds 32 contact failure and 64 invalid final element. | None | `SolverDiffPhD.status`, `read_status`, `check_status` | The reference throws or continues; a failed swept step restores its incoming state. | `ConvergenceError` raised inside the loop | `test_status_reports_nonconvergence_until_checked`, `test_immobile_contact_fails_without_accepting_partial_motion` | Added |
+| None | Device status bits replace exceptions: 1 not converged, 2 singular volume projection, 4 invalid activation, 8 adjoint not converged, 16 backward safeguard modified a contribution. | None | `SolverDiffPhD.status`, `read_status`, `check_status` | The reference throws or continues; callers explicitly check device status. | `ConvergenceError` raised inside the loop | `test_status_reports_nonconvergence_until_checked` | Added |
 | None | The whole iteration runs as one `wp.capture_while` loop, inside an outer capture or as a cached graph. | None | `SolverDiffPhD._solve` | The reference loops on the host. | Host loop with an inner graph | `test_step_captured_in_an_outer_graph_matches_direct_steps`, `test_cpu_graph_capture_replays_the_whole_loop` | Added |
-
-## Optional swept contact
-
-`swept_contact=(clearance, split_index, faces_left, faces_right)` opts into
-continuous vertex–face and edge–edge queries, with a coupled frictionless normal
-QP that moves the deformable surface while preserving the entire commanded
-probe endpoint. Every right-side particle must be prescribed. The selected
-material projections and implicit matrix are retained, but the contact law is
-an addition and its trajectories are not expected to match the reference.
-This mode cannot be combined with the reference contacts, friction or
-restitution, and recording it on a `wp.Tape` is explicitly unsupported.
-
-`ccd.SweptMeshCCD`, `swept_contact.SweptContact` and
-`swept_qp.CertifiedNormalQP` perform the query, coupled response and complementarity
-check. An accepted correction must pass the repeated continuous query and
-endpoint-clearance check. Unresolved physical intersection searches, exhausted capacity or response
-budgets, and infeasible constraints report failure; they do not silently shorten
-the commanded motion. Status 32 restores the incoming positions and physical
-velocities. A final inverted or degenerate element similarly rejects the step
-with status 64. This final check is not a different Neo-Hookean projection or
-an automatic remeshing operation.
-
-The [CCD](../tests/test_diff_phd_ccd.py),
-[normal QP](../tests/test_diff_phd_swept_qp.py) and
-[public solver tests](../tests/test_diff_phd_swept_contact.py) cover analytic
-crossings, resting contact, PD and Neo-Hookean press/hold/release with full
-probe tracking, independent surface-intersection and tet-orientation checks,
-failure rollback and CUDA capture. The reference oracle tests continue to
-exercise the original start-of-step candidate selection separately.
 
 ## Backward step
 
@@ -140,8 +107,9 @@ are in [tools/parity](../tools/parity/README.md), with scope and limitations in
 
 ## Removed experiments
 
-The worktree's `converged_contact`, `signed_svd`, `anderson_restart` and
-`frictional_face_vertices` options are absent from the public solver. Their
+The worktree's `converged_contact`, `signed_svd`, `anderson_restart`,
+`frictional_face_vertices` and `swept_contact` options are absent from the public
+solver. Their
 alternate algorithms are not in the pinned reference. The reference mesh candidate
 window no longer looks ahead to prescribed endpoint geometry: it uses the
 start-of-step surface, as the mapped reference function does. The reflected-tet
@@ -161,9 +129,3 @@ tests check these choices through the public API. The prepared fine mesh,
 slab and 24-section TetGen cylinder. No contact QP, injectivity guard or clamp
 remeshing is enabled. The original penalty force permits penetration; matching
 the source equations does not establish zero overlap or full-scene parity.
-
-The separate `--forward-only --swept-contact` example option selects the added
-CCD mode and prescribes all probe particles. It is a different contact and
-boundary configuration from the original root-only training scene; it does
-not fit or load a training checkpoint. It retains the prepared mesh and chosen
-material law.

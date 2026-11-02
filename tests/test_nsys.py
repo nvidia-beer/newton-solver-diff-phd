@@ -170,7 +170,7 @@ class TestProfiling(unittest.TestCase):
             self.assertEqual(explicit["recorded"]["arguments"], ["--test"])
             opts = options(root)
             opts.no_video_args = True
-            opts.arguments = ["--forward-only", "--swept-contact"]
+            opts.arguments = ["--forward-only", "--no-graph"]
             command = profiling.profile_command("nsys", "recorded", explicit["recorded"], opts, root)
             self.assertIn("--no-video-args", command)
             self.assertEqual(command[command.index("--") + 1 :], opts.arguments)

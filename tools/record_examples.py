@@ -93,15 +93,24 @@ def record(name, options):
     writer = Clip(temporary, fps)
     start = time.perf_counter()
     simulation_times = []
+    segments = []
+    initial_hold = round(profile.get("initial_hold_seconds", 0) * fps)
+    final_hold = round(profile.get("final_hold_seconds", 0) * fps)
 
     def write_frame(pixels, label=""):
         picture = Image.fromarray(pixels)
         draw = ImageDraw.Draw(picture)
-        draw.rectangle((0, 0, picture.width, 29), fill=(25, 28, 34))
+        draw.rectangle((0, 0, picture.width, 53), fill=(25, 28, 34))
         draw.text(
-            (12, 8),
-            name.replace("_", " ") + ("  |  " + label if label else ""),
+            (12, 5),
+            profile.get("title", name.replace("_", " ")),
             fill="white",
+            font=ImageFont.load_default(size=20),
+        )
+        draw.text(
+            (12, 31),
+            label,
+            fill=(215, 225, 240),
             font=ImageFont.load_default(size=16),
         )
         writer.write(np.asarray(picture))
@@ -131,18 +140,43 @@ def record(name, options):
             before_frame = hooks.get("before_frame")
             label = profile.get("label", "simulation playback")
             viewer = example.viewer
+
+            def capture():
+                example.render()
+                frame_label = hooks.get("frame_label")
+                write_frame(viewer.get_frame().numpy(), frame_label(name, example) if frame_label else label)
+
+            def hold(count):
+                for _ in range(count):
+                    writer.write(writer.last_image)
+
+            def snapshot():
+                callback = hooks.get("segment_metadata")
+                return callback(name, example) if callback else None
+
             try:
+                if initial_hold:
+                    capture()
+                    hold(initial_hold - 1)
                 for frame in range(frames):
-                    if before_frame:
-                        before_frame(name, example, frame)
+                    previous = snapshot()
+                    if before_frame and before_frame(name, example, frame):
+                        if previous:
+                            segments.append(previous)
+                        hold(final_hold)
+                        if initial_hold:
+                            capture()
+                            hold(initial_hold - 1)
                     example.step()
-                    example.render()
-                    frame_label = hooks.get("frame_label")
-                    write_frame(viewer.get_frame().numpy(), frame_label(name, example) if frame_label else label)
+                    capture()
                     if frame % max(1, frames // 8) == 0:
                         print(f"{name}: frame {frame + 1}/{frames}", flush=True)
                 if args.test and hasattr(example, "test_final"):
                     example.test_final()
+                last = snapshot()
+                if last:
+                    segments.append(last)
+                hold(final_hold)
                 for attribute in ("sim_time", "time", "t"):
                     value = getattr(example, attribute, None)
                     if isinstance(value, (int, float)):
@@ -198,13 +232,18 @@ def record(name, options):
         "caption": caption,
         "arguments": arguments,
         "device": options.device,
-        "frames": writer.count,
+        "frames": frames,
+        "encoded_frames": writer.count,
+        "presentation_holds_advance_physics": False,
+        "initial_hold_seconds": initial_hold / fps,
+        "final_hold_seconds": final_hold / fps,
         "fps": fps,
         "width": options.width,
         "height": options.height,
         "recording_wall_seconds": time.perf_counter() - start,
         "playback_is_performance_benchmark": False,
         "simulation_time": simulation_times,
+        "segments": segments,
         "dependencies": {package: version(package), "newton": version("newton"), "warp-lang": version("warp-lang")},
     }
     (output / f"{name}.json").write_text(json.dumps(metadata, indent=2) + "\n")

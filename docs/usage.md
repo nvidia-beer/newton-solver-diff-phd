@@ -36,8 +36,10 @@ The viewer's **Motion** selector switches between **Axial stretch** and
 The twist mode uses relative tolerance 1e-6; axial retains the source's 1e-4.
 Interactive twist playback holds the initial pose for 1.5 seconds. Mesh edges
 and a live tip-rotation readout make the release visible.
-The default video shows the 25 axial steps at 12 fps; playback duration is not
-a solver-throughput measurement.
+The demonstration video shows both complete motions: 25 axial steps followed
+by a fresh 100-step twist release. It plays at 24 fps with initial and final
+pose holds; these presentation frames do not advance physics. Playback duration
+is not a solver-throughput measurement.
 
 The other retained examples are the DiffPD duck and experimental recorded UR5 scene:
 
@@ -45,12 +47,13 @@ The other retained examples are the DiffPD duck and experimental recorded UR5 sc
 ./docker/run.sh softbody_diff_pd_duck
 ./docker/run.sh softbody_diff_phd_ur5_poke --forward-only
 ./docker/run.sh softbody_diff_phd_ur5_poke --reference --forward-only
-./docker/run.sh softbody_diff_phd_ur5_poke --forward-only --swept-contact --show-target
+./docker/run.sh softbody_diff_phd_ur5_poke --forward-only --show-target
 ```
 
 The bear gait, basic block drop and synthetic swept-poke demos have been removed.
-The generic swept-contact extension remains available to the UR5 diagnostic.
-Its deep recorded poke still fails; it is not a validated complete demonstration.
+The experimental swept-contact extension and its command-line option have also
+been removed. The retained UR5 example uses the original penalty contact;
+deep penetration remains unresolved.
 
 The UR5 example requires your authorized, prepared PokeFlex recording. Its
 optional local default is `examples/assets/pokeflex_local/recording_fine.json`.
@@ -80,36 +83,6 @@ so the 30 Hz timing is assumed. The default initial placement offsets the white
 cube by +30 mm in X and +26 mm in Y from the recording, as an initial guess for
 position fitting; `--forward-only` does not fit that offset.
 
-`--forward-only --swept-contact` selects the optional swept collision extension.
-It checks vertex/triangle sweeps in both directions and edge/edge sweeps over
-each physics step, then applies contact response through the implicit mechanical
-matrix. This mode prescribes every probe vertex, defaults to zero friction and
-does not use the original thin-shell penalty force. The material equations are
-unchanged. Both meshes must start separated. The sweeps interpolate mesh vertices
-linearly between physics endpoints; they do not test self-collision within the
-die or an exact continuous rigid rotation between endpoints.
-
-The swept mode rejects unresolved collision searches, uncertified contact
-response, nonconverged mechanical steps and inverted/degenerate final elements.
-It restores the rejected step's input state and raises an error before advancing
-the poke clock. A successful collision response therefore must move the free
-die while preserving prescribed probe positions; silently stopping the probe is
-not used as a substitute. This mode currently supports forward simulation only:
-training, saved alignment files, nonzero friction and recorded Warp Tapes are
-rejected because the extension has no contact adjoint yet.
-
-An earlier implementation of the prepared deep poke completed 477 of 1,050
-substeps, then rejected an inverted element near the fixed clamp. Independent
-checks found errors in contact geometry and convergence, which have been
-corrected. The earlier fine-mesh rerun accepts 472 substeps and rejects step 473
-for an inverted element near the clamp. The latest original-asset run
-(`--reference`) accepts 479 substeps and rejects step 480 for an inverted
-element at the loaded surface; its contact solve passes. Separate clamp-aligned
-and locally refined remeshing experiments also fail, at steps 482 and 424;
-neither replaces the default. The failed
-command restores its input state and raises an error;
-it is not silently accepted. See the [measured validation](validation.md#optional-swept-contact-validation).
-
 Private scans and derived geometry are excluded from release packages and
 Docker images; local checkout mounts can access your copy. Use only media
 permitted by your dataset access terms. Asset attribution/access notices are in
@@ -126,8 +99,7 @@ The prepared recording determines mesh resolution. The default is 30 substeps
 per 30 Hz observation with 0.30 retained velocity on every particle after each
 substep, including prescribed roots. Independent endpoint positions constrain
 the root without replacing the physical velocity used by contact. The forward
-iteration budget is 5,000, relative tolerance 1e-4 and Anderson window 5. Swept
-contact uses the stricter relative tolerance 1e-7. The optional
+iteration budget is 5,000, relative tolerance 1e-4 and Anderson window 5. The optional
 `--reference` flag selects a separately prepared mesh and full-scan objective;
 it loads `pokeflex_local/recording_reference.json`. The reference preparation
 uses the original frame-18 convex hull, 85% decimation, TetGen volume and
@@ -177,11 +149,19 @@ see [validation](validation.md).
 
 ## Recording the examples
 
-`python tools/record_examples.py --all` uses `docs/videos.json`. Poke capture uses `--forward-only` and the prepared
-local recording; it does not require an old fitted checkpoint. To record a new
-fit, supply its compatible version-5 alignment explicitly. Existing alignment
-files need refitting. Historical clips use earlier physics and do not validate
-the restored solver or certify the material parameters.
+`python tools/record_examples.py --all` uses `docs/videos.json`. The duck clip
+records all 200 steps at 60 fps. The cantilever clip records both complete
+motions at 24 fps. The current poke clip uses `--forward-only --show-target`
+with the prepared local recording: its initial state and 35 motion intervals
+cover all 1,050 physics substeps, played at 15 fps. It uses no fitted checkpoint
+and explicitly shows the unresolved penetration under the original penalty law.
+It does not establish successful contact or fitted material parameters.
+
+Each clip has held initial and final poses. Sidecar `frames` counts calls to the
+example update, while `encoded_frames` includes those extra presentation frames.
+Nsight uses the update count and the same motion-switch script, without the
+presentation holds. Existing alignment files from older physics need refitting;
+inference with a fitted result requires a compatible version-5 alignment.
 
 Poke previews include the private scanned surface. The [dataset access
 terms](https://pokeflex.ait.ethz.ch/) restrict use to noncommercial academic

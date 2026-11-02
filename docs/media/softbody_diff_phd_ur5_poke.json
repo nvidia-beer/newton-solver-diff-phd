@@ -1,25 +1,38 @@
 {
   "example": "softbody_diff_phd_ur5_poke",
   "module": "newton_solver_diff_phd.examples.example_softbody_diff_phd_ur5_poke",
-  "caption": "Historical recording from the uncommitted port; not rerun for the restored solver. Live simulation with the fitted die placement, prescribed UR5 motion and a translucent recorded scan. The probe pushes the die through the reference DiffPhD mesh_contact force (5 mm contact radius). Requires private PokeFlex data and a locally trained alignment checkpoint.",
+  "caption": "Current forward-only simulation with the original penalty contact and root-prescribed probe, overlaid with the recorded blue surface. Includes the initial state and all 35 prescribed-motion frames (1,050 physics substeps, dt=1/900 s). No fitted checkpoint or training. Deep probe penetration remains unresolved; this clip shows the limitation and is not a successful contact validation. Requires private prepared PokeFlex data. Slow-motion playback at 15 fps includes held initial and final poses.",
   "arguments": [
-    "--load-alignment",
-    "outputs/diff_phd_poke/alignment_fast.json",
+    "--forward-only",
     "--show-target",
     "--test"
   ],
   "device": "cuda:0",
-  "frames": 120,
-  "fps": 30,
+  "frames": 36,
+  "encoded_frames": 59,
+  "presentation_holds_advance_physics": false,
+  "initial_hold_seconds": 0.5333333333333333,
+  "final_hold_seconds": 1.0,
+  "fps": 15,
   "width": 960,
   "height": 540,
-  "recording_wall_seconds": 11.33827237800051,
+  "recording_wall_seconds": 46.91965128599986,
   "playback_is_performance_benchmark": false,
   "simulation_time": [],
+  "segments": [
+    {
+      "motion": "prescribed poke",
+      "steps": 1050,
+      "dt": 0.0011111111111111111,
+      "simulated_seconds": 1.1666666666666667,
+      "scene_sha256": "4962ffa9da1c31970cd329d9357757c7324ff9678b30fd268c65ad36e99bd9a3",
+      "recording_sha256": "832232b83003dcbc8b8b9905b2050c1e7f0bcee55cfce8c16aea600c6a9b7657",
+      "contact_validated": false
+    }
+  ],
   "dependencies": {
     "newton_solver_diff_phd": "0.1.0",
     "newton": "1.7.0",
     "warp-lang": "1.17.0+cu13"
-  },
-  "current_solver_validated": false
+  }
 }

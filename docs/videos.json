@@ -5,27 +5,43 @@
     "args": [
       "--test"
     ],
-    "caption": "Live SolverDiffPD forward rollout of the reference duck scene: 5,130 vertices and 21,438 tetrahedra, original material and contact parameters. All 200 steps use dt=0.005 s, totaling one simulated second; playback is 60 fps (3.33 seconds), not solver throughput.",
-    "label": "DiffPD | live reference duck | 1 simulated second at 60 fps playback"
+    "caption": "Fresh SolverDiffPD forward rollout of the reference duck scene: 5,130 vertices and 21,438 tetrahedra, original material and contact parameters. All 200 steps use dt=0.005 s, totaling one simulated second. Playback at 60 fps includes held initial and final poses; playback rate is not solver throughput.",
+    "label": "DiffPD | live reference duck | 1 simulated second at 60 fps playback",
+    "initial_hold_seconds": 0.5,
+    "final_hold_seconds": 1,
+    "title": "DiffPD | Soft duck on the reference curved ramp"
   },
   "softbody_diff_phd_cantilever": {
-    "frames": 25,
-    "fps": 12,
+    "frames": 125,
+    "fps": 24,
     "args": [
       "--test"
     ],
-    "caption": "Live forward simulation of the released DiffPhD cantilever_3d.py axial benchmark: 756 nodes, 500 intact Hex8 cells, original heterogeneous material, muscle and vertex-plane energies, fixed root and per-tip-vertex axial force ramp. All 25 steps use dt=0.01 s, totaling 0.25 simulated seconds; shown at 12 fps. No tetrahedral subdivision. Playback is not solver throughput.",
-    "label": "DiffPhD | original Hex8 cantilever | axial force ramp | live physics"
+    "caption": "Two fresh forward simulations on the original 756-node, 500-cell Hex8 cantilever: the released axial benchmark (25 steps at dt=0.01 s), then a 30-degree twist release (100 steps at dt=0.001 s). The twist initial angle is an explicit example setting, not recovered from the paper. Mesh edges and tip angle show the rotation. Slow-motion playback at 24 fps includes held initial and final poses; holds do not advance physics.",
+    "label": "Live physics | blue: soft; orange: 10x stiffer",
+    "initial_hold_seconds": 1.5,
+    "final_hold_seconds": 1,
+    "title": "DiffPhD | Hex8 cantilever: axial loading and twist release",
+    "run_args": [
+      [],
+      [
+        "--motion",
+        "twist"
+      ]
+    ]
   },
   "softbody_diff_phd_ur5_poke": {
-    "frames": 120,
-    "fps": 30,
+    "frames": 36,
+    "fps": 15,
     "args": [
       "--forward-only",
       "--show-target",
       "--test"
     ],
-    "caption": "Historical preview from the earlier mesh-boundary configuration. The current command uses the original training demo's two-way contact force, root-prescribed probe and independent physical velocities. It requires private PokeFlex data. The current equations still allow deep probe penetration; this preview is not validation of the corrected configuration or its speed.",
-    "label": "historical preview | local research experiment"
+    "caption": "Current forward-only simulation with the original penalty contact and root-prescribed probe, overlaid with the recorded blue surface. Includes the initial state and all 35 prescribed-motion frames (1,050 physics substeps, dt=1/900 s). No fitted checkpoint or training. Deep probe penetration remains unresolved; this clip shows the limitation and is not a successful contact validation. Requires private prepared PokeFlex data. Slow-motion playback at 15 fps includes held initial and final poses.",
+    "label": "White: simulation | blue: recording | penetration unresolved",
+    "initial_hold_seconds": 0.5,
+    "final_hold_seconds": 1,
+    "title": "DiffPhD | Experimental UR5 poke: current original penalty contact"
   }
 }

@@ -1,21 +1,45 @@
 {
   "example": "softbody_diff_phd_cantilever",
   "module": "newton_solver_diff_phd.examples.example_softbody_diff_phd_cantilever",
-  "caption": "Live forward simulation of the released DiffPhD cantilever_3d.py axial benchmark: 756 nodes, 500 intact Hex8 cells, original heterogeneous material, muscle and vertex-plane energies, fixed root and per-tip-vertex axial force ramp. All 25 steps use dt=0.01 s, totaling 0.25 simulated seconds; shown at 12 fps. No tetrahedral subdivision. Playback is not solver throughput.",
+  "caption": "Two fresh forward simulations on the original 756-node, 500-cell Hex8 cantilever: the released axial benchmark (25 steps at dt=0.01 s), then a 30-degree twist release (100 steps at dt=0.001 s). The twist initial angle is an explicit example setting, not recovered from the paper. Mesh edges and tip angle show the rotation. Slow-motion playback at 24 fps includes held initial and final poses; holds do not advance physics.",
   "arguments": [
     "--test"
   ],
   "device": "cuda:0",
-  "frames": 25,
-  "fps": 12,
+  "frames": 125,
+  "encoded_frames": 245,
+  "presentation_holds_advance_physics": false,
+  "initial_hold_seconds": 1.5,
+  "final_hold_seconds": 1.0,
+  "fps": 24,
   "width": 960,
   "height": 540,
-  "recording_wall_seconds": 2.97347976200399,
+  "recording_wall_seconds": 4.871880821003288,
   "playback_is_performance_benchmark": false,
   "simulation_time": [
     {
       "attribute": "sim_time",
-      "end": 0.25
+      "end": 0.1
+    }
+  ],
+  "segments": [
+    {
+      "motion": "axial",
+      "steps": 25,
+      "dt": 0.01,
+      "simulated_seconds": 0.25,
+      "minimum_jacobian": 0.9661699048673299,
+      "maximum_motion_m": 0.13798536391990324,
+      "final_tip_angle_deg": -3.646247485780821e-05
+    },
+    {
+      "motion": "twist",
+      "steps": 100,
+      "dt": 0.001,
+      "simulated_seconds": 0.1,
+      "minimum_jacobian": 0.9578324134395204,
+      "maximum_motion_m": 0.055888972761640066,
+      "final_tip_angle_deg": 14.258687846101704
     }
   ],
   "dependencies": {

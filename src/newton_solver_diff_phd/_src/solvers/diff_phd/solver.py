@@ -22,11 +22,8 @@ from .contact import FrictionalContact, mesh_vertices, surface_vertices
 from .exceptions import ConvergenceError
 from .mesh_contact import MeshContact, add_state_force
 from .sparse import SparseInverse
-from .swept_contact import SweptContact
 
 MATERIALS = {"pd": 0, "neo_hookean": 1}
-STATUS_SWEPT_CONTACT_FAILED = wp.constant(32)
-STATUS_SWEPT_INVALID_ELEMENT = wp.constant(64)
 
 
 @contextmanager
@@ -45,70 +42,6 @@ def _without_tape():
 def _free_particles(inverse_mass: wp.array[wp.float32], free: wp.array[wp.int32]):
     i = wp.tid()
     free[i] = wp.where(inverse_mass[i] > wp.float32(0.0), 1, 0)
-
-
-@wp.kernel(enable_backward=False)
-def _swept_failure_gate(contact_status: wp.array[int], status: wp.array[int], active: wp.array[int]):
-    if contact_status[0] != 0:
-        status[0] = status[0] | STATUS_SWEPT_CONTACT_FAILED
-        active[0] = 0
-
-
-@wp.kernel(enable_backward=False)
-def _accept_swept_fixed_point(
-    previous: wp.array[wp.vec3d], active: wp.array[int], status: wp.array[int], x: wp.array[wp.vec3d]
-):
-    i = wp.tid()
-    if active[0] == 0 and status[0] == 0:
-        # The measured residual is F(previous)-previous. Return the iterate
-        # whose residual was checked; it was certified on the prior iteration.
-        x[i] = previous[i]
-
-
-@wp.kernel(enable_backward=False)
-def _validate_swept_elements(
-    x: wp.array[wp.vec3d],
-    indices: wp.array[wp.vec4i],
-    gradients: wp.array2d[wp.vec3d],
-    status: wp.array[int],
-):
-    e = wp.tid()
-    tet = indices[e]
-    f = wp.mat33d(wp.float64(0.0))
-    stored = wp.mat33d(wp.float64(0.0))
-    for j in range(4):
-        f += wp.outer(x[tet[j]], gradients[e, j])
-        # The accepted Newton State stores float32 coordinates. A positive
-        # double candidate can round onto or through a nearby element face.
-        stored += wp.outer(wp.vec3d(wp.vec3(x[tet[j]])), gradients[e, j])
-    determinant = wp.determinant(f)
-    stored_determinant = wp.determinant(stored)
-    if (
-        not wp.isfinite(determinant)
-        or determinant <= wp.float64(1.0e-8)
-        or not wp.isfinite(stored_determinant)
-        or stored_determinant <= wp.float64(1.0e-8)
-    ):
-        wp.atomic_or(status, 0, STATUS_SWEPT_INVALID_ELEMENT)
-
-
-@wp.kernel(enable_backward=False)
-def _write_swept_state(
-    x: wp.array[wp.vec3d],
-    q_in: wp.array[wp.vec3],
-    v_in: wp.array[wp.vec3],
-    dt: wp.float64,
-    status: wp.array[int],
-    q_out: wp.array[wp.vec3],
-    v_out: wp.array[wp.vec3],
-):
-    i = wp.tid()
-    if status[0] != 0:
-        q_out[i] = q_in[i]
-        v_out[i] = v_in[i]
-    else:
-        q_out[i] = wp.vec3(x[i])
-        v_out[i] = wp.vec3((x[i] - wp.vec3d(q_in[i])) / dt)
 
 
 class SolverDiffPhD(SolverBase):
@@ -179,14 +112,6 @@ class SolverDiffPhD(SolverBase):
             [N s/m] and ``(F, 3)`` surface triangles (see ``mesh_contact.py``).
             It is evaluated on the start-of-step state, enters the inertial
             target and, as in the reference, has no gradient.
-        swept_contact: Optional extension ``(clearance, split_index, faces_left,
-            faces_right)`` for a deformable left mesh and fully prescribed right
-            probe. Sweeps both meshes between step endpoints with vertex/face and
-            edge/edge CCD and resolves frictionless contact using the mechanical
-            inverse. Requires a separated initial state. Mutually exclusive with
-            other contact modes. No adjoint is provided for this extension;
-            recorded Tape steps are rejected. Unresolved steps restore their input
-            state and set status bit 32. Material equations are unchanged.
         hex_mesh: Optional public ``Mesh`` containing float64 rest vertices and
             ``(E,8)`` Hex8 connectivity in binary order
             ``000,001,010,011,100,101,110,111``. The reference requires equally
@@ -222,8 +147,8 @@ class SolverDiffPhD(SolverBase):
     ``dt * qd`` when integrated) when no explicit target is supplied. Contact
     geometry, density and dt are constants. Hex8 currently supports forward
     simulation only: taped steps fail before changing the state, because its
-    quadrature adjoint is not implemented. Hex8 frictional, mesh and swept
-    contact are explicitly unsupported; use ``planar_energies`` for the native
+    quadrature adjoint is not implemented. Hex8 frictional and mesh contact
+    are explicitly unsupported; use ``planar_energies`` for the native
     cantilever's planar vertex energies.
     """
 
@@ -247,7 +172,6 @@ class SolverDiffPhD(SolverBase):
         friction: float = 0.0,
         restitution: float = 0.0,
         mesh_contact: tuple | None = None,
-        swept_contact: tuple | None = None,
         hex_mesh=None,
         hex_materials: np.ndarray | wp.array | None = None,
         muscle_targets: np.ndarray | wp.array | None = None,
@@ -266,8 +190,8 @@ class SolverDiffPhD(SolverBase):
             raise ValueError("hex_mesh cannot be combined with model tetrahedra")
         if hex_mesh is None and (muscle_targets is not None or planar_energies is not None):
             raise ValueError("Explicit muscle_targets and planar_energies currently require hex_mesh")
-        if hex_mesh is not None and any(x is not None for x in (frictional_boundary, mesh_contact, swept_contact)):
-            raise NotImplementedError("Hex8 currently supports planar_energies, not frictional or swept contact")
+        if hex_mesh is not None and any(x is not None for x in (frictional_boundary, mesh_contact)):
+            raise NotImplementedError("Hex8 currently supports planar_energies, not frictional or mesh contact")
         if model.shape_count and np.any(model.shape_type.numpy() != int(GeoType.PLANE)):
             raise ValueError("SolverDiffPhD does not collide with native Newton shapes")
         if not np.isfinite(density) or density <= 0:
@@ -376,14 +300,6 @@ class SolverDiffPhD(SolverBase):
         self._x_column = self._x.reshape((1, self._n))
         self._previous_column = self._previous.reshape((1, self._n))
         self._contact = None
-        if swept_contact is not None and (
-            frictional_boundary is not None
-            or mesh_contact is not None
-            or frictional_vertices is not None
-            or friction != 0.0
-            or restitution != 0.0
-        ):
-            raise ValueError("swept_contact is frictionless and cannot be combined with other contact modes")
         if frictional_boundary is not None:
             kind, parameters = frictional_boundary
             if frictional_vertices is None:
@@ -407,20 +323,6 @@ class SolverDiffPhD(SolverBase):
             if len(mesh_contact) != 7:
                 raise ValueError("mesh_contact is (contact_radius, kn_left, kn_right, kf, mu, faces_a, faces_b)")
             self._mesh_contact = MeshContact(*mesh_contact, self._n, device)
-        self._swept_contact = None
-        if swept_contact is not None:
-            if len(swept_contact) != 4:
-                raise ValueError("swept_contact is (clearance, split_index, faces_left, faces_right)")
-            clearance, split, left, right = swept_contact
-            self._swept_contact = SweptContact(
-                left,
-                right,
-                split,
-                model.particle_inv_mass.numpy() > 0,
-                clearance,
-                device=device,
-                tolerance=1.0e-7,
-            )
         self.inverse = None
         self._factor_key = None
         self._model_changed = True
@@ -451,16 +353,6 @@ class SolverDiffPhD(SolverBase):
         return None if self._mesh_contact is None else self._mesh_contact.pairs
 
     @property
-    def swept_contact_status(self) -> wp.array | None:
-        """Detailed CCD/response failure flags for the last swept step, or None."""
-        return None if self._swept_contact is None else self._swept_contact.status
-
-    @property
-    def swept_contact_count(self) -> wp.array | None:
-        """Retained swept feature constraints in the latest projection, or None."""
-        return None if self._swept_contact is None else self._swept_contact.count
-
-    @property
     def iterations(self) -> wp.array:
         """Device array holding the local/global iteration count of the last step."""
         return self._iteration
@@ -489,11 +381,9 @@ class SolverDiffPhD(SolverBase):
         """Read and clear :attr:`status` without raising; one host synchronization.
 
         Bits: 1 a step reached ``max_iterations`` (the reference warns and keeps
-        the last iterate; swept mode restores the input), 2 singular volume projection, 4 invalid activation,
+        the last iterate), 2 singular volume projection, 4 invalid activation,
         8 a recorded backward fixed point did not converge, 16 a reference backward
-        safeguard scrubbed, clipped or suppressed a contribution; 32 a swept
-        collision search or response failed and the step was rejected; 64 a swept
-        step produced an inverted/degenerate element and was rejected.
+        safeguard scrubbed, clipped or suppressed a contribution.
         """
         bits = int(self._status.numpy()[0])
         self._status.zero_()
@@ -513,28 +403,6 @@ class SolverDiffPhD(SolverBase):
                 converge.
         """
         bits = self.read_status()
-        if bits & int(STATUS_SWEPT_CONTACT_FAILED):
-            detail = int(self._swept_contact.status.numpy()[0])
-            reasons = [
-                name
-                for flag, name in (
-                    (1, "contact capacity exceeded"),
-                    (2, "continuous collision search unresolved"),
-                    (4, "invalid collision geometry"),
-                    (8, "normal contact response did not converge"),
-                    (16, "contact correction limit reached"),
-                    (32, "nonfinite contact response"),
-                )
-                if detail & flag
-            ]
-            raise ConvergenceError(
-                f"Swept contact rejected the step ({', '.join(reasons) or 'unknown contact failure'}); "
-                "the input state was restored"
-            )
-        if bits & int(STATUS_SWEPT_INVALID_ELEMENT):
-            raise ConvergenceError(
-                "Swept step produced an inverted or degenerate element; the input state was restored"
-            )
         if bits & int(k.STATUS_SINGULAR):
             raise ValueError("DiffPhD volume projection met a singular deformation gradient (reference 'Singular F.')")
         if bits & int(k.STATUS_ACTIVATION):
@@ -625,8 +493,6 @@ class SolverDiffPhD(SolverBase):
             raise RuntimeError("SolverDiffPhD must rebuild its factor; step once outside graph capture first")
         model = self.model
         materials, free = self._validate_model()
-        if self._swept_contact is not None:
-            self._swept_contact.validate_free_mask(free)
         # Fresh arrays keep earlier recorded steps valid after a rebuild.
         self._free = wp.empty(self._n, dtype=wp.int32, device=self.device)
         self._corotated_weight = wp.empty(self._element_count, dtype=wp.float64, device=self.device)
@@ -680,8 +546,6 @@ class SolverDiffPhD(SolverBase):
         self.inverse = SparseInverse(rows, self.device)
         if self._contact is not None:
             self._contact.build(self.inverse)
-        if self._swept_contact is not None:
-            self._swept_contact.build(self.inverse, dt)
         self._inertia = inertia
         self._factor_key = dt
         self._model_changed = False
@@ -767,16 +631,7 @@ class SolverDiffPhD(SolverBase):
         else:
             self.inverse.apply(self._rhs, self._x)
         wp.launch(k.impose_boundary, n, inputs=[self._boundary, self._free], outputs=[self._x], device=device)
-        if self._swept_contact is not None:
-            # Anderson must accelerate the constrained map P(T(x)). The raw
-            # mechanical residual T(x)-x contains the contact reaction even at
-            # equilibrium, so accelerating it can create a false fixed point.
-            wp.copy(self._solved, self._x)
-            self._swept_contact.project(self._position, self._solved, self._x)
-        else:
-            self._anderson.mix(self._x_column, self._previous_column)
-        # Swept mode tests the actual constrained map F(x)=P(T(x)) before
-        # acceleration. A small accelerated update is not an equilibrium test.
+        self._anderson.mix(self._x_column, self._previous_column)
         convergence = (self._boundary, self._free, self._previous, self._projection, self._previous_projection, n)
         if device.is_cuda:
             wp.launch_tiled(
@@ -802,44 +657,6 @@ class SolverDiffPhD(SolverBase):
                 outputs=[self._iteration, self._active, self._status],
                 device=device,
             )
-        if self._swept_contact is not None:
-            wp.launch(
-                _swept_failure_gate,
-                1,
-                inputs=[self._swept_contact.status],
-                outputs=[self._status, self._active],
-                device=device,
-            )
-            wp.launch(
-                _accept_swept_fixed_point,
-                n,
-                inputs=[self._previous, self._active, self._status],
-                outputs=[self._x],
-                device=device,
-            )
-            if self._anderson.window:
-                wp.capture_if(self._active, self._accelerate_swept)
-            wp.launch(
-                _swept_failure_gate,
-                1,
-                inputs=[self._swept_contact.status],
-                outputs=[self._status, self._active],
-                device=device,
-            )
-
-    def _accelerate_swept(self):
-        self._anderson.mix(self._x_column, self._previous_column)
-        # Mixing feasible endpoints can reintroduce an intersection. The
-        # accelerated endpoint needs its own complete sweep and response.
-        wp.launch(
-            k.impose_boundary,
-            self._n,
-            inputs=[self._boundary, self._free],
-            outputs=[self._x],
-            device=self.device,
-        )
-        wp.copy(self._solved, self._x)
-        self._swept_contact.project(self._position, self._solved, self._x)
 
     def _solve(self):
         device = self.device
@@ -910,10 +727,6 @@ class SolverDiffPhD(SolverBase):
             raise NotImplementedError(
                 "Hex8 supports forward simulation only; its quadrature adjoint is not implemented"
             )
-        if tape is not None and self._swept_contact is not None:
-            raise NotImplementedError(
-                "Swept contact currently supports forward simulation only; no adjoint is implemented"
-            )
         if tape is not None:
             if self.device.is_capturing:
                 raise RuntimeError("Recording SolverDiffPhD steps on a Tape during graph capture is unsupported")
@@ -959,31 +772,15 @@ class SolverDiffPhD(SolverBase):
             self._anderson.reset()
             if self._contact is not None:
                 self._contact.begin_step(self._position, dt)
-            if self._swept_contact is not None:
-                self._swept_contact.begin_step()
             self._solve()
             if self._contact is not None:
                 self._contact.finish_step(self._position, self._velocity, dt, self._x)
-            if self._swept_contact is None:
-                wp.launch(
-                    k.write_state,
-                    self._n,
-                    inputs=[self._x, self._position, dt],
-                    outputs=[state_out.particle_q, state_out.particle_qd],
-                )
-            else:
-                wp.launch(
-                    _validate_swept_elements,
-                    len(self._tets),
-                    inputs=[self._x, self.indices, self.gradients],
-                    outputs=[self._status],
-                )
-                wp.launch(
-                    _write_swept_state,
-                    self._n,
-                    inputs=[self._x, state_in.particle_q, state_in.particle_qd, dt, self._status],
-                    outputs=[state_out.particle_q, state_out.particle_qd],
-                )
+            wp.launch(
+                k.write_state,
+                self._n,
+                inputs=[self._x, self._position, dt],
+                outputs=[state_out.particle_q, state_out.particle_qd],
+            )
             record = StepRecord(self, dt, dirichlet_positions) if tape is not None else None
         if record is not None:
             self._record(tape, record, state_in, state_out)
