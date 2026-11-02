@@ -1,0 +1,169 @@
+{
+  "status": "diagnostic only; no runnable Bunny example retained",
+  "reference_commit": "d319435373a8a94aac2035bfe41f16f49bc1d2a1",
+  "geometry": {
+    "vertices": 1672,
+    "tetrahedra": 5950,
+    "boundary_vertices": 1330,
+    "registered_contacts": 66,
+    "sha256": "5bea6632b26e20cfe27666b34788aa829fd2aa5fabd839f85b51ab089cc5e65e",
+    "original_helper_equality": {
+      "vertices": true,
+      "tets": true,
+      "contact_vertices": true,
+      "soft_elements": true,
+      "stiff_elements": true,
+      "surface_face_coordinates": true,
+      "surface_face_owners": true
+    }
+  },
+  "native_matching_input": {
+    "scope": "Replay selected CUDA input states with its actual stored model precision.\n\n    Every replay starts a fresh native instance and zero warm contact forces.\n    The comparison therefore reports fixed-point agreement, not equal iteration\n    histories. The native rest inverse is rebuilt from the port's rest points;\n    Newton's stored float32 tet inverse remains a documented representation gap.\n    ",
+    "trace_sha256": "6b6a51210f4ea044d2dc37165d7739cce5cd5a4c24dd045107dbb93b1737a1f4",
+    "rows": [
+      {
+        "step": 1,
+        "seconds": 0.1252134059977834,
+        "converged": true,
+        "iterations": [
+          5
+        ],
+        "max_nodal_position_error_m": 1.4264525935240457e-08,
+        "rms_nodal_position_error_m": 5.679829142462669e-09,
+        "max_nodal_velocity_error_m_s": 4.677844951459714e-07,
+        "com_error_m": [
+          -1.1923462172393393e-11,
+          -2.4126735804654785e-11,
+          5.144613423964723e-10
+        ]
+      },
+      {
+        "step": 20,
+        "seconds": 0.04851102500106208,
+        "converged": true,
+        "iterations": [
+          3
+        ],
+        "max_nodal_position_error_m": 4.59303169444904e-09,
+        "rms_nodal_position_error_m": 1.9932925071951807e-09,
+        "max_nodal_velocity_error_m_s": 4.3830412056842334e-07,
+        "com_error_m": [
+          -1.2365175343195773e-10,
+          7.269558507277018e-11,
+          2.47704477501017e-10
+        ]
+      },
+      {
+        "step": 22,
+        "seconds": 4.715530154004227,
+        "converged": true,
+        "iterations": [
+          1537
+        ],
+        "max_nodal_position_error_m": 5.333086977380255e-09,
+        "rms_nodal_position_error_m": 2.1867260297990835e-09,
+        "max_nodal_velocity_error_m_s": 1.9451657608854784e-06,
+        "com_error_m": [
+          5.002157506537029e-11,
+          -1.4790169455993267e-11,
+          -1.6996125367401245e-10
+        ]
+      },
+      {
+        "step": 30,
+        "seconds": 8.532063832994027,
+        "converged": true,
+        "iterations": [
+          2627
+        ],
+        "max_nodal_position_error_m": 2.664478317923194e-08,
+        "rms_nodal_position_error_m": 5.897174388849706e-09,
+        "max_nodal_velocity_error_m_s": 2.6286234468393176e-05,
+        "com_error_m": [
+          6.527343597326718e-11,
+          -2.0755800632685516e-11,
+          -2.403794309765247e-12
+        ]
+      },
+      {
+        "step": 60,
+        "seconds": 3.1561350349948043,
+        "converged": true,
+        "iterations": [
+          1477
+        ],
+        "max_nodal_position_error_m": 8.086412232642118e-09,
+        "rms_nodal_position_error_m": 3.338478875345671e-09,
+        "max_nodal_velocity_error_m_s": 9.592665385926664e-07,
+        "com_error_m": [
+          2.6783358732938012e-11,
+          -2.303096644254364e-11,
+          3.212270431916605e-11
+        ]
+      },
+      {
+        "step": 100,
+        "seconds": 3.5372574270004407,
+        "converged": true,
+        "iterations": [
+          1642
+        ],
+        "max_nodal_position_error_m": 9.847058065846507e-09,
+        "rms_nodal_position_error_m": 5.2682404536282575e-09,
+        "max_nodal_velocity_error_m_s": 1.0118727449764264e-06,
+        "com_error_m": [
+          -6.919151899159088e-11,
+          -1.761855561472257e-11,
+          -7.422399953557067e-11
+        ]
+      }
+    ]
+  },
+  "port_original_scene": {
+    "path": "port-cuda/trace.npz",
+    "sha256": "6b6a51210f4ea044d2dc37165d7739cce5cd5a4c24dd045107dbb93b1737a1f4",
+    "steps": 100,
+    "finite_positions_velocities": true,
+    "minimum_j": 0.8281951659045191,
+    "final_com": [
+      0.16077685801303415,
+      0.06266842217576739,
+      0.0911614107609722
+    ],
+    "final_loss": 0.5602462368771065,
+    "contact_subset_audit": {
+      "boundary_vertices": 1330,
+      "registered_vertices": 66,
+      "unregistered_boundary_vertices": 1264,
+      "minimum_boundary_z_m": -0.005826372187584639,
+      "minimum_registered_z_m": -7.127706770914042e-19,
+      "worst_boundary_step": 40,
+      "worst_boundary_vertex": 427,
+      "penetrating_boundary_vertices_at_worst_step": 44,
+      "scope": "Exact original curvature-selected contact subset versus all tetra boundary vertices, step endpoints."
+    },
+    "scene_mode": "Released reference launch: seed 211, original 66 contact vertices."
+  },
+  "native_full_run": {
+    "last_observed_completed_step": 80,
+    "requested_steps": 100,
+    "termination_exit_code": 143,
+    "numerical_failure_observed": false,
+    "completed_full_trace": false
+  },
+  "additional_experiments": {
+    "full_surface_original_launch": {
+      "status": "invalid tetrahedra at step22",
+      "source": "nsys/results/bunny-profiles/20261102T184644.596152Z_softbody_diff_phd_bunny_w4mofxc4/workload.json"
+    },
+    "full_surface_gentle_launch": {
+      "status": "failed 10000-iteration convergence gate during first contact",
+      "drop_height_m": 0.01,
+      "horizontal_speed_m_s": 0.15,
+      "vertical_speed_m_s": 0.0,
+      "source_log": "/tmp/diffphd-bunny-gentle-cuda.log"
+    }
+  },
+  "gradient_scope": "These three finite differences are before impact. They validate only the free-flight COM objective. Native state adjoints omit changing contact response; port family-mean local Jacobians do not reproduce the original four grouped-energy local Jacobians at 100x contrast. No optimizer is validated.",
+  "reason_not_recommended": "Original sparse contact permits unregistered surface vertices to penetrate. Expanding floor contacts did not produce a valid complete rollout. Use the cantilever elastic example for a simpler validated case."
+}

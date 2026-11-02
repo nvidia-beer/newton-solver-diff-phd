@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 The Newton Developers
 # SPDX-License-Identifier: Apache-2.0
-"""Read static USD tetrahedra without importing material or solver settings."""
+"""Read static USD volume geometry without importing material or solver settings."""
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -10,7 +10,7 @@ import numpy as np
 
 @dataclass(frozen=True)
 class Mesh:
-    """One TetMesh in world-space metres with Z up and positive Tet4 winding."""
+    """A volume mesh in world-space metres with Z up: Tet4 or binary-order Hex8."""
 
     name: str
     vertices: np.ndarray
@@ -18,9 +18,11 @@ class Mesh:
 
 
 def load_mesh(path: str | Path) -> list[Mesh]:
-    """Load static TetMesh geometry, applying USD transforms, units and up axis.
+    """Load static Tet4 or Hex8 geometry, applying transforms, units and up axis.
 
-    Only points and tetrahedral connectivity are imported. Materials, density,
+    Hex8 geometry is a USD Mesh with a flattened ``newton:hexVertexIndices``
+    integer attribute, ordered 000,001,010,011,100,101,110,111 per cell.
+    Only points and volume connectivity are imported. Materials, density,
     contacts and all other physics attributes remain the caller's responsibility.
     OpenUSD is imported lazily; install this package's ``examples`` extra to use it.
     """
@@ -44,7 +46,8 @@ def load_mesh(path: str | Path) -> list[Mesh]:
     transforms = UsdGeom.XformCache(Usd.TimeCode.Default())
     meshes = []
     for prim in stage.Traverse():
-        if prim.GetTypeName() != "TetMesh":
+        is_hex = prim.GetTypeName() == "Mesh" and bool(prim.GetAttribute("newton:hexVertexIndices"))
+        if prim.GetTypeName() != "TetMesh" and not is_hex:
             continue
         name = str(prim.GetPath())
         reference_points = prim.GetAttribute("newton:referencePoints")
@@ -59,17 +62,27 @@ def load_mesh(path: str | Path) -> list[Mesh]:
             vertices = vertices[:, [0, 2, 1]] * [1, -1, 1]
         if not np.isfinite(vertices).all():
             raise ValueError(f"{name}: points must be finite")
-        indices = np.asarray(prim.GetAttribute("tetVertexIndices").Get())
+        attribute = "newton:hexVertexIndices" if is_hex else "tetVertexIndices"
+        width = 8 if is_hex else 4
+        indices = np.asarray(prim.GetAttribute(attribute).Get())
+        if is_hex and indices.ndim == 1 and indices.size % width == 0:
+            indices = indices.reshape(-1, width)
         if (
             indices.ndim != 2
-            or indices.shape[1] != 4
+            or indices.shape[1] != width
             or not len(indices)
             or not np.issubdtype(indices.dtype, np.integer)
             or np.any(indices < 0)
             or np.any(indices >= len(vertices))
         ):
-            raise ValueError(f"{name}: tetVertexIndices must contain four valid indices per element")
+            raise ValueError(f"{name}: {attribute} must contain {width} valid indices per element")
         indices = indices.astype(np.int32, copy=True)
+        if is_hex:
+            if np.any(np.diff(np.sort(indices, axis=1), axis=1) == 0):
+                raise ValueError(f"{name}: a hexahedron has repeated vertices")
+            # Quadrature and positive rest Jacobians are checked by the solver.
+            meshes.append(Mesh(name, vertices, indices))
+            continue
         edges = vertices[indices[:, 1:]] - vertices[indices[:, :1]]
         determinant = np.linalg.det(edges)
         scale = np.prod(np.linalg.norm(edges, axis=2), axis=1)
@@ -79,5 +92,5 @@ def load_mesh(path: str | Path) -> list[Mesh]:
         indices[inverted] = indices[inverted][:, [0, 2, 1, 3]]
         meshes.append(Mesh(name, vertices, indices))
     if not meshes:
-        raise ValueError(f"No TetMesh volume geometry found in {path}")
+        raise ValueError(f"No Tet4 or Hex8 volume geometry found in {path}")
     return meshes

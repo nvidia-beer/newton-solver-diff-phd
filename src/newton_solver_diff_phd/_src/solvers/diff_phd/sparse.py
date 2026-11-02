@@ -5,8 +5,8 @@
 
 For a symmetric positive-definite scalar matrix, ``P A P.T = L D L.T``
 and ``S = D**(-1/2) L**(-1) P`` give ``A**(-1) b = S.T (S b)``.
-Only sparse dictionaries and CSR arrays are constructed; the dense inverse of
-``A`` is never formed. Exact inverse factors can still have substantial fill.
+Setup uses sparse row storage, CSR arrays and one linear-sized work row; no
+dense matrix or inverse is formed. Exact inverse factors can still have substantial fill.
 """
 
 from collections import deque
@@ -103,45 +103,77 @@ def _factor_ldlt(rows: list[dict[int, float]], permutation: np.ndarray):
         {int(inverse[j]): value for j, value in rows[int(original)].items() if inverse[j] <= i}
         for i, original in enumerate(permutation)
     ]
+    # Discover the same fill as right-looking elimination before numeric work.
+    # Each row stores only its lower-triangular nonzeros, including fill; no
+    # dense matrix is allocated. Structural zeros remain until inverse setup.
+    patterns = [set(row) for row in work]
     columns = [set() for _ in range(size)]
-    for i, row in enumerate(work):
+    for i, row in enumerate(patterns):
         for j in row:
             if j < i:
                 columns[j].add(i)
-    lower = [{} for _ in range(size)]
+    for k in range(size):
+        prefix = set()
+        for i in sorted(columns[k]):
+            added = prefix - patterns[i]
+            patterns[i].update(added)
+            for j in added:
+                columns[j].add(i)
+            prefix.add(i)
+        columns[k].clear()
+
+    indices = [np.asarray(sorted(row), dtype=np.int32) for row in patterns]
+    values = [np.zeros(len(row), dtype=np.float64) for row in indices]
+    column_rows = [[] for _ in range(size)]
+    column_positions = [[] for _ in range(size)]
+    for i, (row_indices, row_values, row) in enumerate(zip(indices, values, work, strict=True)):
+        row_values[np.searchsorted(row_indices, list(row))] = list(row.values())
+        for position, k in enumerate(row_indices[:-1]):
+            column_rows[k].append(i)
+            column_positions[k].append(position)
+    del patterns, work, columns
+
     diagonal = np.empty(size, dtype=np.float64)
     for k in range(size):
-        pivot = work[k][k]
+        pivot = values[k][-1]
         if not np.isfinite(pivot) or pivot <= 0.0:
             raise ValueError(f"matrix is not positive definite: LDLT pivot {k} is {pivot}")
         diagonal[k] = pivot
-        neighbors = sorted(columns[k])
-        values = [work[i].pop(k) for i in neighbors]
-        for i, value in zip(neighbors, values, strict=True):
-            lower[i][k] = value / pivot
-        for offset, i in enumerate(neighbors):
-            multiplier = lower[i][k]
-            for j, value in zip(neighbors[: offset + 1], values[: offset + 1], strict=True):
-                if j not in work[i] and i != j:
-                    columns[j].add(i)
-                work[i][j] = work[i].get(j, 0.0) - multiplier * value
-        columns[k].clear()
+        neighbors = np.asarray(column_rows[k], dtype=np.int32)
+        positions = column_positions[k]
+        entries = np.asarray([values[i][position] for i, position in zip(neighbors, positions, strict=True)])
+        for offset, (i, position) in enumerate(zip(neighbors, positions, strict=True)):
+            multiplier = entries[offset] / pivot
+            values[i][position] = multiplier
+            locations = np.searchsorted(indices[i], neighbors[: offset + 1])
+            # Entries within this row are independent. The outer pivot order
+            # and each coefficient's multiply-then-subtract order are unchanged.
+            values[i][locations] -= multiplier * entries[: offset + 1]
+    lower = [
+        dict(zip(map(int, row_indices[:-1]), row_values[:-1], strict=True))
+        for row_indices, row_values in zip(indices, values, strict=True)
+    ]
     return lower, diagonal
 
 
 def _inverse_rows(lower, diagonal, permutation):
-    inverse = []
-    result = []
+    columns, values, result = [], [], []
+    # One O(n) work row, never an n-by-n inverse. Completed inverse rows stay
+    # sparse, and updating distinct columns in NumPy preserves accumulation
+    # order while avoiding a Python dictionary lookup for every scalar term.
+    current = np.empty(len(lower), dtype=np.float64)
     for i, row in enumerate(lower):
-        current = {i: 1.0}
+        current[: i + 1] = 0.0
+        current[i] = 1.0
         for k, coefficient in sorted(row.items()):
-            for column, value in inverse[k].items():
-                current[column] = current.get(column, 0.0) - coefficient * value
+            current[columns[k]] -= coefficient * values[k]
         # Only exact arithmetic zeros are omitted; there is no drop tolerance.
-        current = {j: value for j, value in current.items() if value != 0.0}
-        inverse.append(current)
+        present = np.flatnonzero(current[: i + 1])
+        entries = current[present].copy()
+        columns.append(present)
+        values.append(entries)
         scale = 1.0 / np.sqrt(diagonal[i])
-        result.append({int(permutation[j]): value * scale for j, value in current.items()})
+        result.append(dict(zip(map(int, permutation[present]), entries * scale, strict=True)))
     return result
 
 
@@ -223,6 +255,21 @@ def _multiply_batch(
     for entry in range(offsets[row], offsets[row + 1]):
         value += values[entry] * rhs[columns[entry], column]
     out[row, column] = value
+
+
+@wp.kernel(enable_backward=False)
+def _multiply_vec3_batch(
+    offsets: wp.array[wp.int32],
+    columns: wp.array[wp.int32],
+    values: wp.array[wp.float64],
+    rhs: wp.array2d[wp.vec3d],
+    out: wp.array2d[wp.vec3d],
+):
+    column, row = wp.tid()
+    value = wp.vec3d(0.0)
+    for entry in range(offsets[row], offsets[row + 1]):
+        value += values[entry] * rhs[column, columns[entry]]
+    out[column, row] = value
 
 
 class SparseInverse:
@@ -360,6 +407,34 @@ class SparseInverse:
             outputs=[out],
             device=self.device,
         )
+
+    def reserve_vec3_batch(self, shape) -> None:
+        """Allocate the scratch of :meth:`apply_vec3_batch` for ``(columns, size)`` fields ahead of graph capture."""
+        work = getattr(self, "_vec3_batch_work", None)
+        if work is None or work.shape != tuple(shape):
+            self._vec3_batch_work = wp.empty(tuple(shape), dtype=wp.vec3d, device=self.device)
+
+    def apply_vec3_batch(self, rhs: wp.array2d[wp.vec3d], out: wp.array2d[wp.vec3d]) -> None:
+        """Solve ``(columns, size)`` coordinate fields at once; scratch is reserved on the first call."""
+        if rhs.shape != out.shape or rhs.ndim != 2 or rhs.shape[1] != self.size:
+            raise ValueError("rhs and out must have identical shapes (columns, size)")
+        work = getattr(self, "_vec3_batch_work", None)
+        if work is None or work.shape != rhs.shape:
+            if self.device.is_capturing:
+                raise RuntimeError("Reserve the batch before graph capture")
+            work = wp.empty(rhs.shape, dtype=wp.vec3d, device=self.device)
+            self._vec3_batch_work = work
+        for (offsets, columns, values), source, target in (
+            ((self.s_offsets, self.s_columns, self.s_values), rhs, work),
+            ((self.st_offsets, self.st_columns, self.st_values), work, out),
+        ):
+            wp.launch(
+                _multiply_vec3_batch,
+                rhs.shape,
+                inputs=[offsets, columns, values, source],
+                outputs=[target],
+                device=self.device,
+            )
 
     def apply_numpy(self, rhs: np.ndarray) -> np.ndarray:
         """Apply the factors on the CPU to RHS shape ``(size,)`` or ``(size, k)``.

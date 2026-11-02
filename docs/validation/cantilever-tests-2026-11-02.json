@@ -1,0 +1,36 @@
+{
+  "date": "2026-11-02",
+  "scope": "Final Hex8 cantilever, UI motion switching, refined twist, and retained Tet4/DiffPD regressions after removal of the three custom demos",
+  "python_source_sha256": "96817de3bccffb0acf73985c0c9dc82883b489a4c1a6fb0a8998f9888d4fef40",
+  "commands": [
+    "NEWTON_TEST_DEVICE=cpu uv run --locked --no-sync python -m unittest discover -s tests -v",
+    "NEWTON_TEST_DEVICE=cuda:0 uv run --locked --no-sync python -m unittest discover -s tests -v"
+  ],
+  "devices": {
+    "cpu": {
+      "tests": 217,
+      "passed": 211,
+      "skipped": 6,
+      "seconds": 125.152,
+      "log": "/tmp/diffphd-hex-final-cpu.log",
+      "log_sha256": "03f0abc42fbfee6bbf524183091dacb203b257ecd6108ea3a392ce1f226e3e5d"
+    },
+    "cuda": {
+      "tests": 217,
+      "passed": 216,
+      "skipped": 1,
+      "seconds": 106.214,
+      "log": "/tmp/diffphd-hex-final-cuda.log",
+      "log_sha256": "75f33a02e2340fb6fc78804925b081ca0a878ea46dbce8e6a50a58c2c4796a80"
+    }
+  },
+  "ruff": "check and format --check pass, 111 Python files",
+  "documentation": "Generated README check and required videos pass",
+  "packaging": "Offline source and wheel builds pass; Hex8 solver/asset included, removed demos and private data absent",
+  "ui": "Actual OpenGL motion selector and Hex mesh edges rendered; initial and step50 twist visually inspected",
+  "motion_switch": "Same Newton model retained; graphs reset for timestep/tolerance; switches match fresh simulations",
+  "limits": [
+    "Hex8 is forward-only; no adjoint is claimed",
+    "UR5 deep contact failure remains unresolved"
+  ]
+}

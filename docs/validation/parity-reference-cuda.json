@@ -1,0 +1,1954 @@
+{
+  "date": "2026-11-01",
+  "schema": "newton.diff_phd_parity.v1",
+  "reference": {
+    "repository": "https://github.com/Akinesia112/DiffPhD",
+    "revision": "d319435373a8a94aac2035bfe41f16f49bc1d2a1",
+    "expected_revision": "d319435373a8a94aac2035bfe41f16f49bc1d2a1",
+    "eigen_submodule": "baf9a985ece8c02d45ae151d64bdf25d3e2faeaa",
+    "build_patch": "tools/parity/aarch64-build.patch",
+    "build_patch_sha256": "ef30616a58ce109644b0a2c4553055fce76f43ea1c982c83a4e1fa1294ccd2c1",
+    "method": "pd_eigen_alg_phd (ForwardProjectiveDynamicsAlgPhd / BackwardProjectiveDynamicsAlgPhd)",
+    "python": "3.12.12",
+    "nvcc": [
+      "Build cuda_13.0.r13.0/compiler.36424714_0"
+    ],
+    "gcc": [
+      "gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0"
+    ]
+  },
+  "port": {
+    "python": "3.12.3",
+    "platform": "Linux-6.14.0-1015-nvidia-aarch64-with-glibc2.39",
+    "machine": "aarch64",
+    "warp": "1.17.0",
+    "newton": "1.7.0",
+    "device": "cuda:0",
+    "device_name": "NVIDIA GB10",
+    "cuda_driver": "13.0",
+    "revision": "8a50babc68ef26491094691b1eae4f7b90348576+uncommitted",
+    "source_sha256": [
+      "c1dd44562d99ad1f8c06d0c405ddb8e83afa58a6edd64eeabd60b04dab0cb15e"
+    ]
+  },
+  "thresholds": {
+    "positions": "||q_port - q_ref||_2 <= 10 (rel_tol ||q_ref||_2 + abs_tol) + 10 k u32 (||q_ref||_2 + dt ||v_ref||_2), k = number of earlier steps whose output the port stored in float32 (0 for single steps)",
+    "velocities": "position bound / dt",
+    "iterations": "|it_port - it_ref| <= 1 per step (Anderson roundoff can flip a gate)",
+    "converged": "equal per step",
+    "active_set": "equal per step (lambda > 0)",
+    "multipliers": "|lambda_port - lambda_ref| <= 5e-6 |lambda_ref| + 1e-6 max|lambda_ref| + 1e-12 (reference trace prints 6 significant digits)",
+    "gaps": "max |gap_port - gap_ref| <= position bound",
+    "gradients_exact": "||g_port - g_ref||_2 <= 1e-5 ||g_ref||_2 on free particles (dL/dq, dL/dv, each step's dL/df_ext, dL/du); no contact, homogeneous or grouped materials",
+    "gradients_contact": "||g_port - g_ref||_2 <= 1e-4 ||g_ref||_2 (contact Woodbury: capped W_T fixed points)",
+    "materials": "per reference energy: |g_port - g_ref| <= tol |g_ref| + steps u32 sum_e |g_port,e| (port returns float32 per-element values); tol as for the regime",
+    "mesh_contact": "reference mesh_contact state force (zero backward on both sides): judged by the position, velocity, iteration and exact-regime gradient thresholds above; per-step forces and pair counts are reported",
+    "heterogeneous_per_element": "gradients reported, not judged: documented deviation (port K uses element weights, reference K the mean weight of each energy)"
+  },
+  "cases": [
+    {
+      "case": "homogeneous_free",
+      "material": "pd",
+      "reference_material_encoding": "per_element",
+      "steps": 1,
+      "contact": "none",
+      "state_forces": [
+        "gravity"
+      ],
+      "friction": 0.0,
+      "gradient_regime": "exact",
+      "gradient_tolerance": 1e-05,
+      "reference_iterations": [
+        27
+      ],
+      "port_iterations": [
+        27
+      ],
+      "reference_cascade_cap_active": [
+        false
+      ],
+      "reference_backbone_clipped": [
+        false
+      ],
+      "scene": {
+        "min_det_F": 0.5134852826837789,
+        "max_stretch": 1.4039345275853212,
+        "min_stretch": 0.5691364754292022
+      },
+      "checks": [
+        {
+          "metric": "step 0 positions",
+          "max_error": 4.245572597786959e-15,
+          "threshold": 4.970393977637424e-10,
+          "pass": true
+        },
+        {
+          "metric": "step 0 velocities",
+          "max_error": 1.0613494962141073e-12,
+          "threshold": 1.242598494409356e-07,
+          "pass": true
+        },
+        {
+          "metric": "step 0 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 0 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "dL/dq relative",
+          "max_error": 2.4344485381778265e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 12.036578055064593
+        },
+        {
+          "metric": "dL/dv relative",
+          "max_error": 2.5866218931278247e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 0.10579297657865526
+        },
+        {
+          "metric": "dL/df_ext step 0 relative",
+          "max_error": 2.5755858715168218e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 0.0010833200801654305
+        },
+        {
+          "metric": "dL/dw corotated energy 0",
+          "max_error": 3.891592608634752e-15,
+          "threshold": 5.0636514615005515e-12,
+          "pass": true,
+          "port": -4.735292682411796e-07,
+          "reference": -4.7352926434958697e-07,
+          "relative": 8.218272663633627e-09
+        },
+        {
+          "metric": "dL/dw volume energy 1",
+          "max_error": 3.810757316332738e-15,
+          "threshold": 5.627563350446308e-13,
+          "pass": true,
+          "port": -5.1424526317843475e-08,
+          "reference": -5.142453012860079e-08,
+          "relative": 7.410388207345639e-08
+        }
+      ],
+      "pass": true
+    },
+    {
+      "case": "mesh_contact_poke",
+      "material": "pd",
+      "reference_material_encoding": "per_element",
+      "steps": 3,
+      "contact": "none",
+      "state_forces": [
+        "gravity",
+        "mesh_contact"
+      ],
+      "friction": 0.0,
+      "gradient_regime": "exact",
+      "gradient_tolerance": 1e-05,
+      "reference_iterations": [
+        25,
+        25,
+        25
+      ],
+      "port_iterations": [
+        25,
+        25,
+        25
+      ],
+      "reference_cascade_cap_active": [
+        false,
+        false,
+        false
+      ],
+      "reference_backbone_clipped": [
+        false,
+        false,
+        false
+      ],
+      "scene": {
+        "min_det_F": 0.913612464476633,
+        "max_stretch": 1.0795951454330803,
+        "min_stretch": 0.9165572577897277,
+        "mesh_contact_pairs_per_step": {
+          "a_vertices_vs_b_faces": [
+            14,
+            14,
+            14
+          ],
+          "b_vertices_vs_a_faces": [
+            24,
+            24,
+            24
+          ]
+        },
+        "mesh_contact_force_norm_per_step": [
+          79.74783655307907,
+          69.6822068829914,
+          63.64182011362189
+        ],
+        "mesh_contact_force_difference_per_step": [
+          2.9179440736895515e-14,
+          1.6120580000504657e-05,
+          2.780886110014894e-05
+        ]
+      },
+      "checks": [
+        {
+          "metric": "step 0 positions",
+          "max_error": 2.2020083905582504e-15,
+          "threshold": 3.0625545598390834e-10,
+          "pass": true
+        },
+        {
+          "metric": "step 0 velocities",
+          "max_error": 5.505029132362814e-13,
+          "threshold": 7.656386399597708e-08,
+          "pass": true
+        },
+        {
+          "metric": "step 0 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 0 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 1 positions",
+          "max_error": 5.6353997520107054e-08,
+          "threshold": 1.7733567802619722e-06,
+          "pass": true
+        },
+        {
+          "metric": "step 1 velocities",
+          "max_error": 3.376798384754053e-06,
+          "threshold": 0.00044333919506549306,
+          "pass": true
+        },
+        {
+          "metric": "step 1 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 1 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 2 positions",
+          "max_error": 6.655418245776562e-08,
+          "threshold": 3.5458579255309655e-06,
+          "pass": true
+        },
+        {
+          "metric": "step 2 velocities",
+          "max_error": 5.165827866665082e-06,
+          "threshold": 0.0008864644813827414,
+          "pass": true
+        },
+        {
+          "metric": "step 2 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 2 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "dL/dq relative",
+          "max_error": 4.7384316216380645e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 9.12595274577672
+        },
+        {
+          "metric": "dL/dv relative",
+          "max_error": 4.8232303799392134e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 0.08950256692119611
+        },
+        {
+          "metric": "dL/df_ext step 0 relative",
+          "max_error": 4.8063010897813494e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 0.0009165062852730485
+        },
+        {
+          "metric": "dL/df_ext step 1 relative",
+          "max_error": 3.802803953938351e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 0.0009264014215718954
+        },
+        {
+          "metric": "dL/df_ext step 2 relative",
+          "max_error": 2.8637445165340073e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 0.0010038107643016059
+        },
+        {
+          "metric": "dL/dw corotated energy 0",
+          "max_error": 1.2634795672135683e-13,
+          "threshold": 3.6584877401057175e-12,
+          "pass": true,
+          "port": -3.4780228702624427e-07,
+          "reference": -3.4780216067828755e-07,
+          "relative": 3.6327536457781536e-07
+        },
+        {
+          "metric": "dL/dw volume energy 1",
+          "max_error": 1.384377746496885e-13,
+          "threshold": 4.738236586749664e-13,
+          "pass": true,
+          "port": -4.2279803623423984e-08,
+          "reference": -4.2279942061198633e-08,
+          "relative": 3.274313253535329e-06
+        }
+      ],
+      "pass": true
+    },
+    {
+      "case": "multistep_pinned",
+      "material": "pd",
+      "reference_material_encoding": "per_element",
+      "steps": 4,
+      "contact": "none",
+      "state_forces": [
+        "gravity"
+      ],
+      "friction": 0.0,
+      "gradient_regime": "exact",
+      "gradient_tolerance": 1e-05,
+      "reference_iterations": [
+        25,
+        25,
+        26,
+        24
+      ],
+      "port_iterations": [
+        25,
+        25,
+        26,
+        24
+      ],
+      "reference_cascade_cap_active": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "reference_backbone_clipped": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "scene": {
+        "min_det_F": 0.4616261578149326,
+        "max_stretch": 1.4161677060752953,
+        "min_stretch": 0.4821771628389891
+      },
+      "checks": [
+        {
+          "metric": "step 0 positions",
+          "max_error": 4.076332938553423e-15,
+          "threshold": 4.99009976514006e-10,
+          "pass": true
+        },
+        {
+          "metric": "step 0 velocities",
+          "max_error": 1.0191253374140421e-12,
+          "threshold": 1.2475249412850149e-07,
+          "pass": true
+        },
+        {
+          "metric": "step 0 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 0 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 1 positions",
+          "max_error": 8.39677973141726e-08,
+          "threshold": 2.942966227154195e-06,
+          "pass": true
+        },
+        {
+          "metric": "step 1 velocities",
+          "max_error": 6.476545559677476e-06,
+          "threshold": 0.0007357415567885488,
+          "pass": true
+        },
+        {
+          "metric": "step 1 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 1 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 2 positions",
+          "max_error": 1.1202939279936518e-07,
+          "threshold": 5.886458297649705e-06,
+          "pass": true
+        },
+        {
+          "metric": "step 2 velocities",
+          "max_error": 1.134139203714757e-05,
+          "threshold": 0.0014716145744124263,
+          "pass": true
+        },
+        {
+          "metric": "step 2 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 2 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 3 positions",
+          "max_error": 1.2508525434286632e-07,
+          "threshold": 8.821636993907429e-06,
+          "pass": true
+        },
+        {
+          "metric": "step 3 velocities",
+          "max_error": 1.472773403331164e-05,
+          "threshold": 0.0022054092484768573,
+          "pass": true
+        },
+        {
+          "metric": "step 3 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 3 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "dL/dq relative",
+          "max_error": 7.003691296912591e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 6.534283113013887
+        },
+        {
+          "metric": "dL/dv relative",
+          "max_error": 7.537011368413807e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 0.07362436193438356
+        },
+        {
+          "metric": "dL/df_ext step 0 relative",
+          "max_error": 7.680187224669588e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 0.000753913466208088
+        },
+        {
+          "metric": "dL/df_ext step 1 relative",
+          "max_error": 6.69031185246088e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 0.0007405783454841502
+        },
+        {
+          "metric": "dL/df_ext step 2 relative",
+          "max_error": 5.581771309402256e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 0.0007538277930464355
+        },
+        {
+          "metric": "dL/df_ext step 3 relative",
+          "max_error": 3.255380447346847e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 0.0008668445554726646
+        },
+        {
+          "metric": "dL/dw corotated energy 0",
+          "max_error": 2.515540528904756e-13,
+          "threshold": 2.8464179654664893e-11,
+          "pass": true,
+          "port": 2.616230334373526e-06,
+          "reference": 2.616230082819473e-06,
+          "relative": 9.615134943306647e-08
+        },
+        {
+          "metric": "dL/dw volume energy 1",
+          "max_error": 4.4699802549362375e-13,
+          "threshold": 5.074073166683729e-12,
+          "pass": true,
+          "port": 4.73770914707905e-07,
+          "reference": 4.737704677098795e-07,
+          "relative": 9.434906900261873e-07
+        }
+      ],
+      "pass": true
+    },
+    {
+      "case": "muscle_activation",
+      "material": "pd",
+      "reference_material_encoding": "per_element",
+      "steps": 2,
+      "contact": "none",
+      "state_forces": [
+        "gravity"
+      ],
+      "friction": 0.0,
+      "gradient_regime": "exact",
+      "gradient_tolerance": 1e-05,
+      "reference_iterations": [
+        26,
+        27
+      ],
+      "port_iterations": [
+        26,
+        27
+      ],
+      "reference_cascade_cap_active": [
+        false,
+        false
+      ],
+      "reference_backbone_clipped": [
+        false,
+        false
+      ],
+      "scene": {
+        "min_det_F": 0.5755877567248373,
+        "max_stretch": 1.3285389701406516,
+        "min_stretch": 0.6134011879762434
+      },
+      "checks": [
+        {
+          "metric": "step 0 positions",
+          "max_error": 2.3767528974964798e-15,
+          "threshold": 4.945442057891828e-10,
+          "pass": true
+        },
+        {
+          "metric": "step 0 velocities",
+          "max_error": 5.941593844373104e-13,
+          "threshold": 1.236360514472957e-07,
+          "pass": true
+        },
+        {
+          "metric": "step 0 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 0 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 1 positions",
+          "max_error": 9.020495438659955e-08,
+          "threshold": 2.9085767668009114e-06,
+          "pass": true
+        },
+        {
+          "metric": "step 1 velocities",
+          "max_error": 9.230294399755572e-06,
+          "threshold": 0.0007271441917002278,
+          "pass": true
+        },
+        {
+          "metric": "step 1 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 1 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "dL/dq relative",
+          "max_error": 4.131900950037538e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 11.018190346201868
+        },
+        {
+          "metric": "dL/dv relative",
+          "max_error": 5.385440397715423e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 0.07278174207978898
+        },
+        {
+          "metric": "dL/df_ext step 0 relative",
+          "max_error": 5.2086548035732485e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 0.0007452850388970395
+        },
+        {
+          "metric": "dL/df_ext step 1 relative",
+          "max_error": 3.087560735108807e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 0.0008367969835648514
+        },
+        {
+          "metric": "dL/du relative",
+          "max_error": 1.1768669952606263e-07,
+          "threshold": 1e-05,
+          "pass": true
+        },
+        {
+          "metric": "dL/dw corotated energy 0",
+          "max_error": 9.54142486684335e-13,
+          "threshold": 9.080399688102586e-12,
+          "pass": true,
+          "port": -8.621881018022748e-07,
+          "reference": -8.621890559447615e-07,
+          "relative": 1.1066511226343666e-06
+        },
+        {
+          "metric": "dL/dw volume energy 1",
+          "max_error": 2.95435722176777e-13,
+          "threshold": 1.445365806553938e-12,
+          "pass": true,
+          "port": -1.3635682825571815e-07,
+          "reference": -1.3635712369144033e-07,
+          "relative": 2.1666321067706906e-06
+        }
+      ],
+      "pass": true
+    },
+    {
+      "case": "neo_hookean_large_deformation",
+      "material": "neo_hookean",
+      "reference_material_encoding": "per_element",
+      "steps": 1,
+      "contact": "none",
+      "state_forces": [
+        "gravity"
+      ],
+      "friction": 0.0,
+      "gradient_regime": "exact",
+      "gradient_tolerance": 1e-05,
+      "reference_iterations": [
+        19
+      ],
+      "port_iterations": [
+        19
+      ],
+      "reference_cascade_cap_active": [
+        false
+      ],
+      "reference_backbone_clipped": [
+        false
+      ],
+      "scene": {
+        "min_det_F": 0.6374904376621385,
+        "max_stretch": 1.7367921630665029,
+        "min_stretch": 0.33412939294020727
+      },
+      "checks": [
+        {
+          "metric": "step 0 positions",
+          "max_error": 3.799289958918545e-15,
+          "threshold": 5.113666227339516e-10,
+          "pass": true
+        },
+        {
+          "metric": "step 0 velocities",
+          "max_error": 9.49800113378695e-13,
+          "threshold": 1.2784165568348789e-07,
+          "pass": true
+        },
+        {
+          "metric": "step 0 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 0 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "dL/dq relative",
+          "max_error": 2.293036081427004e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 11.546336727354491
+        },
+        {
+          "metric": "dL/dv relative",
+          "max_error": 2.9124452900881014e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 0.10812113150000056
+        },
+        {
+          "metric": "dL/df_ext step 0 relative",
+          "max_error": 2.8671909757101187e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 0.0011071603865600063
+        },
+        {
+          "metric": "dL/dw neo_hookean energy 0",
+          "max_error": 2.5617347666436786e-14,
+          "threshold": 1.536590965313521e-10,
+          "pass": true,
+          "port": -1.524389360163525e-05,
+          "reference": -1.5243893576017902e-05,
+          "relative": 1.6804989839825882e-09
+        }
+      ],
+      "pass": true
+    },
+    {
+      "case": "pinned_contrast_100x_grouped",
+      "material": "pd",
+      "reference_material_encoding": "grouped",
+      "steps": 1,
+      "contact": "none",
+      "state_forces": [
+        "gravity"
+      ],
+      "friction": 0.0,
+      "gradient_regime": "exact",
+      "gradient_tolerance": 1e-05,
+      "reference_iterations": [
+        232
+      ],
+      "port_iterations": [
+        232
+      ],
+      "reference_cascade_cap_active": [
+        false
+      ],
+      "reference_backbone_clipped": [
+        false
+      ],
+      "scene": {
+        "min_det_F": 0.5237470269203186,
+        "max_stretch": 1.7187611071523328,
+        "min_stretch": 0.5104872568909746
+      },
+      "checks": [
+        {
+          "metric": "step 0 positions",
+          "max_error": 4.789134033984904e-14,
+          "threshold": 4.996720734178465e-10,
+          "pass": true
+        },
+        {
+          "metric": "step 0 velocities",
+          "max_error": 1.1972790464990384e-11,
+          "threshold": 1.2491801835446163e-07,
+          "pass": true
+        },
+        {
+          "metric": "step 0 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 0 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "dL/dq relative",
+          "max_error": 2.476554066056534e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 23.935680507885493
+        },
+        {
+          "metric": "dL/dv relative",
+          "max_error": 2.1963773219133605e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 0.03673548764252619
+        },
+        {
+          "metric": "dL/df_ext step 0 relative",
+          "max_error": 2.244726774014476e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 0.00037617139345946836
+        },
+        {
+          "metric": "dL/dw corotated energy 0",
+          "max_error": 4.727250644561256e-15,
+          "threshold": 2.2087398835187655e-11,
+          "pass": true,
+          "port": 2.193916820103503e-06,
+          "reference": 2.1939168248307537e-06,
+          "relative": 2.1547082328091137e-09
+        },
+        {
+          "metric": "dL/dw volume energy 1",
+          "max_error": 1.7977313452472983e-15,
+          "threshold": 4.3909007091593655e-12,
+          "pass": true,
+          "port": 4.3396991122185424e-07,
+          "reference": 4.339699094241229e-07,
+          "relative": 4.142525336913068e-09
+        },
+        {
+          "metric": "dL/dw corotated energy 2",
+          "max_error": 7.933361869181755e-17,
+          "threshold": 2.9030795797814514e-14,
+          "pass": true,
+          "port": 2.7302411147872574e-09,
+          "reference": 2.7302410354536387e-09,
+          "relative": 2.9057368071766605e-08
+        },
+        {
+          "metric": "dL/dw volume energy 3",
+          "max_error": 2.793154919196283e-17,
+          "threshold": 2.0422541410085615e-14,
+          "pass": true,
+          "port": 2.0160140789832887e-09,
+          "reference": 2.0160140510517395e-09,
+          "relative": 1.3854838550054327e-08
+        }
+      ],
+      "pass": true
+    },
+    {
+      "case": "pinned_contrast_100x_per_element",
+      "material": "pd",
+      "reference_material_encoding": "per_element",
+      "steps": 1,
+      "contact": "none",
+      "state_forces": [
+        "gravity"
+      ],
+      "friction": 0.0,
+      "gradient_regime": "documented_deviation",
+      "gradient_tolerance": 1e-05,
+      "reference_iterations": [
+        232
+      ],
+      "port_iterations": [
+        232
+      ],
+      "reference_cascade_cap_active": [
+        false
+      ],
+      "reference_backbone_clipped": [
+        true
+      ],
+      "scene": {
+        "min_det_F": 0.5237470269203186,
+        "max_stretch": 1.7187611071523328,
+        "min_stretch": 0.5104872568909746
+      },
+      "checks": [
+        {
+          "metric": "step 0 positions",
+          "max_error": 4.789134033984904e-14,
+          "threshold": 4.996720734178465e-10,
+          "pass": true
+        },
+        {
+          "metric": "step 0 velocities",
+          "max_error": 1.1972790464990384e-11,
+          "threshold": 1.2491801835446163e-07,
+          "pass": true
+        },
+        {
+          "metric": "step 0 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 0 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "dL/dq relative",
+          "max_error": 0.3373330774218849,
+          "threshold": 1e-05,
+          "pass": "reported",
+          "reference_norm": 27.224937576644216
+        },
+        {
+          "metric": "dL/dv relative",
+          "max_error": Infinity,
+          "threshold": 1e-05,
+          "pass": "reported",
+          "reference_norm": 0.0
+        },
+        {
+          "metric": "dL/df_ext step 0 relative",
+          "max_error": Infinity,
+          "threshold": 1e-05,
+          "pass": "reported",
+          "reference_norm": 0.0
+        },
+        {
+          "metric": "dL/dw corotated energy 0",
+          "max_error": 2.1966470612182903e-06,
+          "threshold": 1.499589723233927e-13,
+          "pass": "reported",
+          "port": 2.1966470612182903e-06,
+          "reference": 0.0,
+          "relative": 2.1966470612182904e+294
+        },
+        {
+          "metric": "dL/dw volume energy 1",
+          "max_error": 4.3598592530083753e-07,
+          "threshold": 5.1464015817704063e-14,
+          "pass": "reported",
+          "port": 4.3598592530083753e-07,
+          "reference": 0.0,
+          "relative": 4.359859253008375e+293
+        }
+      ],
+      "pass": true
+    },
+    {
+      "case": "pinned_contrast_10x_grouped",
+      "material": "pd",
+      "reference_material_encoding": "grouped",
+      "steps": 1,
+      "contact": "none",
+      "state_forces": [
+        "gravity"
+      ],
+      "friction": 0.0,
+      "gradient_regime": "exact",
+      "gradient_tolerance": 1e-05,
+      "reference_iterations": [
+        56
+      ],
+      "port_iterations": [
+        56
+      ],
+      "reference_cascade_cap_active": [
+        false
+      ],
+      "reference_backbone_clipped": [
+        false
+      ],
+      "scene": {
+        "min_det_F": 0.5237470269203186,
+        "max_stretch": 1.7187611071523328,
+        "min_stretch": 0.5104872568909746
+      },
+      "checks": [
+        {
+          "metric": "step 0 positions",
+          "max_error": 1.3406598248577157e-14,
+          "threshold": 5.003849782662769e-10,
+          "pass": true
+        },
+        {
+          "metric": "step 0 velocities",
+          "max_error": 3.3517130017152953e-12,
+          "threshold": 1.2509624456656923e-07,
+          "pass": true
+        },
+        {
+          "metric": "step 0 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 0 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "dL/dq relative",
+          "max_error": 2.56875167717622e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 18.20841403784585
+        },
+        {
+          "metric": "dL/dv relative",
+          "max_error": 2.437605442024719e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 0.05345841261121583
+        },
+        {
+          "metric": "dL/df_ext step 0 relative",
+          "max_error": 2.641134526222322e-08,
+          "threshold": 1e-05,
+          "pass": true,
+          "reference_norm": 0.0005474141451388503
+        },
+        {
+          "metric": "dL/dw corotated energy 0",
+          "max_error": 3.2883072621173876e-15,
+          "threshold": 2.0324579283136318e-11,
+          "pass": true,
+          "port": 2.018085373700629e-06,
+          "reference": 2.0180853704123215e-06,
+          "relative": 1.6294193052128132e-09
+        },
+        {
+          "metric": "dL/dw volume energy 1",
+          "max_error": 3.739884878495889e-15,
+          "threshold": 3.6825153466000826e-12,
+          "pass": true,
+          "port": 3.635382399003184e-07,
+          "reference": 3.635382436402033e-07,
+          "relative": 1.0287459280892832e-08
+        },
+        {
+          "metric": "dL/dw corotated energy 2",
+          "max_error": 5.179021172693494e-15,
+          "threshold": 1.3145927079531353e-12,
+          "pass": true,
+          "port": 1.263540153617626e-07,
+          "reference": 1.2635401018274143e-07,
+          "relative": 4.098818205455652e-08
+        },
+        {
+          "metric": "dL/dw volume energy 3",
+          "max_error": 1.8598663735354236e-15,
+          "threshold": 8.75523087110104e-13,
+          "pass": true,
+          "port": 8.651472841250674e-08,
+          "reference": 8.651472655264036e-08,
+          "relative": 2.149768539583579e-08
+        }
+      ],
+      "pass": true
+    },
+    {
+      "case": "pinned_contrast_10x_per_element",
+      "material": "pd",
+      "reference_material_encoding": "per_element",
+      "steps": 1,
+      "contact": "none",
+      "state_forces": [
+        "gravity"
+      ],
+      "friction": 0.0,
+      "gradient_regime": "documented_deviation",
+      "gradient_tolerance": 1e-05,
+      "reference_iterations": [
+        56
+      ],
+      "port_iterations": [
+        56
+      ],
+      "reference_cascade_cap_active": [
+        true
+      ],
+      "reference_backbone_clipped": [
+        false
+      ],
+      "scene": {
+        "min_det_F": 0.5237470269203186,
+        "max_stretch": 1.7187611071523328,
+        "min_stretch": 0.5104872568909746
+      },
+      "checks": [
+        {
+          "metric": "step 0 positions",
+          "max_error": 1.3406598248577157e-14,
+          "threshold": 5.003849782662769e-10,
+          "pass": true
+        },
+        {
+          "metric": "step 0 velocities",
+          "max_error": 3.3517130017152953e-12,
+          "threshold": 1.2509624456656923e-07,
+          "pass": true
+        },
+        {
+          "metric": "step 0 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 0 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "dL/dq relative",
+          "max_error": 0.8196761033810094,
+          "threshold": 1e-05,
+          "pass": "reported",
+          "reference_norm": 41.65060202437556
+        },
+        {
+          "metric": "dL/dv relative",
+          "max_error": 1.057138117891301,
+          "threshold": 1e-05,
+          "pass": "reported",
+          "reference_norm": 0.12917896957979255
+        },
+        {
+          "metric": "dL/df_ext step 0 relative",
+          "max_error": 1.0571381176974672,
+          "threshold": 1e-05,
+          "pass": "reported",
+          "reference_norm": 0.0013227926484970763
+        },
+        {
+          "metric": "dL/dw corotated energy 0",
+          "max_error": 7.180011105818269e-07,
+          "threshold": 1.4459160969944468e-11,
+          "pass": "reported",
+          "port": 2.1444393890623914e-06,
+          "reference": 1.4264382784805645e-06,
+          "relative": 0.503352385738441
+        },
+        {
+          "metric": "dL/dw volume energy 1",
+          "max_error": 1.602331398333674e-07,
+          "threshold": 2.955707016576328e-12,
+          "pass": "reported",
+          "port": 4.5005296831282515e-07,
+          "reference": 2.8981982847945775e-07,
+          "relative": 0.5528715570429806
+        }
+      ],
+      "pass": true
+    },
+    {
+      "case": "plane_impact",
+      "material": "pd",
+      "reference_material_encoding": "per_element",
+      "steps": 3,
+      "contact": "planar",
+      "state_forces": [
+        "gravity"
+      ],
+      "friction": 0.0,
+      "gradient_regime": "contact",
+      "gradient_tolerance": 0.0001,
+      "reference_iterations": [
+        30,
+        26,
+        26
+      ],
+      "port_iterations": [
+        30,
+        26,
+        26
+      ],
+      "reference_cascade_cap_active": [
+        false,
+        false,
+        false
+      ],
+      "reference_backbone_clipped": [
+        false,
+        false,
+        false
+      ],
+      "scene": {
+        "min_det_F": 0.9276770701088396,
+        "max_stretch": 1.0083780082540585,
+        "min_stretch": 0.9197668460733879,
+        "active_per_step": [
+          15,
+          15,
+          15
+        ],
+        "max_tangential_speed_active": [
+          0.024665615887393487,
+          0.06517722322552469,
+          0.10690408712310118
+        ]
+      },
+      "checks": [
+        {
+          "metric": "step 0 positions",
+          "max_error": 2.1213109017755744e-15,
+          "threshold": 2.655370481223589e-10,
+          "pass": true
+        },
+        {
+          "metric": "step 0 velocities",
+          "max_error": 5.303788936242491e-13,
+          "threshold": 6.638426203058971e-08,
+          "pass": true
+        },
+        {
+          "metric": "step 0 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 0 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 0 active set (15 active)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 0 multipliers",
+          "max_error": 4.294728549325555e-05,
+          "threshold": 0.000596408401,
+          "max_error_over_threshold": 0.07200986005771497,
+          "pass": true
+        },
+        {
+          "metric": "step 0 gaps",
+          "max_error": 4.163336342344337e-16,
+          "threshold": 2.655370481223589e-10,
+          "pass": true
+        },
+        {
+          "metric": "step 1 positions",
+          "max_error": 6.099326907689916e-08,
+          "threshold": 1.5309107461183214e-06,
+          "pass": true
+        },
+        {
+          "metric": "step 1 velocities",
+          "max_error": 4.76687791157612e-06,
+          "threshold": 0.00038272768652958033,
+          "pass": true
+        },
+        {
+          "metric": "step 1 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 1 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 1 active set (15 active)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 1 multipliers",
+          "max_error": 5.058426134496585e-05,
+          "threshold": 0.00044909940100000003,
+          "max_error_over_threshold": 0.1503818081312674,
+          "pass": true
+        },
+        {
+          "metric": "step 1 gaps",
+          "max_error": 5.011302400825812e-09,
+          "threshold": 1.5309107461183214e-06,
+          "pass": true
+        },
+        {
+          "metric": "step 2 positions",
+          "max_error": 6.794340272907244e-08,
+          "threshold": 3.051603472364679e-06,
+          "pass": true
+        },
+        {
+          "metric": "step 2 velocities",
+          "max_error": 6.6086386469456694e-06,
+          "threshold": 0.0007629008680911698,
+          "pass": true
+        },
+        {
+          "metric": "step 2 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 2 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 2 active set (15 active)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 2 multipliers",
+          "max_error": 3.8989546872869596e-05,
+          "threshold": 0.00040396020100000004,
+          "max_error_over_threshold": 0.19310483738325668,
+          "pass": true
+        },
+        {
+          "metric": "step 2 gaps",
+          "max_error": 5.851444440096998e-09,
+          "threshold": 3.051603472364679e-06,
+          "pass": true
+        },
+        {
+          "metric": "dL/dq relative",
+          "max_error": 4.856706951067959e-08,
+          "threshold": 0.0001,
+          "pass": true,
+          "reference_norm": 10.22738551749234
+        },
+        {
+          "metric": "dL/dv relative",
+          "max_error": 5.104959630424019e-08,
+          "threshold": 0.0001,
+          "pass": true,
+          "reference_norm": 0.08335295188094723
+        },
+        {
+          "metric": "dL/df_ext step 0 relative",
+          "max_error": 5.422903131047717e-08,
+          "threshold": 0.0001,
+          "pass": true,
+          "reference_norm": 0.0008535342272609
+        },
+        {
+          "metric": "dL/df_ext step 1 relative",
+          "max_error": 4.492065242325092e-08,
+          "threshold": 0.0001,
+          "pass": true,
+          "reference_norm": 0.000861786200811139
+        },
+        {
+          "metric": "dL/df_ext step 2 relative",
+          "max_error": 2.442045872751163e-08,
+          "threshold": 0.0001,
+          "pass": true,
+          "reference_norm": 0.001016179768690344
+        },
+        {
+          "metric": "dL/dw corotated energy 0",
+          "max_error": 7.298779432151376e-13,
+          "threshold": 1.4217086819818038e-11,
+          "pass": true,
+          "port": -1.4050262785170187e-07,
+          "reference": -1.4050335772964508e-07,
+          "relative": 5.194736659742753e-06
+        },
+        {
+          "metric": "dL/dw volume energy 1",
+          "max_error": 3.513538601660452e-13,
+          "threshold": 1.0246199976836497e-11,
+          "pass": true,
+          "port": 1.0149288244554189e-07,
+          "reference": 1.0149253109168172e-07,
+          "relative": 3.4618691285633134e-06
+        }
+      ],
+      "pass": true
+    },
+    {
+      "case": "sliding_friction",
+      "material": "pd",
+      "reference_material_encoding": "per_element",
+      "steps": 3,
+      "contact": "planar",
+      "state_forces": [
+        "gravity"
+      ],
+      "friction": 0.1,
+      "gradient_regime": "contact",
+      "gradient_tolerance": 0.0001,
+      "reference_iterations": [
+        46,
+        26,
+        26
+      ],
+      "port_iterations": [
+        46,
+        26,
+        26
+      ],
+      "reference_cascade_cap_active": [
+        false,
+        false,
+        false
+      ],
+      "reference_backbone_clipped": [
+        false,
+        false,
+        false
+      ],
+      "scene": {
+        "min_det_F": 0.9275895635747468,
+        "max_stretch": 1.008407854015791,
+        "min_stretch": 0.9192441252105513,
+        "active_per_step": [
+          15,
+          15,
+          15
+        ],
+        "max_tangential_speed_active": [
+          1.9359487527249863,
+          1.9335480115772186,
+          1.957233056225055
+        ]
+      },
+      "checks": [
+        {
+          "metric": "step 0 positions",
+          "max_error": 8.749972578487021e-14,
+          "threshold": 2.6903710210539556e-10,
+          "pass": true
+        },
+        {
+          "metric": "step 0 velocities",
+          "max_error": 2.1874934101113184e-11,
+          "threshold": 6.725927552634889e-08,
+          "pass": true
+        },
+        {
+          "metric": "step 0 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 0 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 0 active set (15 active)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 0 multipliers",
+          "max_error": 4.714023593521688e-05,
+          "threshold": 0.000596396401,
+          "max_error_over_threshold": 0.09002638299367449,
+          "pass": true
+        },
+        {
+          "metric": "step 0 gaps",
+          "max_error": 1.27675647831893e-15,
+          "threshold": 2.6903710210539556e-10,
+          "pass": true
+        },
+        {
+          "metric": "step 1 positions",
+          "max_error": 6.901888061320506e-08,
+          "threshold": 1.5943627127829998e-06,
+          "pass": true
+        },
+        {
+          "metric": "step 1 velocities",
+          "max_error": 4.545973522961923e-06,
+          "threshold": 0.00039859067819574993,
+          "pass": true
+        },
+        {
+          "metric": "step 1 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 1 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 1 active set (15 active)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 1 multipliers",
+          "max_error": 0.00011698752688005243,
+          "threshold": 0.00044912760100000005,
+          "max_error_over_threshold": 0.2604772599581392,
+          "pass": true
+        },
+        {
+          "metric": "step 1 gaps",
+          "max_error": 6.2121510435719784e-09,
+          "threshold": 1.5943627127829998e-06,
+          "pass": true
+        },
+        {
+          "metric": "step 2 positions",
+          "max_error": 7.365988576643247e-08,
+          "threshold": 3.222714320594021e-06,
+          "pass": true
+        },
+        {
+          "metric": "step 2 velocities",
+          "max_error": 7.272134151633361e-06,
+          "threshold": 0.0008056785801485053,
+          "pass": true
+        },
+        {
+          "metric": "step 2 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 2 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 2 active set (15 active)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 2 multipliers",
+          "max_error": 0.00012698686873591214,
+          "threshold": 0.000404230801,
+          "max_error_over_threshold": 0.3141444650476106,
+          "pass": true
+        },
+        {
+          "metric": "step 2 gaps",
+          "max_error": 8.344119506453751e-09,
+          "threshold": 3.222714320594021e-06,
+          "pass": true
+        },
+        {
+          "metric": "dL/dq relative",
+          "max_error": 5.0257396810956965e-08,
+          "threshold": 0.0001,
+          "pass": true,
+          "reference_norm": 10.22718713727119
+        },
+        {
+          "metric": "dL/dv relative",
+          "max_error": 5.24869666891381e-08,
+          "threshold": 0.0001,
+          "pass": true,
+          "reference_norm": 0.08334955955611797
+        },
+        {
+          "metric": "dL/df_ext step 0 relative",
+          "max_error": 5.498512533304998e-08,
+          "threshold": 0.0001,
+          "pass": true,
+          "reference_norm": 0.0008534994898546485
+        },
+        {
+          "metric": "dL/df_ext step 1 relative",
+          "max_error": 5.074450614932452e-08,
+          "threshold": 0.0001,
+          "pass": true,
+          "reference_norm": 0.0008618247227652444
+        },
+        {
+          "metric": "dL/df_ext step 2 relative",
+          "max_error": 3.14181215955047e-08,
+          "threshold": 0.0001,
+          "pass": true,
+          "reference_norm": 0.001016222971536402
+        },
+        {
+          "metric": "dL/dw corotated energy 0",
+          "max_error": 1.5918163128896027e-12,
+          "threshold": 1.2210976126195773e-11,
+          "pass": true,
+          "port": -1.204170649304892e-07,
+          "reference": -1.2041547311417631e-07,
+          "relative": 1.3219366844826197e-05
+        },
+        {
+          "metric": "dL/dw volume energy 1",
+          "max_error": 3.164790739682951e-13,
+          "threshold": 4.031130103691609e-12,
+          "pass": true,
+          "port": 3.951381197242476e-08,
+          "reference": 3.951412845149873e-08,
+          "relative": 8.009263682906597e-06
+        }
+      ],
+      "pass": true
+    },
+    {
+      "case": "sticking_friction",
+      "material": "pd",
+      "reference_material_encoding": "per_element",
+      "steps": 3,
+      "contact": "planar",
+      "state_forces": [
+        "gravity"
+      ],
+      "friction": 2.0,
+      "gradient_regime": "contact",
+      "gradient_tolerance": 0.0001,
+      "reference_iterations": [
+        30,
+        25,
+        25
+      ],
+      "port_iterations": [
+        30,
+        25,
+        25
+      ],
+      "reference_cascade_cap_active": [
+        false,
+        false,
+        false
+      ],
+      "reference_backbone_clipped": [
+        false,
+        false,
+        false
+      ],
+      "scene": {
+        "min_det_F": 0.9273139234075386,
+        "max_stretch": 1.0083242859900474,
+        "min_stretch": 0.9199304910420246,
+        "active_per_step": [
+          15,
+          15,
+          15
+        ],
+        "max_tangential_speed_active": [
+          0.022177142521159765,
+          0.007829785191468264,
+          0.009658058046771445
+        ]
+      },
+      "checks": [
+        {
+          "metric": "step 0 positions",
+          "max_error": 1.8948960263887376e-15,
+          "threshold": 2.6557749430728844e-10,
+          "pass": true
+        },
+        {
+          "metric": "step 0 velocities",
+          "max_error": 4.737089342260017e-13,
+          "threshold": 6.639437357682211e-08,
+          "pass": true
+        },
+        {
+          "metric": "step 0 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 0 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 0 active set (15 active)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 0 multipliers",
+          "max_error": 4.9616460515267136e-05,
+          "threshold": 0.0005947458010000001,
+          "max_error_over_threshold": 0.08345734596767267,
+          "pass": true
+        },
+        {
+          "metric": "step 0 gaps",
+          "max_error": 3.608224830031759e-16,
+          "threshold": 2.6557749430728844e-10,
+          "pass": true
+        },
+        {
+          "metric": "step 1 positions",
+          "max_error": 5.412779988256839e-08,
+          "threshold": 1.5313315333857555e-06,
+          "pass": true
+        },
+        {
+          "metric": "step 1 velocities",
+          "max_error": 4.596615959715703e-06,
+          "threshold": 0.00038283288334643885,
+          "pass": true
+        },
+        {
+          "metric": "step 1 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 1 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 1 active set (15 active)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 1 multipliers",
+          "max_error": 7.314734986607618e-05,
+          "threshold": 0.000441994801,
+          "max_error_over_threshold": 0.16549368838860207,
+          "pass": true
+        },
+        {
+          "metric": "step 1 gaps",
+          "max_error": 7.253682737795586e-09,
+          "threshold": 1.5313315333857555e-06,
+          "pass": true
+        },
+        {
+          "metric": "step 2 positions",
+          "max_error": 7.31000840174946e-08,
+          "threshold": 3.052461660911742e-06,
+          "pass": true
+        },
+        {
+          "metric": "step 2 velocities",
+          "max_error": 8.736038960865501e-06,
+          "threshold": 0.0007631154152279355,
+          "pass": true
+        },
+        {
+          "metric": "step 2 iterations",
+          "max_error": 0.0,
+          "threshold": 1.0,
+          "pass": true
+        },
+        {
+          "metric": "step 2 converged (True)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 2 active set (15 active)",
+          "max_error": 0.0,
+          "threshold": 0.0,
+          "pass": true
+        },
+        {
+          "metric": "step 2 multipliers",
+          "max_error": 4.6086450410598445e-05,
+          "threshold": 0.000387154201,
+          "max_error_over_threshold": 0.21232203547470618,
+          "pass": true
+        },
+        {
+          "metric": "step 2 gaps",
+          "max_error": 8.650074573290922e-09,
+          "threshold": 3.052461660911742e-06,
+          "pass": true
+        },
+        {
+          "metric": "dL/dq relative",
+          "max_error": 4.805360953171472e-08,
+          "threshold": 0.0001,
+          "pass": true,
+          "reference_norm": 10.226710232742633
+        },
+        {
+          "metric": "dL/dv relative",
+          "max_error": 5.5245065766773565e-08,
+          "threshold": 0.0001,
+          "pass": true,
+          "reference_norm": 0.0833934722345827
+        },
+        {
+          "metric": "dL/df_ext step 0 relative",
+          "max_error": 5.523904192928804e-08,
+          "threshold": 0.0001,
+          "pass": true,
+          "reference_norm": 0.0008539491556821271
+        },
+        {
+          "metric": "dL/df_ext step 1 relative",
+          "max_error": 5.15936387323552e-08,
+          "threshold": 0.0001,
+          "pass": true,
+          "reference_norm": 0.0008621214717816947
+        },
+        {
+          "metric": "dL/df_ext step 2 relative",
+          "max_error": 2.6249138657000063e-08,
+          "threshold": 0.0001,
+          "pass": true,
+          "reference_norm": 0.0010163168353723717
+        },
+        {
+          "metric": "dL/dw corotated energy 0",
+          "max_error": 1.3284128043124528e-13,
+          "threshold": 1.265189896750735e-11,
+          "pass": true,
+          "port": -1.2481599542812916e-07,
+          "reference": -1.2481586258684872e-07,
+          "relative": 1.0642980601829543e-06
+        },
+        {
+          "metric": "dL/dw volume energy 1",
+          "max_error": 2.3086385506181694e-15,
+          "threshold": 4.351556863710327e-12,
+          "pass": true,
+          "port": 4.2688471743601575e-08,
+          "reference": 4.2688469434963024e-08,
+          "relative": 5.408108046917539e-08
+        }
+      ],
+      "pass": true
+    }
+  ],
+  "rejected": [],
+  "performance": {
+    "scene": "BearProblem (276 nodes, 768 tets, planar frictional boundary, friction 0.7, 8 muscle groups)",
+    "steps": 200,
+    "dt": 0.008,
+    "tolerances": {
+      "abs_tol": 1e-09,
+      "rel_tol": 1e-06,
+      "max_iterations": 1000
+    },
+    "excluded_warmup_steps": 10,
+    "timing": "synchronized wall time per step; port: wp.synchronize_device before and after step; reference: PyForward/PyBackward are synchronous (device-to-host copies), including SWIG list conversion",
+    "backward_window": "taped rollout of 30 steps, second repetition, steps >= 10",
+    "port": {
+      "forward": {
+        "median_ms": 14.034951999747136,
+        "p95_ms": 73.79059340000806,
+        "mean_ms": 27.21147624735845,
+        "samples": 190
+      },
+      "backward": {
+        "median_ms": 46.99744499976077,
+        "p95_ms": 55.34257614986018,
+        "mean_ms": 48.287720700000136,
+        "samples": 20
+      },
+      "iterations_median": 45.5,
+      "iterations_p95": 237.04999999999947,
+      "steps_at_max_iterations": 5
+    },
+    "reference": {
+      "forward": {
+        "median_ms": 164.60645149982156,
+        "p95_ms": 604.1486224002251,
+        "mean_ms": 304.1696309684563,
+        "samples": 190
+      },
+      "backward": {
+        "median_ms": 7836.54158499985,
+        "p95_ms": 13750.271590450167,
+        "mean_ms": 7685.153407849885,
+        "samples": 20
+      },
+      "iterations_median": 46.5,
+      "iterations_p95": 193.5999999999998,
+      "steps_at_max_iterations": 6,
+      "gpu_path": {
+        "cuda_available_build": true,
+        "gpu_verify_ok_lines": 3,
+        "batched_spmm_failed": false,
+        "used_for": "A^{-1} applications (two cuSPARSE SpMV per axis) and batched Delassus SpMM; local step, contact Newton, Anderson and the whole backward pass (CPU LDLT, by design) run on the CPU"
+      },
+      "thread_ct": 20
+    },
+    "speedup_forward_median": 11.728323082457797,
+    "speedup_backward_median": 166.7439918284864
+  },
+  "summary": {
+    "cases": 12,
+    "passed": [
+      "homogeneous_free",
+      "mesh_contact_poke",
+      "multistep_pinned",
+      "muscle_activation",
+      "neo_hookean_large_deformation",
+      "pinned_contrast_100x_grouped",
+      "pinned_contrast_100x_per_element",
+      "pinned_contrast_10x_grouped",
+      "pinned_contrast_10x_per_element",
+      "plane_impact",
+      "sliding_friction",
+      "sticking_friction"
+    ],
+    "failed": []
+  }
+}

@@ -1,1096 +1,1015 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 The Newton Developers
 # SPDX-License-Identifier: Apache-2.0
+# Portions translated from DiffPhD (https://github.com/Akinesia112/DiffPhD,
+# commit d319435), Copyright (c) 2021 MIT Graphics Group, MIT License.
+# See THIRD_PARTY_NOTICES.md.
 
-"""Frozen vertex-face and edge-edge contact rows for tetrahedral solids.
+"""Frictional boundary contact of the reference DiffPhD step.
 
-Broad phase uses swept BVHs; narrow phase conservatively advances the Euclidean
-feature distance along linear particle trajectories. This detects crossings
-between the supplied endpoints, including edge crossings without a nearby
-vertex. It does not certify the curved trajectory of a nonlinear solver: callers
-must regenerate contacts for every proposed update. Contact normals and feature
-coordinates are frozen for the subsequent contact solve and its adjoint.
+This follows the contact branch of ``ForwardProjectiveDynamicsAlgPhd``
+(``cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp``) with the
+planar and spherical boundaries of ``cpp/core/src/friction``. Every registered
+vertex is a candidate on every step. The normal ``n``, tangents and Delassus
+matrix ``W`` are frozen at the start of the step; each local/global iteration
+performs one semismooth Newton step on the Fischer-Burmeister function
+``phi = delta + r lambda - sqrt(delta^2 + r^2 lambda^2)`` with
+``r = max(h^2 W_cc, 1e-10)``, solving ``(Omega W Omega + E) d lambda = -phi +
+Omega n.x - Omega n.(A^{-1} g)`` and clamping ``lambda`` to ``[0, 1e8]``.
+Coulomb friction is an isotropic stick/slip projection per contact using the
+2x2 tangential Delassus block. The applied force is ``omega lambda n``.
+
+``A`` is the same scalar matrix for every coordinate and the frames are
+orthonormal, so the reference Delassus entries reduce to
+``W_ij = (n_i . n_j) B_ij`` and the tangential blocks to ``B_ii``, with
+``B = A^{-1}`` restricted to the candidate vertices. ``B`` and the ``N x K``
+columns ``A^{-1} e_j`` of the registered vertices are formed once per
+factorization, as the reference's per-step ``Ainv_cols``; each iteration then
+forms ``A^{-1} (b + J^T lambda)`` as ``A^{-1} b`` plus the columns of the coupled
+candidates instead of a second sparse solve. Both are reorderings of the
+reference arithmetic.
+
+Separated candidates (``lambda = 0``, ``delta > 0``) have ``omega = 0`` exactly
+(``sqrt(fl(delta^2)) = delta`` in IEEE arithmetic), so their rows and columns of
+``Omega W Omega`` vanish and ``Omega W Omega + E`` is block diagonal. Only the
+coupled block is factorized; the other rows reduce to ``d lambda = rhs / E``.
+The coupled block ``Omega_a W_aa Omega_a + E_a`` is symmetric positive definite,
+so blocks of at most 32 rows use a tile Cholesky factorization and larger ones
+Eigen's LDLT as in the reference. This is the same linear algebra.
+
+The ``"mesh"`` kind is ``MeshFrictionalBoundary``
+(``cpp/core/src/friction/mesh_frictional_boundary.cpp``) between two bodies of
+the model. A registered vertex with index below ``split_index`` is tested
+against ``faces_right``, every other one against ``faces_left``. At the step
+start the forward pre-filters the candidates: only registered vertices whose
+unsigned distance to the opposite surface, minus ``contact_radius``, is at most
+``5 contact_radius`` take part in the step. The distance is measured against
+the start-of-step surface, including prescribed particles at their starting
+positions, exactly as in the reference. The filtered vertices stay in
+the fixed-size arrays with ``omega = 0`` and ``lambda = 0``, which removes them
+from every product exactly as the reference's shorter candidate list does,
+and their multipliers restart from zero as in its warm start. The normal is
+anchored at the step start, ``(p - c) / |p - c|`` for the closest point ``c``
+(the face normal when ``p`` lies on the face), with Gram-Schmidt tangents. Each
+iteration measures the gap ``(p - c).n - contact_radius`` against the opposite
+surface at the iterate's positions. Restitution uses a slop of
+``0.1 contact_radius`` and the current closest-point normal oriented along the
+anchored one, against the surface at the positions of the last iteration's start.
+
+
 """
-
-from dataclasses import dataclass
 
 import numpy as np
 import warp as wp
-from warp.utils import array_scan, radix_sort_pairs
 
-from .exceptions import ConvergenceError
+from .dense import TILE, ldlt_solve, spd_tile_solve
+from .mesh_contact import closest_point_triangle
+from .projections import DOUBLE_EPSILON
+
+BOUNDARIES = {"planar": 0, "spherical": 1, "mesh": 2}
+# forward_gpu.cpp: mesh candidates lie within 5 contact radii at the step start;
+# restitution acts within 0.1 contact radius ("friction_contact_slop").
+MESH_CANDIDATE_RADII = 5.0
+MESH_RESTITUTION_SLOP = 0.1
+# Threads of the single-block candidate compaction.
+SCAN_BLOCK = 256
 
 
 @wp.func
-def _triangle_barycentric(p: wp.vec3d, a: wp.vec3d, b: wp.vec3d, c: wp.vec3d):
-    """Closest point coordinates, including vertex and edge Voronoi regions."""
-    ab, ac, ap = b - a, c - a, p - a
-    d1, d2 = wp.dot(ab, ap), wp.dot(ac, ap)
-    result = wp.vec3d(wp.float64(1.0), wp.float64(0.0), wp.float64(0.0))
-    if d1 <= wp.float64(0.0) and d2 <= wp.float64(0.0):
-        return result
-    bp = p - b
-    d3, d4 = wp.dot(ab, bp), wp.dot(ac, bp)
-    if d3 >= wp.float64(0.0) and d4 <= d3:
-        return wp.vec3d(wp.float64(0.0), wp.float64(1.0), wp.float64(0.0))
-    vc = d1 * d4 - d3 * d2
-    if vc <= wp.float64(0.0) and d1 >= wp.float64(0.0) and d3 <= wp.float64(0.0):
-        v = d1 / (d1 - d3)
-        return wp.vec3d(wp.float64(1.0) - v, v, wp.float64(0.0))
-    cp = p - c
-    d5, d6 = wp.dot(ab, cp), wp.dot(ac, cp)
-    if d6 >= wp.float64(0.0) and d5 <= d6:
-        return wp.vec3d(wp.float64(0.0), wp.float64(0.0), wp.float64(1.0))
-    vb = d5 * d2 - d1 * d6
-    if vb <= wp.float64(0.0) and d2 >= wp.float64(0.0) and d6 <= wp.float64(0.0):
-        w = d2 / (d2 - d6)
-        return wp.vec3d(wp.float64(1.0) - w, wp.float64(0.0), w)
-    va = d3 * d6 - d5 * d4
-    if va <= wp.float64(0.0) and (d4 - d3) >= wp.float64(0.0) and (d5 - d6) >= wp.float64(0.0):
-        w = (d4 - d3) / ((d4 - d3) + (d5 - d6))
-        return wp.vec3d(wp.float64(0.0), wp.float64(1.0) - w, w)
-    denom = va + vb + vc
-    if wp.abs(denom) > wp.float64(1.0e-60):
-        v, w = vb / denom, vc / denom
-        result = wp.vec3d(wp.float64(1.0) - v - w, v, w)
+def boundary_gap(x: wp.vec3d, kind: int, parameters: wp.vec4d):
+    """``GetDistance`` of the planar (``(n.x + offset) / |n|``) or spherical boundary."""
+    result = wp.float64(0.0)
+    if kind == 0:
+        axis = wp.vec3d(parameters[0], parameters[1], parameters[2])
+        norm = wp.length(axis)
+        result = wp.dot(x, axis / norm) + parameters[3] / norm
+    else:
+        center = wp.vec3d(parameters[0], parameters[1], parameters[2])
+        result = wp.length(x - center) - parameters[3]
     return result
 
 
-_vec7d = wp.types.vector(length=7, dtype=wp.float64)
+@wp.func
+def boundary_normal(x: wp.vec3d, kind: int, parameters: wp.vec4d):
+    """``GetNormal`` of the planar or spherical boundary."""
+    if kind == 0:
+        return wp.normalize(wp.vec3d(parameters[0], parameters[1], parameters[2]))
+    offset = x - wp.vec3d(parameters[0], parameters[1], parameters[2])
+    return offset / wp.length(offset)
 
 
 @wp.func
-def _norm1(v: wp.vec3d):
-    return wp.abs(v[0]) + wp.abs(v[1]) + wp.abs(v[2])
-
-
-@wp.func
-def _separation_polynomial_clear(
-    r0: wp.vec3d,
-    e0: wp.vec3d,
-    f0: wp.vec3d,
-    r_end: wp.vec3d,
-    e_end: wp.vec3d,
-    f_end: wp.vec3d,
-    clearance: wp.float64,
+def mesh_closest(
+    p: wp.vec3d,
+    node: int,
+    x: wp.array[wp.vec3d],
+    faces: wp.array[wp.vec3i],
+    split: int,
+    left_count: int,
 ):
-    """Certify |r.(e x f)| / |e x f| > clearance along affine relative vectors.
+    """Closest point, unit face normal and squared distance on the surface opposite ``node``.
 
-    N(t) = e(t) x f(t) is quadratic and V(t) = r(t).N(t) is cubic.
-    If every degree-six Bernstein coefficient of V^2-clearance^2*|N|^2
-    exceeds its roundoff margin, separation holds throughout [0, 1].
-    Inconclusive arithmetic returns False, leaving conservative advancement intact.
+    The first face with the smallest distance wins, as in the reference loop;
+    an empty surface returns an infinite distance.
     """
-    r1, e1, f1 = r_end - r0, e_end - e0, f_end - f0
-    n0 = wp.cross(e0, f0)
-    n1 = wp.cross(e1, f0) + wp.cross(e0, f1)
-    n2 = wp.cross(e1, f1)
-    volume = wp.vec4d(wp.dot(r0, n0), wp.dot(r0, n1) + wp.dot(r1, n0), wp.dot(r0, n2) + wp.dot(r1, n1), wp.dot(r1, n2))
-    power = _vec7d(wp.float64(0.0))
-    for i in range(4):
-        for j in range(4):
-            power[i + j] += volume[i] * volume[j]
-    clearance2 = clearance * clearance
-    power[0] -= clearance2 * wp.dot(n0, n0)
-    power[1] -= clearance2 * wp.float64(2.0) * wp.dot(n0, n1)
-    power[2] -= clearance2 * (wp.dot(n1, n1) + wp.float64(2.0) * wp.dot(n0, n2))
-    power[3] -= clearance2 * wp.float64(2.0) * wp.dot(n1, n2)
-    power[4] -= clearance2 * wp.dot(n2, n2)
-    # Coefficient one-norms satisfy |N| <= E*F and |V| <= R*E*F.
-    # Bernstein conversion weights are <= 1. A conservative float64 margin
-    # covers endpoint subtraction and this fixed-degree arithmetic circuit;
-    # underflow/overflow makes the certificate inconclusive.
-    r_bound, e_bound, f_bound = _norm1(r0) + _norm1(r1), _norm1(e0) + _norm1(e1), _norm1(f0) + _norm1(f1)
-    scale = (r_bound * r_bound + clearance2) * e_bound * e_bound * f_bound * f_bound
-    error = wp.float64(4096.0 * 2.220446049250313e-16) * scale
-    if not wp.isfinite(scale) or scale <= wp.float64(0.0) or error < wp.float64(4096.0 * 2.2250738585072014e-308):
-        return False
-    for k in range(7):
-        coefficient = wp.float64(0.0)
-        ratio = wp.float64(1.0)
-        for j in range(7):
-            if j <= k:
-                if j > 0:
-                    ratio *= wp.float64(k - j + 1) / wp.float64(7 - j)
-                coefficient += power[j] * ratio
-        if not wp.isfinite(coefficient) or coefficient <= error:
-            return False
-    return True
+    first = left_count
+    last = faces.shape[0]
+    if node >= split:
+        first = 0
+        last = left_count
+    best = wp.float64(wp.inf)
+    closest = wp.vec3d(wp.float64(0.0))
+    normal = wp.vec3d(wp.float64(0.0), wp.float64(0.0), wp.float64(1.0))
+    for f in range(first, last):
+        face = faces[f]
+        a = x[face[0]]
+        b = x[face[1]]
+        c = x[face[2]]
+        point, _weights, dist2 = closest_point_triangle(p, a, b, c)
+        if dist2 < best:
+            best = dist2
+            closest = point
+            n = wp.cross(b - a, c - a)
+            length = wp.length(n)
+            if length > DOUBLE_EPSILON:
+                normal = n / length
+            else:
+                normal = wp.vec3d(wp.float64(0.0), wp.float64(0.0), wp.float64(1.0))
+    return closest, normal, best
 
 
 @wp.func
-def _vf_plane_polynomial_clear(
-    p0: wp.vec3d,
-    a0: wp.vec3d,
-    b0: wp.vec3d,
-    c0: wp.vec3d,
-    p1: wp.vec3d,
-    a1: wp.vec3d,
-    b1: wp.vec3d,
-    c1: wp.vec3d,
-    clearance: wp.float64,
-):
-    """Triangle distance is bounded below by distance to its moving plane."""
-    return _separation_polynomial_clear(p0 - a0, b0 - a0, c0 - a0, p1 - a1, b1 - a1, c1 - a1, clearance)
+def mesh_direction(p: wp.vec3d, closest: wp.vec3d, face_normal: wp.vec3d):
+    """``GetClosestPointAndNormal``: from the opposite surface toward ``p``, or the face normal on it."""
+    offset = p - closest
+    length = wp.length(offset)
+    if length > wp.float64(1.0e-12):
+        return offset / length
+    return face_normal
 
 
 @wp.func
-def _ee_line_polynomial_clear(
-    a0: wp.vec3d,
-    b0: wp.vec3d,
-    c0: wp.vec3d,
-    d0: wp.vec3d,
-    a1: wp.vec3d,
-    b1: wp.vec3d,
-    c1: wp.vec3d,
-    d1: wp.vec3d,
-    clearance: wp.float64,
-):
-    """Bound segment distance by distance between their supporting lines.
-
-    For any segment coordinates s,t, (c+t*(d-c)-a-s*(b-a)).N = (c-a).N.
-    Parallel or degenerate directions make the certificate inconclusive.
-    """
-    return _separation_polynomial_clear(c0 - a0, b0 - a0, d0 - c0, c1 - a1, b1 - a1, d1 - c1, clearance)
+def complementarity(delta: wp.float64, lam: wp.float64, r: wp.float64):
+    """``omega``, the diagonal ``E`` and ``phi`` of the Fischer-Burmeister function."""
+    s = wp.sqrt(delta * delta + r * r * lam * lam)
+    if s < wp.float64(1.0e-14):
+        s = wp.float64(1.0e-14)
+    return wp.float64(1.0) - delta / s, (wp.float64(1.0) - r * lam / s) * r, delta + r * lam - s
 
 
-@wp.func
-def _edge_coordinates(a: wp.vec3d, b: wp.vec3d, c: wp.vec3d, d: wp.vec3d):
-    u, v, r = b - a, d - c, a - c
-    uu, vv, uv = wp.dot(u, u), wp.dot(v, v), wp.dot(u, v)
-    ur, vr = wp.dot(u, r), wp.dot(v, r)
-    s, t = wp.float64(0.0), wp.float64(0.0)
-    eps = wp.float64(1.0e-30)
-    if uu <= eps:
-        if vv > eps:
-            t = wp.clamp(vr / vv, wp.float64(0.0), wp.float64(1.0))
-    elif vv <= eps:
-        s = wp.clamp(-ur / uu, wp.float64(0.0), wp.float64(1.0))
-    else:
-        denominator = uu * vv - uv * uv
-        if denominator > wp.float64(1.0e-14) * uu * vv:
-            s = wp.clamp((uv * vr - ur * vv) / denominator, wp.float64(0.0), wp.float64(1.0))
-        t = (uv * s + vr) / vv
-        if t < wp.float64(0.0):
-            t = wp.float64(0.0)
-            s = wp.clamp(-ur / uu, wp.float64(0.0), wp.float64(1.0))
-        elif t > wp.float64(1.0):
-            t = wp.float64(1.0)
-            s = wp.clamp((uv - ur) / uu, wp.float64(0.0), wp.float64(1.0))
-    return wp.vec2d(s, t)
+@wp.kernel(enable_backward=False)
+def _gather_block(columns: wp.array2d[wp.float64], nodes: wp.array[wp.int32], block: wp.array2d[wp.float64]):
+    i, j = wp.tid()
+    block[i, j] = columns[nodes[i], j]
 
 
-@wp.func
-def _neighbor(a: int, b: int, starts: wp.array[int], neighbors: wp.array[int]):
-    if a == b:
-        return True
-    for j in range(starts[a], starts[a + 1]):
-        other = neighbors[j]
-        if other == b:
-            return True
-        # Each rest one-ring is sorted when the surface topology is built.
-        if other > b:
-            break
-    return False
+@wp.kernel(enable_backward=False)
+def _unit_columns(nodes: wp.array[wp.int32], columns: wp.array2d[wp.float64]):
+    j = wp.tid()
+    columns[nodes[j], j] = wp.float64(1.0)
 
 
-@wp.func
-def _worlds_match(a: int, b: int):
-    return a == b or a < 0 or b < 0
-
-
-@wp.func
-def _retained_feature(
+@wp.kernel(enable_backward=False)
+def begin_contact_step(
+    position: wp.array[wp.vec3d],
+    nodes: wp.array[wp.int32],
     kind: int,
-    ids: wp.vec4i,
+    parameters: wp.array[wp.vec4d],
+    normal: wp.array[wp.vec3d],
+    tangent1: wp.array[wp.vec3d],
+    tangent2: wp.array[wp.vec3d],
+    friction_lambda: wp.array[wp.vec2d],
+):
+    c = wp.tid()
+    n = boundary_normal(position[nodes[c]], kind, parameters[0])
+    # GetLocalFrame: t1 = normalize(n x e_i) for the axis maximizing |n x e_i|.
+    best = wp.vec3d(wp.float64(0.0))
+    for i in range(3):
+        axis = wp.vec3d(wp.float64(0.0))
+        axis[i] = wp.float64(1.0)
+        candidate = wp.cross(n, axis)
+        if wp.dot(candidate, candidate) > wp.dot(best, best):
+            best = candidate
+    t1 = best / wp.length(best)
+    t2 = wp.cross(n, t1)
+    normal[c] = n
+    tangent1[c] = t1
+    tangent2[c] = t2 / wp.length(t2)
+    friction_lambda[c] = wp.vec2d(wp.float64(0.0))
+
+
+@wp.kernel(enable_backward=False)
+def begin_mesh_step(
+    position: wp.array[wp.vec3d],
+    nodes: wp.array[wp.int32],
+    faces: wp.array[wp.vec3i],
+    split: int,
+    left_count: int,
+    radius: wp.float64,
+    candidate: wp.array[wp.int32],
+    normal: wp.array[wp.vec3d],
+    tangent1: wp.array[wp.vec3d],
+    tangent2: wp.array[wp.vec3d],
+    multiplier: wp.array[wp.float64],
+    friction_lambda: wp.array[wp.vec2d],
+):
+    c = wp.tid()
+    node = nodes[c]
+    p = position[node]
+    closest, face_normal, dist2 = mesh_closest(p, node, position, faces, split, left_count)
+    # Reference candidate filter uses the surface at the start of the step.
+    active = wp.sqrt(dist2) - radius <= wp.float64(MESH_CANDIDATE_RADII) * radius
+    n = mesh_direction(p, closest, face_normal)
+    # Gram-Schmidt from the axis least parallel to n.
+    axis = int(0)
+    for d in range(1, 3):
+        if wp.abs(n[d]) < wp.abs(n[axis]):
+            axis = d
+    unit = wp.vec3d(wp.float64(0.0))
+    unit[axis] = wp.float64(1.0)
+    t1 = unit - wp.dot(n, unit) * n
+    t1 = t1 / wp.length(t1)
+    t2 = wp.cross(n, t1)
+    normal[c] = n
+    tangent1[c] = t1
+    tangent2[c] = t2 / wp.length(t2)
+    candidate[c] = wp.where(active, 1, 0)
+    if not active:
+        # A vertex outside the candidate list restarts its warm start at zero.
+        multiplier[c] = wp.float64(0.0)
+    friction_lambda[c] = wp.vec2d(wp.float64(0.0))
+
+
+@wp.kernel(enable_backward=False)
+def contact_delassus(
+    block: wp.array2d[wp.float64],
+    normal: wp.array[wp.vec3d],
+    dt: wp.float64,
+    delassus: wp.array2d[wp.float64],
+    regularization: wp.array[wp.float64],
+):
+    i, j = wp.tid()
+    low = wp.min(i, j)
+    high = wp.max(i, j)
+    # W(ci, cj) = sum_d n_cj[d] A^{-1}(n_ci[d] e_ci)[node_cj] for cj >= ci, mirrored.
+    delassus[i, j] = wp.dot(normal[low], normal[high]) * block[high, low]
+    if i == j:
+        regularization[i] = wp.max(dt * dt * delassus[i, i], wp.float64(1.0e-10))
+
+
+@wp.kernel(enable_backward=False)
+def contact_scalars(
+    x: wp.array[wp.vec3d],
+    nodes: wp.array[wp.int32],
+    kind: int,
+    parameters: wp.array[wp.vec4d],
+    multiplier: wp.array[wp.float64],
+    regularization: wp.array[wp.float64],
+    gap: wp.array[wp.float64],
+    omega: wp.array[wp.float64],
+    diagonal: wp.array[wp.float64],
+    residual: wp.array[wp.float64],
+):
+    c = wp.tid()
+    delta = boundary_gap(x[nodes[c]], kind, parameters[0])
+    gap[c] = delta
+    w, e, phi = complementarity(delta, multiplier[c], regularization[c])
+    omega[c] = w
+    diagonal[c] = e
+    residual[c] = phi
+
+
+@wp.kernel(enable_backward=False)
+def mesh_contact_scalars(
+    x: wp.array[wp.vec3d],
+    nodes: wp.array[wp.int32],
+    faces: wp.array[wp.vec3i],
+    split: int,
+    left_count: int,
+    radius: wp.float64,
+    candidate: wp.array[wp.int32],
+    normal: wp.array[wp.vec3d],
+    multiplier: wp.array[wp.float64],
+    regularization: wp.array[wp.float64],
+    gap: wp.array[wp.float64],
+    omega: wp.array[wp.float64],
+    diagonal: wp.array[wp.float64],
+    residual: wp.array[wp.float64],
+):
+    c = wp.tid()
+    if candidate[c] == 0:
+        # Not in this step's candidate list: no row, no force, lambda stays zero.
+        gap[c] = wp.float64(0.0)
+        omega[c] = wp.float64(0.0)
+        diagonal[c] = wp.float64(1.0)
+        residual[c] = wp.float64(0.0)
+        return
+    node = nodes[c]
+    p = x[node]
+    closest, _normal, _dist2 = mesh_closest(p, node, x, faces, split, left_count)
+    # GetSignedDistanceWithReferenceNormal against the surface at the iterate.
+    delta = wp.dot(p - closest, normal[c]) - radius
+    gap[c] = delta
+    w, e, phi = complementarity(delta, multiplier[c], regularization[c])
+    omega[c] = w
+    diagonal[c] = e
+    residual[c] = phi
+
+
+@wp.kernel(enable_backward=False)
+def mesh_contact_scalars_tiled(
+    x: wp.array[wp.vec3d],
+    nodes: wp.array[wp.int32],
+    faces: wp.array[wp.vec3i],
+    split: int,
+    left_count: int,
+    radius: wp.float64,
+    candidate: wp.array[wp.int32],
+    normal: wp.array[wp.vec3d],
+    multiplier: wp.array[wp.float64],
+    regularization: wp.array[wp.float64],
+    gap: wp.array[wp.float64],
+    omega: wp.array[wp.float64],
+    diagonal: wp.array[wp.float64],
+    residual: wp.array[wp.float64],
+):
+    # mesh_contact_scalars with one warp per candidate; lanes split the faces.
+    c, lane = wp.tid()
+    if candidate[c] == 0:
+        if lane == 0:
+            gap[c] = wp.float64(0.0)
+            omega[c] = wp.float64(0.0)
+            diagonal[c] = wp.float64(1.0)
+            residual[c] = wp.float64(0.0)
+        return
+    node = nodes[c]
+    p = x[node]
+    first = left_count
+    last = faces.shape[0]
+    if node >= split:
+        first = 0
+        last = left_count
+    best = wp.float64(wp.inf)
+    best_face = last
+    closest = wp.vec3d(wp.float64(0.0))
+    for f in range(first + lane, last, 32):
+        face = faces[f]
+        point, _weights, dist2 = closest_point_triangle(p, x[face[0]], x[face[1]], x[face[2]])
+        if dist2 < best:
+            best = dist2
+            best_face = f
+            closest = point
+    # The reference keeps the first face with the smallest distance.
+    smallest = wp.tile_min(wp.tile(best))[0]
+    owner = last
+    if best == smallest:
+        owner = best_face
+    winner = wp.tile_min(wp.tile(owner))[0]
+    if best_face == winner and best == smallest:
+        delta = wp.dot(p - closest, normal[c]) - radius
+        gap[c] = delta
+        w, e, phi = complementarity(delta, multiplier[c], regularization[c])
+        omega[c] = w
+        diagonal[c] = e
+        residual[c] = phi
+
+
+@wp.kernel(enable_backward=False)
+def contact_forces(
+    normal: wp.array[wp.vec3d],
+    tangent1: wp.array[wp.vec3d],
+    tangent2: wp.array[wp.vec3d],
+    omega: wp.array[wp.float64],
+    multiplier: wp.array[wp.float64],
+    friction_lambda: wp.array[wp.vec2d],
+    tangential: int,
+    force: wp.array[wp.vec3d],
+):
+    c = wp.tid()
+    value = omega[c] * multiplier[c] * normal[c]
+    if tangential != 0:
+        t = friction_lambda[c]
+        value += t[0] * tangent1[c] + t[1] * tangent2[c]
+    force[c] = value
+
+
+@wp.kernel(enable_backward=False)
+def contact_response(
+    block: wp.array2d[wp.float64],
+    force: wp.array[wp.vec3d],
+    order: wp.array[wp.int32],
+    active: wp.array[wp.int32],
+    response: wp.array[wp.vec3d],
+):
+    # (A^{-1} J^T lambda) at the contact points; only coupled candidates carry force.
+    c = wp.tid()
+    value = wp.vec3d(wp.float64(0.0))
+    for k in range(active[0]):
+        j = order[k]
+        value += block[c, j] * force[j]
+    response[c] = value
+
+
+@wp.kernel(enable_backward=False)
+def contact_solution(
+    solved: wp.array[wp.vec3d],
+    panel: wp.array2d[wp.float64],
+    force: wp.array[wp.vec3d],
+    order: wp.array[wp.int32],
+    active: wp.array[wp.int32],
+    x: wp.array[wp.vec3d],
+):
+    # x = A^{-1} (b + J^T lambda) = A^{-1} b + sum_j A^{-1} e_j f_j over the coupled candidates.
+    i = wp.tid()
+    value = solved[i]
+    for k in range(active[0]):
+        j = order[k]
+        value += panel[i, j] * force[j]
+    x[i] = value
+
+
+@wp.kernel(enable_backward=False)
+def contact_newton_rhs(
+    solved: wp.array[wp.vec3d],
+    x: wp.array[wp.vec3d],
+    nodes: wp.array[wp.int32],
+    normal: wp.array[wp.vec3d],
+    omega: wp.array[wp.float64],
+    residual: wp.array[wp.float64],
+    response: wp.array[wp.vec3d],
+    rhs: wp.array[wp.float64],
+):
+    c = wp.tid()
+    n = normal[c]
+    node = nodes[c]
+    point = x[node]
+    point_solved = solved[node]
+    # -phi + omega J x - omega J (A^{-1} g) with g = b + J^T lambda.
+    rhs[c] = -residual[c] + omega[c] * wp.dot(n, point) - omega[c] * wp.dot(n, point_solved + response[c])
+
+
+@wp.kernel(enable_backward=False)
+def contact_active(
+    omega: wp.array[wp.float64],
     count: int,
-    kinds: wp.array[int],
-    indices: wp.array[wp.vec4i],
+    order: wp.array[wp.int32],
+    slot: wp.array[wp.int32],
+    active: wp.array[wp.int32],
 ):
-    """Find an exact feature in the canonical retained-row ordering."""
-    lower = int(0)
-    upper = int(count)
-    while lower < upper:
-        middle = (lower + upper) // 2
-        other_kind, other = kinds[middle], indices[middle]
-        less = other_kind < kind
-        if other_kind == kind:
-            for j in range(4):
-                if other[j] != ids[j]:
-                    less = other[j] < ids[j]
-                    break
-        if less:
-            lower = middle + 1
+    # Deterministic compaction of the coupled candidates (omega != 0).
+    c = wp.tid()
+    k = int(0)
+    for j in range(c):
+        if omega[j] != wp.float64(0.0):
+            k += 1
+    slot[c] = -1
+    if omega[c] != wp.float64(0.0):
+        order[k] = c
+        slot[c] = k
+        k += 1
+    if c == count - 1:
+        active[0] = k
+
+
+@wp.kernel(enable_backward=False)
+def contact_active_scan(
+    omega: wp.array[wp.float64],
+    count: int,
+    order: wp.array[wp.int32],
+    slot: wp.array[wp.int32],
+    active: wp.array[wp.int32],
+):
+    # contact_active with one block: an exclusive scan per chunk keeps the candidate order.
+    _block, lane = wp.tid()
+    base = int(0)
+    for start in range(0, count, SCAN_BLOCK):
+        c = start + lane
+        flag = int(0)
+        if c < count:
+            if omega[c] != wp.float64(0.0):
+                flag = 1
+        flags = wp.tile(flag)
+        k = base + wp.untile(wp.tile_scan_exclusive(flags))
+        if c < count:
+            slot[c] = -1
+            if flag == 1:
+                order[k] = c
+                slot[c] = k
+        base += wp.tile_sum(flags)[0]
+    if lane == 0:
+        active[0] = base
+
+
+@wp.kernel(enable_backward=False)
+def contact_system(
+    delassus: wp.array2d[wp.float64],
+    omega: wp.array[wp.float64],
+    diagonal: wp.array[wp.float64],
+    rhs: wp.array[wp.float64],
+    order: wp.array[wp.int32],
+    active: wp.array[wp.int32],
+    matrix: wp.array2d[wp.float64],
+    compact: wp.array[wp.float64],
+):
+    i, j = wp.tid()
+    n = active[0]
+    if i < n and j < n:
+        a = order[i]
+        b = order[j]
+        value = omega[a] * delassus[a, b] * omega[b]
+        if i == j:
+            value += diagonal[a]
+        matrix[i, j] = value
+        if j == 0:
+            compact[i] = rhs[a]
+    elif i < TILE and j < TILE:
+        # Identity padding of the tile solve.
+        matrix[i, j] = wp.where(i == j, wp.float64(1.0), wp.float64(0.0))
+        if j == 0:
+            compact[i] = wp.float64(0.0)
+
+
+@wp.kernel(enable_backward=False)
+def contact_update(
+    rhs: wp.array[wp.float64],
+    diagonal: wp.array[wp.float64],
+    slot: wp.array[wp.int32],
+    compact: wp.array[wp.float64],
+    multiplier: wp.array[wp.float64],
+):
+    c = wp.tid()
+    k = slot[c]
+    step = wp.float64(0.0)
+    if k >= 0:
+        step = compact[k]
+    else:
+        step = rhs[c] / diagonal[c]
+    multiplier[c] = wp.min(wp.max(multiplier[c] + step, wp.float64(0.0)), wp.float64(1.0e8))
+
+
+@wp.kernel(enable_backward=False)
+def contact_friction(
+    solved: wp.array[wp.vec3d],
+    position: wp.array[wp.vec3d],
+    nodes: wp.array[wp.int32],
+    normal: wp.array[wp.vec3d],
+    tangent1: wp.array[wp.vec3d],
+    tangent2: wp.array[wp.vec3d],
+    block: wp.array2d[wp.float64],
+    multiplier: wp.array[wp.float64],
+    normal_response: wp.array[wp.vec3d],
+    friction: wp.float64,
+    friction_lambda: wp.array[wp.vec2d],
+):
+    c = wp.tid()
+    if multiplier[c] <= wp.float64(0.0):
+        friction_lambda[c] = wp.vec2d(wp.float64(0.0))
+        return
+    # Normal-only update at this node with the new normal multipliers.
+    node = nodes[c]
+    step = solved[node] + normal_response[c] - position[node]
+    n = normal[c]
+    t1 = tangent1[c]
+    t2 = tangent2[c]
+    tangential = step - wp.dot(step, n) * n
+    u1 = wp.dot(tangential, t1)
+    u2 = wp.dot(tangential, t2)
+    diagonal = block[c, c]
+    w11 = wp.dot(t1, t1) * diagonal
+    w12 = wp.dot(t1, t2) * diagonal
+    w22 = wp.dot(t2, t2) * diagonal
+    determinant = w11 * w22 - w12 * w12
+    stick = wp.vec2d(wp.float64(0.0))
+    if wp.abs(determinant) > wp.float64(1.0e-20):
+        stick = wp.vec2d(-(w22 * u1 - w12 * u2), -(-w12 * u1 + w11 * u2)) / determinant
+    radius = friction * multiplier[c]
+    if wp.length(stick) <= radius + wp.float64(1.0e-14):
+        friction_lambda[c] = stick
+    else:
+        magnitude = wp.sqrt(u1 * u1 + u2 * u2)
+        if magnitude > wp.float64(1.0e-14):
+            friction_lambda[c] = wp.vec2d(-radius * u1 / magnitude, -radius * u2 / magnitude)
         else:
-            upper = middle
-    found = bool(False)
-    if lower < count:
-        matched = indices[lower]
-        found = kinds[lower] == kind
-        for j in range(4):
-            found = found and matched[j] == ids[j]
-    return found
+            friction_lambda[c] = wp.vec2d(wp.float64(0.0))
 
 
-@wp.func
-def _write_row(
-    ids: wp.vec4i,
-    w: wp.vec4d,
-    n: wp.vec3d,
-    offset: wp.float64,
+@wp.kernel(enable_backward=False)
+def apply_restitution(
+    position: wp.array[wp.vec3d],
+    velocity: wp.array[wp.vec3d],
+    nodes: wp.array[wp.int32],
     kind: int,
-    toi: wp.float64,
-    capacity: int,
-    count: wp.array[int],
-    indices: wp.array[wp.vec4i],
-    weights: wp.array[wp.vec4d],
-    normals: wp.array[wp.vec3d],
-    offsets: wp.array[wp.float64],
-    kinds: wp.array[int],
-    times: wp.array[wp.float64],
+    parameters: wp.array[wp.vec4d],
+    multiplier: wp.array[wp.float64],
+    restitution: wp.float64,
+    dt: wp.float64,
+    x: wp.array[wp.vec3d],
 ):
-    row = wp.atomic_add(count, 0, 1)
-    if row < capacity:
-        indices[row] = ids
-        weights[row] = w
-        normals[row] = n
-        offsets[row] = offset
-        kinds[row] = kind
-        times[row] = toi
-
-
-@wp.kernel(enable_backward=False)
-def _face_bounds(
-    q: wp.array[wp.vec3d],
-    previous: wp.array[wp.vec3d],
-    faces: wp.array[wp.vec3i],
-    padding: wp.float64,
-    lower: wp.array[wp.vec3],
-    upper: wp.array[wp.vec3],
-):
-    i = wp.tid()
-    f = faces[i]
-    lo = wp.vec3d(q[f[0]])
-    hi = wp.vec3d(q[f[0]])
-    for j in range(3):
-        lo = wp.min(lo, wp.min(q[f[j]], previous[f[j]]))
-        hi = wp.max(hi, wp.max(q[f[j]], previous[f[j]]))
-    # BVHs store float32 bounds. Expand before casting to cover roundoff.
-    scale = wp.max(wp.length(lo), wp.length(hi))
-    pad = padding + wp.float64(2.0e-7) * scale + wp.float64(1.0e-12)
-    lower[i] = wp.vec3(lo - wp.vec3d(pad))
-    upper[i] = wp.vec3(hi + wp.vec3d(pad))
-
-
-@wp.kernel(enable_backward=False)
-def _edge_bounds(
-    q: wp.array[wp.vec3d],
-    previous: wp.array[wp.vec3d],
-    edges: wp.array[wp.vec2i],
-    padding: wp.float64,
-    lower: wp.array[wp.vec3],
-    upper: wp.array[wp.vec3],
-):
-    i = wp.tid()
-    e = edges[i]
-    lo = wp.min(wp.min(q[e[0]], q[e[1]]), wp.min(previous[e[0]], previous[e[1]]))
-    hi = wp.max(wp.max(q[e[0]], q[e[1]]), wp.max(previous[e[0]], previous[e[1]]))
-    scale = wp.max(wp.length(lo), wp.length(hi))
-    pad = padding + wp.float64(2.0e-7) * scale + wp.float64(1.0e-12)
-    lower[i] = wp.vec3(lo - wp.vec3d(pad))
-    upper[i] = wp.vec3(hi + wp.vec3d(pad))
-
-
-@wp.kernel(enable_backward=False)
-def _vertex_face_contacts(
-    q: wp.array[wp.vec3d],
-    previous: wp.array[wp.vec3d],
-    vertices: wp.array[int],
-    faces: wp.array[wp.vec3i],
-    worlds: wp.array[int],
-    components: wp.array[int],
-    starts: wp.array[int],
-    neighbors: wp.array[int],
-    bvh: wp.uint64,
-    retained_count: int,
-    retained_indices: wp.array[wp.vec4i],
-    retained_kinds: wp.array[int],
-    self_contact: bool,
-    soft_contact: bool,
-    thickness: wp.float64,
-    tolerance: wp.float64,
-    max_iterations: int,
-    capacity: int,
-    count: wp.array[int],
-    failed: wp.array[int],
-    indices: wp.array[wp.vec4i],
-    weights: wp.array[wp.vec4d],
-    normals: wp.array[wp.vec3d],
-    offsets: wp.array[wp.float64],
-    kinds: wp.array[int],
-    times: wp.array[wp.float64],
-):
-    vertex = vertices[wp.tid()]
-    lo, hi = wp.min(q[vertex], previous[vertex]), wp.max(q[vertex], previous[vertex])
-    pad = wp.float64(0.5) * (thickness + tolerance) + wp.float64(2.0e-7) * wp.max(wp.length(lo), wp.length(hi))
-    query = wp.bvh_query_aabb(bvh, wp.vec3(lo - wp.vec3d(pad)), wp.vec3(hi + wp.vec3d(pad)))
-    face_index = int(0)
-    while wp.bvh_query_next(query, face_index):
-        f = faces[face_index]
-        same_component = components[vertex] == components[f[0]]
-        excluded = not _worlds_match(worlds[vertex], worlds[f[0]])
-        excluded = excluded or (same_component and not self_contact) or (not same_component and not soft_contact)
-        if same_component:
-            for j in range(3):
-                excluded = excluded or _neighbor(vertex, f[j], starts, neighbors)
-        if excluded:
-            continue
-        if _retained_feature(1, wp.vec4i(vertex, f[0], f[1], f[2]), retained_count, retained_kinds, retained_indices):
-            continue
-        p0, a0, b0, c0 = previous[vertex], previous[f[0]], previous[f[1]], previous[f[2]]
-        dp, da, db, dc = q[vertex] - p0, q[f[0]] - a0, q[f[1]] - b0, q[f[2]] - c0
-        # Relative velocities remove rigid translation from the Lipschitz bound.
-        speed = wp.sqrt(wp.max(wp.length_sq(dp - da), wp.max(wp.length_sq(dp - db), wp.length_sq(dp - dc))))
-        time = wp.float64(0.0)
-        done, hit = bool(False), bool(False)
-        bary, normal = wp.vec3d(wp.float64(0.0)), wp.vec3d(wp.float64(0.0))
-        for _iteration in range(max_iterations):
-            p, a, b, c = p0 + time * dp, a0 + time * da, b0 + time * db, c0 + time * dc
-            cross = wp.cross(b - a, c - a)
-            area = wp.length(cross)
-            if area < wp.float64(1.0e-24):
-                wp.atomic_add(failed, 0, 1)
-                done = True
-                break
-            bary = _triangle_barycentric(p, a, b, c)
-            separation = p - bary[0] * a - bary[1] * b - bary[2] * c
-            distance = wp.length(separation)
-            if distance <= thickness + tolerance:
-                normal = cross / area
-                # A point outside a solid can be behind an incident side-face
-                # plane. The closest-feature direction preserves the swept
-                # entry side and keeps duplicate vertex/edge rows compatible.
-                if distance > wp.float64(1.0e-30):
-                    normal = separation / distance
-                hit, done = True, True
-                break
-            if speed <= wp.float64(1.0e-30) or time >= wp.float64(1.0):
-                done = True
-                break
-            # Only slow pairs pay for this bounded rotating-plane certificate.
-            # Original endpoints avoid extra world-coordinate interpolation.
-            if _iteration == 8 and _vf_plane_polynomial_clear(
-                p0, a0, b0, c0, q[vertex], q[f[0]], q[f[1]], q[f[2]], thickness + tolerance
-            ):
-                done = True
-                break
-            increment = wp.float64(0.9) * (distance - thickness) / speed
-            # The closest-point plane separates every triangle vertex from
-            # the point. Its projected gaps are affine along this sweep, so
-            # their first possible closing time is another safe lower bound.
-            # This avoids tiny distance/speed advances for tangential motion
-            # near an already supported contact.
-            separating_normal = separation / distance
-            plane_increment = wp.float64(1.0) - time
-            for j in range(3):
-                position = a
-                displacement = da
-                if j == 1:
-                    position, displacement = b, db
-                elif j == 2:
-                    position, displacement = c, dc
-                closing = -wp.dot(separating_normal, dp - displacement)
-                if closing > wp.float64(1.0e-30):
-                    projected_gap = wp.dot(separating_normal, p - position) - thickness
-                    plane_increment = wp.min(plane_increment, wp.max(wp.float64(0.0), projected_gap / closing))
-            increment = wp.max(increment, wp.float64(0.9) * plane_increment)
-            if time + increment > wp.float64(1.0):
-                time = wp.float64(1.0)
-            else:
-                time += increment
-        if not done:
-            wp.atomic_add(failed, 0, 1)
-        if hit:
-            ids = wp.vec4i(vertex, f[0], f[1], f[2])
-            w = wp.vec4d(wp.float64(1.0), -bary[0], -bary[1], -bary[2])
-            _write_row(
-                ids,
-                w,
-                normal,
-                wp.float64(0.0),
-                1,
-                time,
-                capacity,
-                count,
-                indices,
-                weights,
-                normals,
-                offsets,
-                kinds,
-                times,
-            )
-
-
-@wp.kernel(enable_backward=False)
-def _edge_edge_contacts(
-    q: wp.array[wp.vec3d],
-    previous: wp.array[wp.vec3d],
-    edges: wp.array[wp.vec2i],
-    worlds: wp.array[int],
-    components: wp.array[int],
-    starts: wp.array[int],
-    neighbors: wp.array[int],
-    bvh: wp.uint64,
-    lower: wp.array[wp.vec3],
-    upper: wp.array[wp.vec3],
-    retained_count: int,
-    retained_indices: wp.array[wp.vec4i],
-    retained_kinds: wp.array[int],
-    self_contact: bool,
-    soft_contact: bool,
-    thickness: wp.float64,
-    tolerance: wp.float64,
-    max_iterations: int,
-    capacity: int,
-    count: wp.array[int],
-    failed: wp.array[int],
-    indices: wp.array[wp.vec4i],
-    weights: wp.array[wp.vec4d],
-    normals: wp.array[wp.vec3d],
-    offsets: wp.array[wp.float64],
-    kinds: wp.array[int],
-    times: wp.array[wp.float64],
-):
-    ei = wp.tid()
-    e = edges[ei]
-    query = wp.bvh_query_aabb(bvh, lower[ei], upper[ei])
-    other = int(0)
-    while wp.bvh_query_next(query, other):
-        if other <= ei:
-            continue
-        f = edges[other]
-        same_component = components[e[0]] == components[f[0]]
-        excluded = not _worlds_match(worlds[e[0]], worlds[f[0]])
-        excluded = excluded or (same_component and not self_contact) or (not same_component and not soft_contact)
-        if same_component:
-            for j in range(2):
-                for k in range(2):
-                    excluded = excluded or _neighbor(e[j], f[k], starts, neighbors)
-        if excluded:
-            continue
-        if _retained_feature(2, wp.vec4i(e[0], e[1], f[0], f[1]), retained_count, retained_kinds, retained_indices):
-            continue
-        a0, b0, c0, d0 = previous[e[0]], previous[e[1]], previous[f[0]], previous[f[1]]
-        da, db, dc, dd = q[e[0]] - a0, q[e[1]] - b0, q[f[0]] - c0, q[f[1]] - d0
-        speed = wp.sqrt(
-            wp.max(
-                wp.max(wp.length_sq(da - dc), wp.length_sq(da - dd)),
-                wp.max(wp.length_sq(db - dc), wp.length_sq(db - dd)),
-            )
-        )
-        time = wp.float64(0.0)
-        done, hit = bool(False), bool(False)
-        coords = wp.vec2d(wp.float64(0.0))
-        normal = wp.vec3d(wp.float64(0.0))
-        for _iteration in range(max_iterations):
-            a, b, c, d = a0 + time * da, b0 + time * db, c0 + time * dc, d0 + time * dd
-            coords = _edge_coordinates(a, b, c, d)
-            s, t = coords[0], coords[1]
-            separation = (wp.float64(1.0) - s) * a + s * b - (wp.float64(1.0) - t) * c - t * d
-            distance = wp.length(separation)
-            if distance <= thickness + tolerance:
-                if distance > tolerance * wp.float64(0.01):
-                    normal = separation / distance
-                else:
-                    normal = wp.cross(b - a, d - c)
-                    normal_length = wp.length(normal)
-                    if normal_length > wp.float64(1.0e-24):
-                        normal /= normal_length
-                        old_separation = (wp.float64(1.0) - s) * a0 + s * b0 - (wp.float64(1.0) - t) * c0 - t * d0
-                        if wp.dot(normal, old_separation) < wp.float64(0.0):
-                            normal = -normal
-                    else:
-                        # Coincident parallel segments have no unique normal.
-                        wp.atomic_add(failed, 0, 1)
-                        done = True
-                        break
-                hit, done = True, True
-                break
-            if speed <= wp.float64(1.0e-30) or time >= wp.float64(1.0):
-                done = True
-                break
-            # Reuse the rotating-plane proof for the two supporting lines.
-            if _iteration == 8 and _ee_line_polynomial_clear(
-                a0, b0, c0, d0, q[e[0]], q[e[1]], q[f[0]], q[f[1]], thickness + tolerance
-            ):
-                done = True
-                break
-            increment = wp.float64(0.9) * (distance - thickness) / speed
-            # A closest-feature separating plane supports both segments.
-            # Check all four endpoint differences so this time bound remains
-            # valid even if either closest coordinate changes during motion.
-            separating_normal = separation / distance
-            plane_increment = wp.float64(1.0) - time
-            for j in range(2):
-                pa, va = a, da
-                if j == 1:
-                    pa, va = b, db
-                for k in range(2):
-                    pb, vb = c, dc
-                    if k == 1:
-                        pb, vb = d, dd
-                    closing = -wp.dot(separating_normal, va - vb)
-                    if closing > wp.float64(1.0e-30):
-                        projected_gap = wp.dot(separating_normal, pa - pb) - thickness
-                        plane_increment = wp.min(plane_increment, wp.max(wp.float64(0.0), projected_gap / closing))
-            increment = wp.max(increment, wp.float64(0.9) * plane_increment)
-            if time + increment > wp.float64(1.0):
-                time = wp.float64(1.0)
-            else:
-                time += increment
-        if not done:
-            wp.atomic_add(failed, 0, 1)
-        if hit:
-            s, t = coords[0], coords[1]
-            ids = wp.vec4i(e[0], e[1], f[0], f[1])
-            w = wp.vec4d(wp.float64(1.0) - s, s, t - wp.float64(1.0), -t)
-            _write_row(
-                ids,
-                w,
-                normal,
-                wp.float64(0.0),
-                2,
-                time,
-                capacity,
-                count,
-                indices,
-                weights,
-                normals,
-                offsets,
-                kinds,
-                times,
-            )
-
-
-@wp.kernel(enable_backward=False)
-def _ground_contacts(
-    q: wp.array[wp.vec3d],
-    previous: wp.array[wp.vec3d],
-    vertices: wp.array[int],
-    retained_count: int,
-    retained_indices: wp.array[wp.vec4i],
-    retained_kinds: wp.array[int],
-    normal: wp.vec3d,
-    offset: wp.float64,
-    thickness: wp.float64,
-    capacity: int,
-    count: wp.array[int],
-    indices: wp.array[wp.vec4i],
-    weights: wp.array[wp.vec4d],
-    normals: wp.array[wp.vec3d],
-    offsets: wp.array[wp.float64],
-    kinds: wp.array[int],
-    times: wp.array[wp.float64],
-):
-    vertex = vertices[wp.tid()]
-    if _retained_feature(0, wp.vec4i(vertex, -1, -1, -1), retained_count, retained_kinds, retained_indices):
+    c = wp.tid()
+    if multiplier[c] <= wp.float64(0.0):
         return
-    old_gap = wp.dot(normal, previous[vertex]) - offset - thickness
-    new_gap = wp.dot(normal, q[vertex]) - offset - thickness
-    if wp.min(old_gap, new_gap) <= wp.float64(0.0):
-        toi = wp.float64(0.0)
-        if old_gap > wp.float64(0.0):
-            toi = old_gap / (old_gap - new_gap)
-        _write_row(
-            wp.vec4i(vertex, -1, -1, -1),
-            wp.vec4d(wp.float64(1.0), wp.float64(0.0), wp.float64(0.0), wp.float64(0.0)),
-            normal,
-            offset,
-            0,
-            toi,
-            capacity,
-            count,
-            indices,
-            weights,
-            normals,
-            offsets,
-            kinds,
-            times,
-        )
-
-
-@dataclass(frozen=True)
-class ContactRows:
-    """Contact rows valid until the next :meth:`ContactGeometry.generate` call.
-
-    Only the first ``count`` entries are valid. Each signed gap [m] is
-    ``sum(weights[j] * dot(normals, q[indices[j]])) - offsets - thickness``.
-    Indices equal to -1 have zero weight and must be skipped. ``kinds`` uses
-    0=ground, 1=vertex-face, 2=edge-edge. ``times`` stores the first detected
-    proximity time as a fraction of the supplied trajectory. Consumers retaining
-    rows for reverse-mode differentiation must copy the buffers.
-    """
-
-    count: int
-    indices: wp.array[wp.vec4i]
-    weights: wp.array[wp.vec4d]
-    normals: wp.array[wp.vec3d]
-    offsets: wp.array[wp.float64]
-    kinds: wp.array[int]
-    times: wp.array[wp.float64]
-    thickness: float
-
-
-@wp.kernel(enable_backward=False)
-def _initialize_feature_order(
-    previous_count: int,
-    previous_indices: wp.array[wp.vec4i],
-    previous_kinds: wp.array[int],
-    generated_indices: wp.array[wp.vec4i],
-    generated_kinds: wp.array[int],
-    indices: wp.array[wp.vec4i],
-    kinds: wp.array[int],
-    keys: wp.array[int],
-    order: wp.array[int],
-):
-    i = wp.tid()
-    row = wp.vec4i(0)
-    kind = int(0)
-    if i < previous_count:
-        row = previous_indices[i]
-        kind = previous_kinds[i]
-    else:
-        row = generated_indices[i - previous_count]
-        kind = generated_kinds[i - previous_count]
-    indices[i] = row
-    kinds[i] = kind
-    keys[i] = row[3]
-    order[i] = i
-
-
-@wp.kernel(enable_backward=False)
-def _feature_sort_keys(
-    indices: wp.array[wp.vec4i],
-    kinds: wp.array[int],
-    order: wp.array[int],
-    component: int,
-    keys: wp.array[int],
-):
-    i = wp.tid()
-    source = order[i]
-    if component < 4:
-        keys[i] = indices[source][component]
-    else:
-        keys[i] = kinds[source]
-
-
-@wp.kernel(enable_backward=False)
-def _unique_features(indices: wp.array[wp.vec4i], kinds: wp.array[int], order: wp.array[int], unique: wp.array[int]):
-    i = wp.tid()
-    different = i == 0
-    if i > 0:
-        a, b = order[i - 1], order[i]
-        different = kinds[a] != kinds[b]
-        for j in range(4):
-            if indices[a][j] != indices[b][j]:
-                different = True
-    unique[i] = int(different)
-
-
-@wp.kernel(enable_backward=False)
-def _gather_unique_rows(
-    order: wp.array[int],
-    unique: wp.array[int],
-    offsets_in: wp.array[int],
-    previous_count: int,
-    previous_indices: wp.array[wp.vec4i],
-    previous_weights: wp.array[wp.vec4d],
-    previous_normals: wp.array[wp.vec3d],
-    previous_offsets: wp.array[wp.float64],
-    previous_kinds: wp.array[int],
-    previous_times: wp.array[wp.float64],
-    generated_indices: wp.array[wp.vec4i],
-    generated_weights: wp.array[wp.vec4d],
-    generated_normals: wp.array[wp.vec3d],
-    generated_offsets: wp.array[wp.float64],
-    generated_kinds: wp.array[int],
-    generated_times: wp.array[wp.float64],
-    indices: wp.array[wp.vec4i],
-    weights: wp.array[wp.vec4d],
-    normals: wp.array[wp.vec3d],
-    offsets: wp.array[wp.float64],
-    kinds: wp.array[int],
-    times: wp.array[wp.float64],
-):
-    i = wp.tid()
-    if unique[i] == 0:
+    node = nodes[c]
+    point = x[node]
+    distance = boundary_gap(point, kind, parameters[0])
+    n = boundary_normal(point, kind, parameters[0])
+    norm = wp.length(n)
+    if norm <= wp.float64(1.0e-12):
         return
-    source, target = order[i], offsets_in[i] - 1
-    if source < previous_count:
-        indices[target] = previous_indices[source]
-        weights[target] = previous_weights[source]
-        normals[target] = previous_normals[source]
-        offsets[target] = previous_offsets[source]
-        kinds[target] = previous_kinds[source]
-        times[target] = previous_times[source]
-    else:
-        generated_source = source - previous_count
-        indices[target] = generated_indices[generated_source]
-        weights[target] = generated_weights[generated_source]
-        normals[target] = generated_normals[generated_source]
-        offsets[target] = generated_offsets[generated_source]
-        kinds[target] = generated_kinds[generated_source]
-        times[target] = generated_times[generated_source]
+    n = n / norm
+    if distance > wp.float64(1.0e-8):
+        return
+    incoming = wp.dot(velocity[node], n)
+    if incoming < wp.float64(0.0):
+        outgoing = wp.dot((point - position[node]) / dt, n)
+        change = -restitution * incoming - outgoing
+        if change > wp.float64(0.0):
+            x[node] = point + dt * change * n
 
 
-def _surface_topology(tets: np.ndarray, positions: np.ndarray, worlds: np.ndarray):
-    n = len(positions)
-    parents = np.arange(n)
-    adjacency = [set() for _ in range(n)]
-
-    def root(i):
-        while parents[i] != i:
-            parents[i] = parents[parents[i]]
-            i = int(parents[i])
-        return i
-
-    occurrences = {}
-    for tet in tets:
-        if len(set(tet)) != 4:
-            raise ValueError("A tetrahedron must contain four distinct particle indices.")
-        if np.any(worlds[tet] != worlds[tet[0]]):
-            raise ValueError("A tetrahedron cannot span different particle worlds.")
-        for a in tet:
-            parents[root(int(a))] = root(int(tet[0]))
-            adjacency[a].update(int(b) for b in tet if a != b)
-        for opposite in range(4):
-            face = tuple(int(tet[j]) for j in range(4) if j != opposite)
-            a, b, c = positions[list(face)]
-            volume6 = float(np.dot(np.cross(b - a, c - a), positions[tet[opposite]] - a))
-            if abs(volume6) <= 1.0e-24:
-                raise ValueError("Degenerate rest tetrahedron in contact surface.")
-            if volume6 > 0:
-                face = (face[0], face[2], face[1])
-            key = tuple(sorted(face))
-            occurrences.setdefault(key, []).append(face)
-    if any(len(v) > 2 for v in occurrences.values()):
-        raise ValueError("Nonmanifold tetrahedral face belongs to more than two tetrahedra.")
-    faces = np.asarray([v[0] for v in occurrences.values() if len(v) == 1], dtype=np.int32).reshape(-1, 3)
-    edges = np.asarray(
-        sorted({tuple(sorted((int(f[j]), int(f[(j + 1) % 3])))) for f in faces for j in range(3)}), dtype=np.int32
-    ).reshape(-1, 2)
-    vertices = np.unique(faces).astype(np.int32)
-    components = np.asarray([root(i) for i in range(n)], dtype=np.int32)
-    starts = np.zeros(n + 1, dtype=np.int32)
-    starts[1:] = np.cumsum([len(a) for a in adjacency])
-    neighbors = np.asarray([v for a in adjacency for v in sorted(a)], dtype=np.int32)
-    return faces, edges, vertices, components, starts, neighbors
+@wp.kernel(enable_backward=False)
+def apply_mesh_restitution(
+    position: wp.array[wp.vec3d],
+    velocity: wp.array[wp.vec3d],
+    nodes: wp.array[wp.int32],
+    faces: wp.array[wp.vec3i],
+    split: int,
+    left_count: int,
+    radius: wp.float64,
+    surface: wp.array[wp.vec3d],
+    normal: wp.array[wp.vec3d],
+    multiplier: wp.array[wp.float64],
+    restitution: wp.float64,
+    dt: wp.float64,
+    x: wp.array[wp.vec3d],
+):
+    c = wp.tid()
+    if multiplier[c] <= wp.float64(0.0):
+        return
+    node = nodes[c]
+    point = x[node]
+    # The boundary still holds the vertices of the last iteration's start.
+    closest, face_normal, _dist2 = mesh_closest(point, node, surface, faces, split, left_count)
+    reference = normal[c]
+    distance = wp.dot(point - closest, reference) - radius
+    n = mesh_direction(point, closest, face_normal)
+    if wp.dot(n, reference) < wp.float64(0.0):
+        n = -n
+    norm = wp.length(n)
+    if norm <= wp.float64(1.0e-12):
+        return
+    n = n / norm
+    if distance > wp.float64(MESH_RESTITUTION_SLOP) * radius:
+        return
+    incoming = wp.dot(velocity[node], n)
+    if incoming < wp.float64(0.0):
+        outgoing = wp.dot((point - position[node]) / dt, n)
+        change = -restitution * incoming - outgoing
+        if change > wp.float64(0.0):
+            x[node] = point + dt * change * n
 
 
-class ContactGeometry:
-    """Extract a solid boundary once and generate native Warp contact geometry.
+def mesh_vertices(parameters) -> np.ndarray:
+    """Vertices of both surfaces of ``("mesh", (contact_radius, split_index, faces_left, faces_right))``."""
+    faces = [np.asarray(f, dtype=np.int64).reshape(-1) for f in parameters[2:4]]
+    return np.unique(np.concatenate(faces)).astype(np.int32)
 
-    The one-ring exclusion removes rest neighbors connected by tetrahedral
-    edges, including opposite edges of the same tetrahedron. Disconnected
-    components use ``soft_contact``; nonadjacent parts of a connected solid use
-    ``self_contact``. World -1 interacts with all worlds; other worlds interact
-    only with themselves. Capacity overflow and unresolved conservative
-    advancement raise errors instead of silently dropping contacts.
-    Ordinary pairs exit early; the larger bounded iteration budget permits
-    slowly closing grazing contacts, which can be substantially more expensive.
+
+def surface_vertices(tets: np.ndarray) -> np.ndarray:
+    """Vertices of faces that belong to exactly one tetrahedron."""
+    faces = np.concatenate([tets[:, [0, 1, 2]], tets[:, [0, 1, 3]], tets[:, [0, 2, 3]], tets[:, [1, 2, 3]]])
+    faces = np.sort(faces, axis=1)
+    unique, counts = np.unique(faces, axis=0, return_counts=True)
+    return np.unique(unique[counts == 1]).astype(np.int32)
+
+
+class FrictionalContact:
+    """Device state of one reference frictional boundary and its registered vertices.
 
     Args:
-        tet_indices: Tetrahedral connectivity, shape (tet_count, 4).
-        rest_positions: Particle rest positions [m], shape (particle_count, 3).
-        particle_world: World index per particle; -1 denotes the global world.
-        device: Warp execution device.
-        thickness: Separation distance between contacting surfaces [m].
-        max_contacts: Maximum number of simultaneous feature pairs.
-        self_contact: Enable nonadjacent contact within connected components.
-        soft_contact: Enable contact between disconnected components.
-        ccd_tolerance: Absolute distance tolerance for conservative advancement [m].
-        ccd_iterations: Maximum conservative-advancement iterations per pair.
+        kind: ``"planar"`` with parameters ``(nx, ny, nz, offset)`` and gap
+            ``(n.x + offset) / |n|``, ``"spherical"`` with ``(cx, cy, cz, radius)``,
+            or ``"mesh"`` with ``(contact_radius, split_index, faces_left,
+            faces_right)``: radius [m], particle index and two ``(F, 3)``
+            triangle arrays of the model's particles.
+        parameters: Boundary parameters (see ``kind``).
+        nodes: Registered particle indices; each is a contact candidate on every
+            step (mesh: subject to the step-start pre-filter).
+        particle_count: Number of particles.
+        friction: Coulomb coefficient (dimensionless); zero disables friction.
+        restitution: Normal restitution coefficient applied after convergence.
+        device: Warp device.
     """
 
     def __init__(
         self,
-        tet_indices,
-        rest_positions,
-        particle_world,
+        kind,
+        parameters,
+        nodes,
+        particle_count,
+        friction,
+        restitution,
         device,
-        thickness=1.0e-4,
-        max_contacts=65536,
-        self_contact=True,
-        soft_contact=True,
-        ccd_tolerance=1.0e-8,
-        ccd_iterations=32768,
     ):
-        positions = np.asarray(rest_positions, dtype=np.float64)
-        tets = np.asarray(tet_indices, dtype=np.int32)
-        worlds = np.asarray(particle_world, dtype=np.int32)
-        if positions.ndim != 2 or positions.shape[1] != 3 or not np.isfinite(positions).all():
-            raise ValueError("rest_positions must be a finite (particle_count, 3) array.")
-        if tets.ndim != 2 or tets.shape[1] != 4 or (tets.size and (tets.min() < 0 or tets.max() >= len(positions))):
-            raise ValueError("tet_indices must be a valid (tet_count, 4) particle index array.")
-        if worlds.shape != (len(positions),):
-            raise ValueError("particle_world must have one world index per particle.")
-        if not np.isfinite(thickness) or thickness < 0 or not np.isfinite(ccd_tolerance) or ccd_tolerance <= 0:
-            raise ValueError("thickness must be finite and nonnegative; ccd_tolerance must be positive.")
-        if max_contacts < 1 or ccd_iterations < 1:
-            raise ValueError("max_contacts and ccd_iterations must be positive.")
-        self.device = wp.get_device(device)
-        self.thickness, self.max_contacts = float(thickness), int(max_contacts)
-        self.self_contact, self.soft_contact = bool(self_contact), bool(soft_contact)
-        self.ccd_tolerance, self.ccd_iterations = float(ccd_tolerance), int(ccd_iterations)
-        self.particle_count = len(positions)
-        faces, edges, vertices, components, starts, neighbors = _surface_topology(tets, positions, worlds)
-        self.faces = wp.array(faces, dtype=wp.vec3i, device=self.device)
-        self.edges = wp.array(edges, dtype=wp.vec2i, device=self.device)
-        self.vertices = wp.array(vertices, dtype=int, device=self.device)
-        self.worlds = wp.array(worlds, dtype=int, device=self.device)
-        self.components = wp.array(components, dtype=int, device=self.device)
-        self.neighbor_starts = wp.array(starts, dtype=int, device=self.device)
-        self.neighbors = wp.array(neighbors, dtype=int, device=self.device)
-        self.indices = wp.empty(max_contacts, dtype=wp.vec4i, device=self.device)
-        self.weights = wp.empty(max_contacts, dtype=wp.vec4d, device=self.device)
-        self.normals = wp.empty(max_contacts, dtype=wp.vec3d, device=self.device)
-        self.offsets = wp.empty(max_contacts, dtype=wp.float64, device=self.device)
-        self.kinds = wp.empty(max_contacts, dtype=int, device=self.device)
-        self.times = wp.empty(max_contacts, dtype=wp.float64, device=self.device)
-        self._generation_status = wp.zeros(2, dtype=int, device=self.device)
-        self.count_buffer = self._generation_status[:1]
-        self.failure_buffer = self._generation_status[1:]
-        self._sort_capacity = 0
-        self.face_lower = wp.zeros(len(faces), dtype=wp.vec3, device=self.device)
-        self.face_upper = wp.zeros(len(faces), dtype=wp.vec3, device=self.device)
-        self.edge_lower = wp.zeros(len(edges), dtype=wp.vec3, device=self.device)
-        self.edge_upper = wp.zeros(len(edges), dtype=wp.vec3, device=self.device)
-        # Refit preserves the hierarchy, so build it from actual geometry
-        # rather than coincident zero boxes with no spatial locality.
-        if len(faces):
-            rest = wp.array(positions, dtype=wp.vec3d, device=self.device)
-            padding = 0.5 * (self.thickness + self.ccd_tolerance)
-            wp.launch(
-                _face_bounds,
-                len(faces),
-                [rest, rest, self.faces, padding, self.face_lower, self.face_upper],
-                device=self.device,
-            )
-            wp.launch(
-                _edge_bounds,
-                len(edges),
-                [rest, rest, self.edges, padding, self.edge_lower, self.edge_upper],
-                device=self.device,
-            )
-        self.face_bvh = wp.Bvh(self.face_lower, self.face_upper) if len(faces) else None
-        self.edge_bvh = wp.Bvh(self.edge_lower, self.edge_upper) if len(edges) else None
+        if kind not in BOUNDARIES:
+            raise ValueError("frictional boundary must be 'planar', 'spherical' or 'mesh'")
+        self.faces = None
+        if kind == "mesh":
+            if len(parameters) != 4:
+                raise ValueError("mesh boundary parameters are (contact_radius, split_index, faces_left, faces_right)")
+            radius, split = float(parameters[0]), int(parameters[1])
+            if not np.isfinite(radius) or radius < 0:
+                raise ValueError("contact_radius must be finite and nonnegative")
+            left, right = (np.asarray(f, dtype=np.int32).reshape(-1, 3) for f in parameters[2:4])
+            faces = np.concatenate([left, right])
+            if len(faces) and (faces.min() < 0 or faces.max() >= particle_count):
+                raise ValueError("mesh boundary faces must reference existing particles")
+            self.radius = radius
+            self.split = split
+            self.left_count = len(left)
+            self.faces = wp.array(faces, dtype=wp.vec3i, device=device)
+            parameters = np.array([radius, 0.0, 0.0, 0.0])
+        parameters = np.asarray(parameters, dtype=np.float64)
+        if parameters.shape != (4,) or not np.all(np.isfinite(parameters)):
+            raise ValueError("frictional boundary parameters must be four finite values")
+        if kind == "planar" and np.linalg.norm(parameters[:3]) <= np.finfo(np.float64).eps:
+            raise ValueError("planar boundary needs a nonzero normal")
+        nodes = np.asarray(nodes, dtype=np.int32)
+        if nodes.ndim != 1 or len(np.unique(nodes)) != len(nodes):
+            raise ValueError("frictional vertices must be unique particle indices")
+        if len(nodes) and (nodes.min() < 0 or nodes.max() >= particle_count):
+            raise ValueError("frictional vertices must reference existing particles")
+        for name, value in (("friction", friction), ("restitution", restitution)):
+            if not np.isfinite(value) or value < 0:
+                raise ValueError(f"{name} must be finite and nonnegative")
+        self.kind = BOUNDARIES[kind]
+        self.friction = float(friction)
+        self.restitution = float(restitution)
+        self.count = len(nodes)
+        self.device = device
+        self.parameters = wp.array([parameters], dtype=wp.vec4d, device=device)
+        self.nodes = wp.array(nodes, dtype=wp.int32, device=device)
+        self.particle_count = particle_count
+        k = max(self.count, 1)
+        self.size = max(k, TILE)
+        self.block = wp.zeros((max(self.count, 1), max(self.count, 1)), dtype=wp.float64, device=device)
+        self.delassus = wp.zeros((k, k), dtype=wp.float64, device=device)
+        self.matrix = wp.zeros((self.size, self.size), dtype=wp.float64, device=device)
+        for name in ("normal", "tangent1", "tangent2", "force", "response"):
+            setattr(self, name, wp.zeros(k, dtype=wp.vec3d, device=device))
+        for name in ("regularization", "multiplier", "gap", "omega", "diagonal", "residual", "rhs"):
+            setattr(self, name, wp.zeros(k, dtype=wp.float64, device=device))
+        self.compact = wp.zeros(self.size, dtype=wp.float64, device=device)
+        self.work = wp.zeros(self.size, dtype=wp.float64, device=device)
+        for name in ("order", "slot", "permutation"):
+            setattr(self, name, wp.zeros(k, dtype=wp.int32, device=device))
+        self.active = wp.zeros(1, dtype=wp.int32, device=device)
+        self.friction_lambda = wp.zeros(k, dtype=wp.vec2d, device=device)
+        # Mesh candidates are filtered per step; planar and spherical ones always take part.
+        self.candidate = wp.full(k, 0 if self.faces is not None else 1, dtype=wp.int32, device=device)
+        if self.faces is not None:
+            # Vertices of the iterate the boundary last saw (UpdateVertices), for restitution.
+            self.surface = wp.zeros(particle_count, dtype=wp.vec3d, device=device)
 
-    def retain(self, previous: ContactRows | None, generated: ContactRows) -> ContactRows:
-        """Retain all detected features until the current timestep is accepted.
+    def _mesh(self):
+        return (self.faces, self.split, self.left_count, self.radius)
 
-        A contact correction can move a feature outside the detection band.
-        Dropping its constraint and solving again then reintroduces penetration,
-        causing an alternating candidate set. This union preserves the first
-        swept geometry for each feature, including inactive constraints whose
-        multipliers can become zero. Start with ``previous=None`` each timestep.
-        Returned arrays own their data and survive subsequent generation calls.
-        Only the unique contact count is read on the host. Stable device sorting
-        keeps the first occurrence of each feature, with previous rows first.
-        Canonical feature order removes dependence on CUDA atomic reservations
-        and BVH traversal order in subsequent contact iterations.
-        Returns ``previous`` unchanged when no new feature was detected.
+    def build(self, inverse) -> None:
+        """Form the columns ``A^{-1} e_j`` of the registered vertices and ``B`` from a new factor (setup only).
+
+        The ``N x K`` panel turns each iteration's second solve ``A^{-1} (b + J^T lambda)``
+        into ``A^{-1} b`` plus the few columns that carry force.
         """
-        names = ("indices", "weights", "normals", "offsets", "kinds", "times")
-        if previous is not None and generated.count == 0:
-            return previous
-        previous_count = previous.count if previous is not None else 0
-        if previous_count == 0 and generated.count <= 1:
-            return ContactRows(
-                generated.count,
-                *(wp.clone(getattr(generated, name)[: generated.count]) for name in names),
-                generated.thickness,
-            )
-        total = previous_count + generated.count
-        self._ensure_sort_workspace(total)
-        source_previous = previous if previous is not None else generated
-        wp.launch(
-            _initialize_feature_order,
-            total,
-            [
-                previous_count,
-                source_previous.indices,
-                source_previous.kinds,
-                generated.indices,
-                generated.kinds,
-                self._sort_indices,
-                self._sort_kinds,
-                self._sort_keys,
-                self._sort_order,
-            ],
-            device=self.device,
-        )
-        # Stable least-significant-first passes produce the same signed integer
-        # lexicographic order as (kind, index0, index1, index2, index3).
-        with wp.ScopedDevice(self.device):
-            radix_sort_pairs(self._sort_keys, self._sort_order, total)
-            for component in (2, 1, 0, 4):
-                wp.launch(
-                    _feature_sort_keys,
-                    total,
-                    [self._sort_indices, self._sort_kinds, self._sort_order, component, self._sort_keys],
-                    device=self.device,
-                )
-                radix_sort_pairs(self._sort_keys, self._sort_order, total)
-            wp.launch(
-                _unique_features,
-                total,
-                [self._sort_indices, self._sort_kinds, self._sort_order, self._sort_unique],
-                device=self.device,
-            )
-            array_scan(self._sort_unique[:total], self._sort_offsets[:total])
-        count = int(self._sort_offsets[total - 1 : total].numpy()[0])
-        if previous is not None and count == previous_count:
-            return previous
-        if count > self.max_contacts:
-            raise RuntimeError(
-                f"DiffPhD retained contact capacity exceeded: {count} rows require max_contacts >= {count}."
-            )
-        buffers = [wp.empty(count, dtype=getattr(generated, name).dtype, device=self.device) for name in names]
-        wp.launch(
-            _gather_unique_rows,
-            total,
-            [
-                self._sort_order,
-                self._sort_unique,
-                self._sort_offsets,
-                previous_count,
-                *(getattr(source_previous, name) for name in names),
-                *(getattr(generated, name) for name in names),
-                *buffers,
-            ],
-            device=self.device,
-        )
-        return ContactRows(count, *buffers, generated.thickness)
-
-    def _ensure_sort_workspace(self, count):
-        if count <= self._sort_capacity:
+        if not self.count:
             return
-        capacity = max(count, 2 * self._sort_capacity)
-        self._sort_indices = wp.empty(capacity, dtype=wp.vec4i, device=self.device)
-        self._sort_kinds = wp.empty(capacity, dtype=int, device=self.device)
-        # Warp radix sort uses the second half of each array as scratch.
-        self._sort_keys = wp.empty(2 * capacity, dtype=int, device=self.device)
-        self._sort_order = wp.empty(2 * capacity, dtype=int, device=self.device)
-        self._sort_unique = wp.empty(capacity, dtype=int, device=self.device)
-        self._sort_offsets = wp.empty(capacity, dtype=int, device=self.device)
-        self._sort_capacity = capacity
+        columns = wp.zeros((inverse.size, self.count), dtype=wp.float64, device=self.device)
+        wp.launch(_unit_columns, self.count, inputs=[self.nodes], outputs=[columns], device=self.device)
+        self.panel = wp.zeros_like(columns)
+        inverse.apply_batch(columns, self.panel)
+        wp.launch(
+            _gather_block,
+            (self.count, self.count),
+            inputs=[self.panel, self.nodes],
+            outputs=[self.block],
+            device=self.device,
+        )
+        # A factor change starts the multipliers afresh.
+        self.multiplier.zero_()
 
-    def generate(
-        self,
-        q: wp.array[wp.vec3d],
-        q_prev: wp.array[wp.vec3d],
-        ground=None,
-        dt=1.0,
-        retained: ContactRows | None = None,
-    ) -> ContactRows:
-        """Generate frozen rows for linear motion ``q_prev -> q``.
-
-        ``ground`` is ``(normal, offset)`` for the admissible halfspace
-        ``dot(normal, x) >= offset``. The normal and offset are normalized
-        together. ``dt`` [s] validates the timestep; interpolation uses its
-        normalized time, so collision geometry is independent of its magnitude.
-        This method reads the contact count on the host and is not graph-capturable.
-        ``retained`` may contain canonical, owned rows returned by :meth:`retain`
-        earlier in this timestep. Their exact feature pairs skip repeated CCD,
-        because the subsequent union keeps their first frozen geometry anyway.
-        """
-        if q.dtype != wp.vec3d or q_prev.dtype != wp.vec3d:
-            raise ValueError("Contact positions must use wp.vec3d.")
-        if q.shape != (self.particle_count,) or q_prev.shape != q.shape:
-            raise ValueError("Contact position arrays must match the topology particle count.")
-        if q.device != self.device or q_prev.device != self.device:
-            raise ValueError("Contact positions and geometry must use the same device.")
-        if not np.isfinite(dt) or dt <= 0:
-            raise ValueError("dt must be finite and positive.")
-        self._generation_status.zero_()
-        output = [self.indices, self.weights, self.normals, self.offsets, self.kinds, self.times]
-        known = [0, self.indices, self.kinds]
-        if retained is not None:
-            known = [retained.count, retained.indices, retained.kinds]
-        if ground is not None:
-            normal = np.asarray(ground[0], dtype=np.float64)
-            offset = float(ground[1])
-            length = np.linalg.norm(normal)
-            if normal.shape != (3,) or not np.isfinite(normal).all() or length <= 0 or not np.isfinite(offset):
-                raise ValueError("ground must contain a finite nonzero normal and a finite offset.")
+    def begin_step(self, position, dt) -> None:
+        """Freeze frames, candidates, Delassus matrix and complementarity scaling at the step start."""
+        if not self.count:
+            return
+        if self.faces is not None:
             wp.launch(
-                _ground_contacts,
-                len(self.vertices),
-                [
-                    q,
-                    q_prev,
-                    self.vertices,
-                    *known,
-                    wp.vec3d(*(normal / length)),
-                    offset / length,
-                    self.thickness,
-                    self.max_contacts,
-                    self.count_buffer,
-                    *output,
+                begin_mesh_step,
+                self.count,
+                inputs=[position, self.nodes, *self._mesh()],
+                outputs=[
+                    self.candidate,
+                    self.normal,
+                    self.tangent1,
+                    self.tangent2,
+                    self.multiplier,
+                    self.friction_lambda,
                 ],
                 device=self.device,
             )
-        if (self.self_contact or self.soft_contact) and self.face_bvh is not None:
-            # Each participant supplies half of the pair's contact clearance.
-            padding = 0.5 * (self.thickness + self.ccd_tolerance)
+        else:
             wp.launch(
-                _face_bounds,
-                len(self.faces),
-                [q, q_prev, self.faces, padding, self.face_lower, self.face_upper],
+                begin_contact_step,
+                self.count,
+                inputs=[position, self.nodes, self.kind, self.parameters],
+                outputs=[self.normal, self.tangent1, self.tangent2, self.friction_lambda],
                 device=self.device,
             )
+        wp.launch(
+            contact_delassus,
+            (self.count, self.count),
+            inputs=[self.block, self.normal, dt],
+            outputs=[self.delassus, self.regularization],
+            device=self.device,
+        )
+
+    def _response(self, force, response):
+        wp.launch(
+            contact_response,
+            self.count,
+            inputs=[self.block, force, self.order, self.active],
+            outputs=[response],
+            device=self.device,
+        )
+
+    def _newton(self, x, solved) -> None:
+        """The reference's single Fischer-Burmeister Newton step on the multipliers."""
+        count, device = self.count, self.device
+        if device.is_cuda:
+            wp.launch_tiled(
+                contact_active_scan,
+                dim=[1],
+                inputs=[self.omega, count],
+                outputs=[self.order, self.slot, self.active],
+                block_dim=SCAN_BLOCK,
+                device=device,
+            )
+        else:
             wp.launch(
-                _edge_bounds,
-                len(self.edges),
-                [q, q_prev, self.edges, padding, self.edge_lower, self.edge_upper],
+                contact_active,
+                count,
+                inputs=[self.omega, count],
+                outputs=[self.order, self.slot, self.active],
+                device=device,
+            )
+        wp.launch(
+            contact_forces,
+            count,
+            inputs=[self.normal, self.tangent1, self.tangent2, self.omega, self.multiplier, self.friction_lambda, 1],
+            outputs=[self.force],
+            device=device,
+        )
+        self._response(self.force, self.response)
+        wp.launch(
+            contact_newton_rhs,
+            count,
+            inputs=[
+                solved,
+                x,
+                self.nodes,
+                self.normal,
+                self.omega,
+                self.residual,
+                self.response,
+            ],
+            outputs=[self.rhs],
+            device=device,
+        )
+        wp.launch(
+            contact_system,
+            (self.size, self.size),
+            inputs=[self.delassus, self.omega, self.diagonal, self.rhs, self.order, self.active],
+            outputs=[self.matrix, self.compact],
+            device=device,
+        )
+        wp.launch_tiled(
+            spd_tile_solve, dim=[1], inputs=[self.matrix, self.compact, self.active], block_dim=32, device=device
+        )
+        wp.launch(
+            ldlt_solve,
+            1,
+            inputs=[self.matrix, self.compact, self.active, TILE],
+            outputs=[self.permutation, self.work],
+            device=device,
+        )
+        wp.launch(
+            contact_update,
+            count,
+            inputs=[self.rhs, self.diagonal, self.slot, self.compact],
+            outputs=[self.multiplier],
+            device=device,
+        )
+
+    def iterate(self, x, solved, position, out) -> None:
+        """One reference Fischer-Burmeister Newton step and friction update.
+
+        ``solved`` is ``A^{-1} b``; writes ``out = A^{-1} (b + J^T lambda)``. Only
+        coupled candidates (``omega != 0``) can carry force: ``lambda`` grows only
+        where ``omega != 0`` and friction only where ``lambda > 0``.
+        """
+        count, device = self.count, self.device
+        if self.faces is not None:
+            if self.restitution > 0:
+                wp.copy(self.surface, x)
+            tiled = device.is_cuda
+            (wp.launch_tiled if tiled else wp.launch)(
+                mesh_contact_scalars_tiled if tiled else mesh_contact_scalars,
+                **({"dim": [count], "block_dim": 32} if tiled else {"dim": count}),
+                inputs=[
+                    x,
+                    self.nodes,
+                    *self._mesh(),
+                    self.candidate,
+                    self.normal,
+                    self.multiplier,
+                    self.regularization,
+                ],
+                outputs=[self.gap, self.omega, self.diagonal, self.residual],
+                device=device,
+            )
+        else:
+            wp.launch(
+                contact_scalars,
+                count,
+                inputs=[x, self.nodes, self.kind, self.parameters, self.multiplier, self.regularization],
+                outputs=[self.gap, self.omega, self.diagonal, self.residual],
+                device=device,
+            )
+        frames = (self.normal, self.tangent1, self.tangent2)
+        self._newton(x, solved)
+        if self.friction > 0:
+            wp.launch(
+                contact_forces,
+                count,
+                inputs=[*frames, self.omega, self.multiplier, self.friction_lambda, 0],
+                outputs=[self.force],
+                device=device,
+            )
+            self._response(self.force, self.response)
+            wp.launch(
+                contact_friction,
+                count,
+                inputs=[
+                    solved,
+                    position,
+                    self.nodes,
+                    *frames,
+                    self.block,
+                    self.multiplier,
+                    self.response,
+                    self.friction,
+                ],
+                outputs=[self.friction_lambda],
+                device=device,
+            )
+        wp.launch(
+            contact_forces,
+            count,
+            inputs=[*frames, self.omega, self.multiplier, self.friction_lambda, 1],
+            outputs=[self.force],
+            device=device,
+        )
+        wp.launch(
+            contact_solution,
+            self.particle_count,
+            inputs=[solved, self.panel, self.force, self.order, self.active],
+            outputs=[out],
+            device=device,
+        )
+
+    def finish_step(self, position, velocity, dt, x) -> None:
+        """Apply the reference post-solve restitution correction when enabled."""
+        if not self.count or self.restitution <= 0:
+            return
+        if self.faces is not None:
+            wp.launch(
+                apply_mesh_restitution,
+                self.count,
+                inputs=[
+                    position,
+                    velocity,
+                    self.nodes,
+                    *self._mesh(),
+                    self.surface,
+                    self.normal,
+                    self.multiplier,
+                    self.restitution,
+                    dt,
+                ],
+                outputs=[x],
                 device=self.device,
             )
-            self.face_bvh.refit()
-            self.edge_bvh.refit()
-            common = [self.worlds, self.components, self.neighbor_starts, self.neighbors]
-            config = [
-                self.self_contact,
-                self.soft_contact,
-                self.thickness,
-                self.ccd_tolerance,
-                self.ccd_iterations,
-                self.max_contacts,
-                self.count_buffer,
-                self.failure_buffer,
-                *output,
-            ]
-            wp.launch(
-                _vertex_face_contacts,
-                len(self.vertices),
-                [q, q_prev, self.vertices, self.faces, *common, self.face_bvh.id, *known, *config],
-                device=self.device,
-                # A single default block serializes divergent CCD paths on
-                # one SM. Small surfaces spread those paths across the GPU;
-                # larger meshes keep the normal throughput-oriented launch.
-                block_dim=1 if self.device.is_cuda and len(self.vertices) <= 256 else 256,
-            )
-            wp.launch(
-                _edge_edge_contacts,
-                len(self.edges),
-                [q, q_prev, self.edges, *common, self.edge_bvh.id, self.edge_lower, self.edge_upper, *known, *config],
-                device=self.device,
-                block_dim=1 if self.device.is_cuda and len(self.edges) <= 256 else 256,
-            )
-        count, failed = map(int, self._generation_status.numpy())
-        if count > self.max_contacts:
-            raise RuntimeError(f"DiffPhD contact capacity exceeded: {count} rows require max_contacts >= {count}.")
-        if failed:
-            raise ConvergenceError(
-                f"DiffPhD CCD unresolved for {failed} feature pairs; reduce the timestep, increase "
-                "ccd_iterations, or remove degenerate/coincident surface features."
-            )
-        return ContactRows(count, *output, self.thickness)
+            return
+        wp.launch(
+            apply_restitution,
+            self.count,
+            inputs=[position, velocity, self.nodes, self.kind, self.parameters, self.multiplier, self.restitution, dt],
+            outputs=[x],
+            device=self.device,
+        )

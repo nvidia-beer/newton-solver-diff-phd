@@ -1,7 +1,9 @@
 """Check profiling isolation, frame fidelity and asynchronous timing boundaries."""
 
 import importlib.util
+import json
 import sys
+import tempfile
 import types
 import unittest
 from contextlib import contextmanager
@@ -27,6 +29,71 @@ class Trace:
 
 
 class TestNsightRunner(unittest.TestCase):
+    def test_adjoint_ranges_separate_contact_correction_and_backward_solves(self):
+        module = types.ModuleType("profiling_adjoint_fixture")
+
+        class Adjoint:
+            def _woodbury(self, value):
+                return self._batch_fixed_point(value)
+
+            def _batch_fixed_point(self, value):
+                return value + 1
+
+            def _fixed_point(self, value):
+                return value * 2
+
+        Adjoint.__module__ = module.__name__
+        module.Adjoint = Adjoint
+        trace = Trace()
+        instrument = RUNNER.Instrumentation(module.__name__, trace)
+        with patch.dict(sys.modules, {module.__name__: module}):
+            instrument.install()
+            self.assertEqual(Adjoint()._woodbury(3), 4)
+            self.assertEqual(Adjoint()._fixed_point(3), 6)
+            instrument.restore()
+        self.assertEqual(
+            trace.events,
+            [
+                ("begin", "contact_solve:Adjoint._woodbury"),
+                ("begin", "backward_solve:Adjoint._batch_fixed_point"),
+                ("end", "backward_solve:Adjoint._batch_fixed_point"),
+                ("end", "contact_solve:Adjoint._woodbury"),
+                ("begin", "backward_solve:Adjoint._fixed_point"),
+                ("end", "backward_solve:Adjoint._fixed_point"),
+            ],
+        )
+
+    def test_training_capture_omits_video_checkpoint_arguments(self):
+        warp = types.SimpleNamespace(
+            get_device=lambda _: types.SimpleNamespace(is_cuda=True),
+            synchronize_device=lambda _: None,
+            Tape=types.SimpleNamespace(backward=lambda: None),
+        )
+        linear = types.SimpleNamespace(LinearSolverState=type("LinearSolverState", (), {"__call__": lambda: None}))
+        with tempfile.TemporaryDirectory() as directory:
+            options = types.SimpleNamespace(
+                example="softbody_diff_phd_ur5_poke",
+                frames=2,
+                arguments=["--train-iters", "0"],
+                no_video_args=True,
+                device="cuda:0",
+                viewer="null",
+                warmup=0,
+                output_dir=Path(directory),
+            )
+            with (
+                patch.dict(sys.modules, {"warp": warp, "nvtx": Trace(), "warp.optim.linear": linear}),
+                patch.object(RUNNER.importlib, "import_module"),
+                patch.object(RUNNER, "Instrumentation"),
+                patch.object(RUNNER, "run_visual", return_value={"frames_completed": 2}) as run,
+            ):
+                RUNNER.profile(options)
+            arguments = run.call_args.args[1]
+            self.assertNotIn("--load-alignment", arguments)
+            self.assertEqual(arguments, ["--train-iters", "0", "--device", "cuda:0"])
+            workload = json.loads((Path(directory) / "workload.json").read_text())
+            self.assertFalse(workload["uses_video_arguments"])
+
     def test_wrappers_preserve_descriptors_return_values_and_restore(self):
         module = types.ModuleType("profiling_fixture")
 

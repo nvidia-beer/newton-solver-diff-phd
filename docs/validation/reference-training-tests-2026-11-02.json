@@ -1,0 +1,148 @@
+{
+  "date": "2026-11-02",
+  "target_checkout": "/home/beer/Dev/Robotics/NewtonSolvers/newton-solver-diff-phd",
+  "source_sha256": "91414467ab843fad36782780903a6503c1a857352ae06087d6e87a487b5f4f2b",
+  "source_hash_scope": "Sorted src/tests/tools Python paths and content, then pyproject.toml and uv.lock; NUL separated",
+  "source_scope": "Full suites preceded the final zero-volume-weight material suppression guard. The final guard was separately tested on CPU/CUDA and against the executed native reference; positive-weight branches are unchanged. After the full suites, example error forwarding after read_status was restored through the public status array and checked for error bits 2/4 in both poke and bear helpers.",
+  "environment": {
+    "python": "3.12.3",
+    "newton": "1.7.0",
+    "warp": "1.17.0+cu13",
+    "numpy": "2.5.4",
+    "cpu": "aarch64",
+    "gpu": "NVIDIA GB10"
+  },
+  "unit_command": "env -u VIRTUAL_ENV UV_CACHE_DIR=/tmp/codex-diffphd-uv PYTHONPATH=src WARP_CACHE_PATH=/tmp/diffphd-training-warp uv run --locked --no-sync python -m unittest discover -s tests -v",
+  "cpu": {
+    "run": 152,
+    "passed": 148,
+    "skipped": 4,
+    "seconds": 116.492,
+    "result": "PASS",
+    "log": "nsys/results/reference-training-validation/diffphd-original-cpu-tests-final.log"
+  },
+  "cuda": {
+    "run": 152,
+    "passed": 151,
+    "skipped": 1,
+    "seconds": 106.878,
+    "result": "PASS",
+    "environment": "NEWTON_TEST_DEVICE=cuda:0; outside sandbox to expose GPU",
+    "log": "nsys/results/reference-training-validation/diffphd-original-cuda-tests.log"
+  },
+  "focused_final_guard": {
+    "final_all_package_python_source_sha256": "29cdb7f525eb6e34a9dc45f0a1979cc8ac360d25ad0784f2ca49437fdc88f49c",
+    "checks": [
+      {
+        "name": "owned_cpu_before_zero_weight_guard",
+        "tests": 26,
+        "skips": 1,
+        "result": "PASS",
+        "log": "diffphd-final-owned-cpu.log"
+      },
+      {
+        "name": "owned_cuda_before_zero_weight_guard",
+        "tests": 19,
+        "skips": 0,
+        "result": "PASS",
+        "log": "diffphd-final-owned-cuda.log"
+      },
+      {
+        "name": "zero_volume_weight_final_cpu",
+        "tests": 1,
+        "result": "PASS",
+        "log": "diffphd-zero-lambda-test-cpu.log"
+      },
+      {
+        "name": "zero_volume_weight_final_cuda",
+        "tests": 1,
+        "result": "PASS",
+        "log": "diffphd-zero-lambda-test-cuda.log"
+      },
+      {
+        "name": "zero_volume_weight_executed_native",
+        "result": "PASS",
+        "status_bits": [
+          0,
+          16
+        ],
+        "log": "diffphd-zero-lambda-fixed.log"
+      }
+    ],
+    "test_name": "tests.test_diff_phd_adjoint.TestDiffPhDAdjoint.test_zero_volume_energy_suppresses_whole_reference_material_gradient",
+    "artifact_sha256": {
+      "diffphd-final-owned-cpu.log": "f0d2b8810d64406f1737547f4974116168a1a8041a1d3ee04c63b4131ac7704a",
+      "diffphd-final-owned-cuda.log": "20aed5bc91ecb1e4ef51b0695f26fd46a88b24ccf031f5993f1f4c0604e82ead",
+      "diffphd-zero-lambda-test-cpu.log": "9b343dc39f891d65e6f1586c6ddf870a4a0cbe6e3b0dcac29f0d97fc2ab7114d",
+      "diffphd-zero-lambda-test-cuda.log": "f38d6af5e255cb1984a5e0866be456fce6c93fd7a0130d5b4f368d97f40a30b7",
+      "diffphd-zero-lambda-fixed.log": "1eec0a9f853e88939fd3636165ac365e561c0704edabc4295d1080ac54951a32"
+    },
+    "core_source_sha256": {
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/__init__.py": "5d624166bc62b78e1c1dba8b9762dd2134af76123e31605b607e3e7282474f99",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/adjoint.py": "a3d92e3ffcbcf0622796ded8e46e405f83acded98ab344a15679c090acdaf866",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/anderson.py": "a3f76d850b58f94a96a24741d6f1f917a88a73da58528fcaff3eb64cab1b48f1",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/contact.py": "cda692c522b469206722e8117d5d971bcfd9aee39a9014b3c6f06e8645648468",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/dense.py": "403ddf1744666ca7e6d7bf543b64abbc85f89cecba2748084ff446f7b4a1dc1f",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/exceptions.py": "aa66748ab9894e09de33819b5f844205e5caaa9b98ec8169b92958a98adc1a6f",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/kernels.py": "10e765379ba1f1a152d44028b3976f5dc361e51eab426c55dec22de5229a3b8e",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/mesh_contact.py": "f3a63dbd00e411345608755e80fddfe76e77898c249e81ac53f99cd711c4c3a9",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/projections.py": "9d41fffa594d4d2d87883895adb76e1378c1aabe734c2fd274f036095334f652",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/solver.py": "908f28dc478863728c6f2b55bd66ea4ccbde236d706927caca732ae90810bf78",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/sparse.py": "26eee209b0cedacaabcccde37f88acbe887111b6cf134c368daa78d48d090190"
+    }
+  },
+  "lint": {
+    "ruff_check": "PASS",
+    "ruff_format_check": "PASS",
+    "python_files": 87
+  },
+  "build": {
+    "result": "PASS",
+    "command": "uv build --offline --no-build-isolation",
+    "backend": "cached uv-build 0.11.33",
+    "artifacts": [
+      "dist/newton_solver_diff_phd-0.1.0.tar.gz",
+      "dist/newton_solver_diff_phd-0.1.0-py3-none-any.whl"
+    ],
+    "archive_checks": "Both solver families included; private PokeFlex recordings excluded."
+  },
+  "docker": {
+    "result": "PASS",
+    "exit_code": 0,
+    "command": "./docker/run.sh --headless softbody_diff_phd_ur5_poke --forward-only --num-frames 36 --test",
+    "solver_steps": 1050,
+    "image": "newton-solver-diff-phd:local",
+    "image_sha256": "80fb23ea0ed8c7d3a48c79a757aa2f9f03e00e0c826828a08c1c010a01cb1c7a",
+    "checkout_mount": "/workspace",
+    "log": "nsys/results/contact-investigation/docker-main-forward-2026-11-02.log",
+    "scope": "Live untaped forward launch and numerical checks; not nonpenetration or speed acceptance."
+  },
+  "native_parity": {
+    "report": "docs/validation/parity-reference-cpu.json",
+    "comparison_exit_code": 1,
+    "fixtures": 16,
+    "forward_passed": 16,
+    "case_verdicts_passed": 15,
+    "backward_passed": 13,
+    "backward_failed": [
+      "pinned_contrast_10x_per_element"
+    ],
+    "backward_unjudged_grouped_encodings": 2,
+    "sensitivity_report": "docs/validation/reference-adjoint-sensitivity-2026-11-02.json"
+  },
+  "poke_geometry": {
+    "report": "docs/validation/poke-reference-training-2026-11-02.json",
+    "nonpenetration": "FAIL",
+    "default_max_sampled_probe_depth_mm": 120.579,
+    "scope": "Prepared geometry differs from original generated scene; sampling does not prove global distance bounds."
+  },
+  "retired_checkout": {
+    "original": "/home/beer/Dev/Robotics/NewtonSolvers/newton-solver-diff-phd-port",
+    "recovery_directory": "/tmp/newton-solver-diff-phd-port-retired-2026-11-02",
+    "action": "Moved out of workspace at user request; code, data and uncommitted files preserved for recovery."
+  },
+  "readme": {
+    "generation": "PASS",
+    "stale_check": "PASS"
+  }
+}

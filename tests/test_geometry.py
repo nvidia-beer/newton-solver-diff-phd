@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 The Newton Developers
 # SPDX-License-Identifier: Apache-2.0
-"""Bundled drop geometry and static USD coordinate conventions."""
+"""Bundled drop geometry and static Tet4/Hex8 USD coordinate conventions."""
 
 import tempfile
 import unittest
@@ -119,6 +119,115 @@ class TestGeometry(unittest.TestCase):
                     stage.GetRootLayer().Save()
                     with self.assertRaisesRegex(ValueError, message):
                         load_mesh(path)
+
+    def test_hex_transforms_units_up_axis_and_native_corner_order(self):
+        from pxr import Gf, Sdf, Usd, UsdGeom, Vt
+
+        # Reference Hex8 corners use binary x/y/z order, not the cyclic order
+        # convention commonly used by surface meshes. Shuffle vertex storage
+        # so that preserving connectivity requires more than returning 0..7.
+        corners = np.array(
+            [
+                (0, 0, 0),
+                (0, 0, 100),
+                (0, 100, 0),
+                (0, 100, 100),
+                (100, 0, 0),
+                (100, 0, 100),
+                (100, 100, 0),
+                (100, 100, 100),
+            ],
+            dtype=np.float64,
+        )
+        storage_order = np.array([4, 1, 7, 2, 0, 6, 3, 5])
+        connectivity = np.argsort(storage_order).astype(np.int32)
+        expected_corners = np.array(
+            [
+                (0.1, -0.3, 0.2),
+                (0.1, -0.8, 0.2),
+                (0.1, -0.3, 2.2),
+                (0.1, -0.8, 2.2),
+                (-0.9, -0.3, 0.2),
+                (-0.9, -0.8, 0.2),
+                (-0.9, -0.3, 2.2),
+                (-0.9, -0.8, 2.2),
+            ]
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "hex.usda"
+            stage = Usd.Stage.CreateNew(str(path))
+            UsdGeom.SetStageMetersPerUnit(stage, 0.01)
+            UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.y)
+            parent = UsdGeom.Xform.Define(stage, "/Model")
+            parent.AddTranslateOp().Set(Gf.Vec3d(10, 20, 30))
+            parent.AddScaleOp().Set(Gf.Vec3f(-1, 2, 0.5))
+            mesh = UsdGeom.Mesh.Define(stage, "/Model/Hex")
+            mesh.CreatePointsAttr(Vt.Vec3fArray.FromNumpy(corners[storage_order].astype(np.float32)))
+            mesh.GetPrim().CreateAttribute("newton:hexVertexIndices", Sdf.ValueTypeNames.IntArray).Set(
+                Vt.IntArray.FromNumpy(connectivity)
+            )
+            stage.GetRootLayer().Save()
+
+            (loaded,) = load_mesh(path)
+            self.assertEqual(loaded.name, "/Model/Hex")
+            np.testing.assert_allclose(loaded.vertices, expected_corners[storage_order], rtol=0, atol=1e-15)
+            np.testing.assert_array_equal(loaded.indices, connectivity[None, :])
+            np.testing.assert_allclose(loaded.vertices[loaded.indices[0]], expected_corners, rtol=0, atol=1e-15)
+            self.assertEqual(loaded.indices.dtype, np.dtype(np.int32))
+            # Even a reflected transform must not invoke Tet4 orientation
+            # repair on Hex8. The solver validates the rest Jacobians.
+
+    def test_hex_invalid_flat_connectivity_is_rejected(self):
+        from pxr import Sdf, Usd, UsdGeom, Vt
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "invalid_hex.usda"
+            stage = Usd.Stage.CreateNew(str(path))
+            mesh = UsdGeom.Mesh.Define(stage, "/Hex")
+            mesh.CreatePointsAttr(
+                Vt.Vec3fArray([(0, 0, 0), (0, 0, 1), (0, 1, 0), (0, 1, 1), (1, 0, 0), (1, 0, 1), (1, 1, 0), (1, 1, 1)])
+            )
+            attribute = mesh.GetPrim().CreateAttribute("newton:hexVertexIndices", Sdf.ValueTypeNames.IntArray)
+            cases = (
+                ([], "8 valid indices"),
+                (list(range(7)), "8 valid indices"),
+                (list(range(8)) + [0], "8 valid indices"),
+                ([0, 1, 2, 3, 4, 5, 6, 8], "8 valid indices"),
+                ([0, 1, 2, 3, 4, 5, 6, -1], "8 valid indices"),
+                ([0, 1, 2, 3, 4, 5, 6, 6], "repeated vertices"),
+            )
+            for indices, message in cases:
+                with self.subTest(indices=indices):
+                    attribute.Set(Vt.IntArray(indices))
+                    stage.GetRootLayer().Save()
+                    with self.assertRaisesRegex(ValueError, message):
+                        load_mesh(path)
+
+    def test_mixed_hex_and_tet_stage_keeps_element_types(self):
+        from pxr import Sdf, Usd, UsdGeom, Vt
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "mixed.usda"
+            stage = Usd.Stage.CreateNew(str(path))
+            UsdGeom.SetStageMetersPerUnit(stage, 1.0)
+            UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+            mesh = UsdGeom.Mesh.Define(stage, "/Hex")
+            mesh.CreatePointsAttr(
+                Vt.Vec3fArray([(0, 0, 0), (0, 0, 1), (0, 1, 0), (0, 1, 1), (1, 0, 0), (1, 0, 1), (1, 1, 0), (1, 1, 1)])
+            )
+            mesh.GetPrim().CreateAttribute("newton:hexVertexIndices", Sdf.ValueTypeNames.IntArray).Set(
+                Vt.IntArray(range(8))
+            )
+            tet = UsdGeom.TetMesh.Define(stage, "/Tet")
+            tet.CreatePointsAttr(Vt.Vec3fArray([(0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1)]))
+            tet.CreateTetVertexIndicesAttr(Vt.Vec4iArray([(0, 2, 1, 3)]))
+            UsdGeom.Mesh.Define(stage, "/SurfaceOnly")
+            stage.GetRootLayer().Save()
+
+            loaded = {mesh.name: mesh for mesh in load_mesh(path)}
+            self.assertEqual(set(loaded), {"/Hex", "/Tet"})
+            np.testing.assert_array_equal(loaded["/Hex"].indices, [range(8)])
+            np.testing.assert_array_equal(loaded["/Tet"].indices, [[0, 1, 2, 3]])
 
 
 if __name__ == "__main__":

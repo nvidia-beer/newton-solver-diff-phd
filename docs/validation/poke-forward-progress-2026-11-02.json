@@ -1,0 +1,27 @@
+{
+  "date": "2026-11-02",
+  "change": "Forward startup/progress/final-hold messages, GUI simulation clock and motion counter, and restart with cached solver factors.",
+  "physics_changes": false,
+  "example_source_sha256": "02eb539794a4e1f5ff2fe2fc48ef957b7bfc3a2daace946852fa58526e5d821b",
+  "docker": {
+    "command": "./docker/run.sh --headless softbody_diff_phd_ur5_poke --forward-only --num-frames 36 --test",
+    "exit_code": 0,
+    "first_frame_wall_seconds_including_setup": 56.27,
+    "completed_solver_steps": 1050,
+    "simulated_motion_seconds": 1.1666666666666667,
+    "log": "nsys/results/contact-investigation/docker-forward-progress-2026-11-02.log",
+    "scope": "Startup and progress visibility; this is not an FPS benchmark or nonpenetration acceptance."
+  },
+  "targeted_cpu": {
+    "tests": 7,
+    "result": "PASS",
+    "seconds": 3.064
+  },
+  "targeted_cuda": {
+    "tests": 1,
+    "result": "PASS",
+    "seconds": 1.945
+  },
+  "restart_checks": "For both tested damping settings: initial positions and zero physical velocity restored, solver inverse reused, no Tape constructed, and first-frame positions/velocities reproduced bitwise.",
+  "lint_and_readme": "Ruff check/format, git diff --check and regenerated README stale check passed."
+}

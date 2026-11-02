@@ -5,7 +5,7 @@ build-backend = "uv_build"
 [project]
 name = "newton-solver-diff-phd"
 version = "0.1.0"
-description = "Differentiable implicit tetrahedral mechanics with frictional contact for Newton"
+description = "Differentiable Tet4 mechanics and forward Hex8 projective dynamics for Newton"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = "Apache-2.0"
@@ -23,9 +23,9 @@ dev = ["ruff==0.17.3"]
 environments = ["sys_platform == 'linux' and platform_machine == 'aarch64'", "sys_platform == 'linux' and platform_machine == 'x86_64'"]
 
 [tool.uv.build-backend]
-# PokeFlex is user-local data, never a redistributable package asset.
-source-exclude = ["src/newton_solver_diff_phd/examples/assets/pokeflex_local/**"]
-wheel-exclude = ["newton_solver_diff_phd/examples/assets/pokeflex_local/**"]
+# Local datasets and assets with separate research-use terms are not packaged.
+source-exclude = ["src/newton_solver_diff_phd/examples/assets/pokeflex_local/**", "src/newton_solver_diff_phd/examples/assets/bunny_reference_local/**"]
+wheel-exclude = ["newton_solver_diff_phd/examples/assets/pokeflex_local/**", "newton_solver_diff_phd/examples/assets/bunny_reference_local/**"]
 
 [tool.uv.sources]
 warp-lang = [

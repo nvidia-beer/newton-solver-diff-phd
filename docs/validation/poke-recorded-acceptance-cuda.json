@@ -1,46 +1,152 @@
 {
-  "initial_loss": 0.02773213028811917,
-  "initial_xy": [
-    0.73,
-    0.115
-  ],
-  "initial_contacts": 28,
-  "initial_residual": 9.688480003921993e-07,
-  "initial_gradient": {
-    "analytic": [
-      0.5698052991122822,
-      0.5982416692653805
-    ],
-    "finite_difference": [
-      0.5653370190582957,
-      0.586172373270629
-    ],
-    "relative_error": [
-      0.00784176640853946,
-      0.020174616070412064
-    ],
-    "epsilon": 0.0001
-  },
-  "final_loss": 0.01034612848025788,
-  "final_xy": [
-    0.704074744821169,
-    0.08533953153503918
-  ],
-  "iterations": 6,
-  "contacts": 25,
-  "max_residual": 9.93695615427863e-07,
-  "elapsed": 170.12653228099225,
-  "rms_mm": 17.19312859442722,
-  "device": "NVIDIA GB10 / cuda:0",
-  "nodes": 135,
+  "date": "2026-10-29",
+  "device": "cuda:0",
+  "data": "authorized local PokeFlex preparation (recording_debug.json manifest), not redistributed",
+  "die_nodes": 109,
   "die_tetrahedra": 362,
-  "prescribed_probe_tetrahedra": 36,
+  "pinned_nodes": 11,
+  "probe": "spherical frictional boundary, radius 0.01 m, tip of the prescribed UR5 probe",
   "frame_dt": 0.03333333333333333,
   "substeps": 1,
   "recorded_intervals": 35,
-  "iteration_budget": 12,
-  "stop_reason": "line search found no further accepted decrease",
-  "gradient_gate_passed": false,
-  "gradient_scope": "The full recorded-trajectory 1% finite-difference gate fails in Y. The discrepancy may reflect changes in contact geometry or nearest associations, solver tolerance, or finite-difference step size; its cause has not been isolated. Supported fixed-branch derivatives are tested separately.",
-  "timing_scope": "Whole validation including cold compilation, initial differentiation, finite-difference diagnostic rollouts, optimization and console progress; not live step timing."
+  "geometry": {
+    "nearest_die_node_to_probe_axis_m_min_over_poses": 0.0246,
+    "probe_tip_depth_inside_undeformed_die_m_max": 0.0934,
+    "contact_steps": 0
+  },
+  "training": {
+    "iteration_budget": 12,
+    "iterations": 10,
+    "stop_reason": "state precision stagnation",
+    "initial_xy_m": [
+      0.73,
+      0.115
+    ],
+    "xy_m": [
+      0.693744482093227,
+      0.07975468262887624
+    ],
+    "initial_loss_m2": 0.03598271095697596,
+    "loss_m2": 0.008676108834943044,
+    "rms_surface_error_m": 0.01574448550621822,
+    "gradient_check": {
+      "analytic": [
+        -1.0335131150895904e-07,
+        2.3810195273199497e-06
+      ],
+      "finite_difference": [
+        -2.230888712477508e-05,
+        -0.000255327549268311
+      ],
+      "relative_error": [
+        0.9953672583069291,
+        1.0093253529990915
+      ],
+      "epsilon": 0.0001
+    },
+    "gradient_gate_passed": false
+  },
+  "gradient_investigation": {
+    "initial": {
+      "xy": [
+        0.73,
+        0.115
+      ],
+      "loss": 0.035982710956976034,
+      "analytic": [
+        0.7862098812535692,
+        0.6924198131231805
+      ],
+      "contact_steps": 0,
+      "rows": [
+        {
+          "epsilon": 0.001,
+          "recomputed": [
+            0.7863377663152766,
+            0.6919858466819458
+          ],
+          "frozen": [
+            0.786428295427001,
+            0.6925055785808633
+          ],
+          "association_changes": 16902
+        },
+        {
+          "epsilon": 0.0001,
+          "recomputed": [
+            0.7864470770138632,
+            0.6921695324807464
+          ],
+          "frozen": [
+            0.7863111104627896,
+            0.6924858362507974
+          ],
+          "association_changes": 1746
+        },
+        {
+          "epsilon": 1e-05,
+          "recomputed": [
+            0.7851668246270509,
+            0.6927706168689817
+          ],
+          "frozen": [
+            0.7851392608199114,
+            0.6927557628683133
+          ],
+          "association_changes": 157
+        }
+      ]
+    },
+    "fitted": {
+      "xy": [
+        0.693744482093227,
+        0.07975468262887624
+      ],
+      "loss": 0.008676108834943028,
+      "analytic": [
+        -1.0200946576333081e-07,
+        2.377336784320505e-06
+      ],
+      "contact_steps": 0,
+      "rows": [
+        {
+          "epsilon": 0.001,
+          "recomputed": [
+            -0.0006084007661832924,
+            -0.0006514689882709118
+          ],
+          "frozen": [
+            -1.6856222207969895e-06,
+            3.7869498986306538e-06
+          ],
+          "association_changes": 17099
+        },
+        {
+          "epsilon": 0.0001,
+          "recomputed": [
+            -2.2308888191630016e-05,
+            -0.00025532754898208165
+          ],
+          "frozen": [
+            -1.6859236229294083e-06,
+            3.749739832872856e-06
+          ],
+          "association_changes": 1734
+        },
+        {
+          "epsilon": 1e-05,
+          "recomputed": [
+            1.3296045341115724e-05,
+            1.559210876730943e-05
+          ],
+          "frozen": [
+            -1.6879330398678059e-06,
+            4.334969275904266e-06
+          ],
+          "association_changes": 194
+        }
+      ]
+    }
+  },
+  "inference_with_saved_alignment": "passed --test"
 }

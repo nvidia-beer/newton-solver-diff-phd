@@ -1,0 +1,165 @@
+{
+  "date": "2026-11-02",
+  "reference_revision": "d319435373a8a94aac2035bfe41f16f49bc1d2a1",
+  "reference_binary_sha256": "75d03471d4c0a88088977257fcb6ab1e263e1ccf0af612ce370e7ee513e7a134",
+  "device": "cpu",
+  "warp": "1.17.0",
+  "newton": "1.7.0",
+  "production_solver_sources_sha256": {
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/__init__.py": "5d624166bc62b78e1c1dba8b9762dd2134af76123e31605b607e3e7282474f99",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/adjoint.py": "74fa57182715d1a99a3446bd0731391d1e24f6e596f26fa5302c9bb950645c52",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/anderson.py": "a3f76d850b58f94a96a24741d6f1f917a88a73da58528fcaff3eb64cab1b48f1",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/contact.py": "cda692c522b469206722e8117d5d971bcfd9aee39a9014b3c6f06e8645648468",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/dense.py": "403ddf1744666ca7e6d7bf543b64abbc85f89cecba2748084ff446f7b4a1dc1f",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/exceptions.py": "aa66748ab9894e09de33819b5f844205e5caaa9b98ec8169b92958a98adc1a6f",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/kernels.py": "10e765379ba1f1a152d44028b3976f5dc361e51eab426c55dec22de5229a3b8e",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/mesh_contact.py": "f3a63dbd00e411345608755e80fddfe76e77898c249e81ac53f99cd711c4c3a9",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/projections.py": "9d41fffa594d4d2d87883895adb76e1378c1aabe734c2fd274f036095334f652",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/solver.py": "908f28dc478863728c6f2b55bd66ea4ccbde236d706927caca732ae90810bf78",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/sparse.py": "26eee209b0cedacaabcccde37f88acbe887111b6cf134c368daa78d48d090190"
+  },
+  "fixture": "pinned_contrast_10x_per_element",
+  "fixture_sha256": "735c6df3012387bf378c1afc31cdd80a82af2ca42afce1cda1af5e69ee49a0d6",
+  "dt_seconds": 0.004,
+  "unchanged_strict_gradient_relative_threshold": 1e-05,
+  "strict_parity_status": "FAIL: original 2000-iteration fixture is retained; both backward solves hit their iteration cap",
+  "forward_position_difference_l2_m": 1.3179847593832855e-14,
+  "budget_audit": [
+    {
+      "budget": 1,
+      "relative": 2.6542736674113e-08,
+      "port_mu_norm": 0.0003366080934347067,
+      "port_actual_iterations": 1,
+      "status": 8,
+      "reference_trace": [
+        "[AlgPhd-BWD] adjoint iters=1 db_grad.norm()=0.000336608 rhs_qbar.norm()=31.2947 diverged=0"
+      ]
+    },
+    {
+      "budget": 2,
+      "relative": 2.3899606943711374e-08,
+      "port_mu_norm": 0.0004721282448853978,
+      "port_actual_iterations": 2,
+      "status": 8,
+      "reference_trace": [
+        "[AlgPhd-BWD] adjoint iters=2 db_grad.norm()=0.000472128 rhs_qbar.norm()=31.2947 diverged=0"
+      ]
+    },
+    {
+      "budget": 5,
+      "relative": 2.530186286170769e-08,
+      "port_mu_norm": 0.00047316247336860436,
+      "port_actual_iterations": 5,
+      "status": 8,
+      "reference_trace": [
+        "[AlgPhd-BWD] adjoint iters=5 db_grad.norm()=0.000473162 rhs_qbar.norm()=31.2947 diverged=0"
+      ]
+    },
+    {
+      "budget": 10,
+      "relative": 2.5018033076476706e-08,
+      "port_mu_norm": 0.0004473484305652851,
+      "port_actual_iterations": 10,
+      "status": 8,
+      "reference_trace": [
+        "[AlgPhd-BWD] adjoint iters=10 db_grad.norm()=0.000447348 rhs_qbar.norm()=31.2947 diverged=0"
+      ]
+    },
+    {
+      "budget": 20,
+      "relative": 2.5389007849527624e-08,
+      "port_mu_norm": 0.0005682749710008407,
+      "port_actual_iterations": 20,
+      "status": 8,
+      "reference_trace": [
+        "[AlgPhd-BWD] adjoint iters=20 db_grad.norm()=0.000568275 rhs_qbar.norm()=31.2947 diverged=0"
+      ]
+    },
+    {
+      "budget": 50,
+      "relative": 2.583799418582859e-08,
+      "port_mu_norm": 0.0006302567372748936,
+      "port_actual_iterations": 50,
+      "status": 8,
+      "reference_trace": [
+        "[AlgPhd-BWD] adjoint iters=50 db_grad.norm()=0.000630257 rhs_qbar.norm()=31.2947 diverged=0"
+      ]
+    },
+    {
+      "budget": 100,
+      "relative": 4.4857732519464674e-07,
+      "port_mu_norm": 0.0008330317439782044,
+      "port_actual_iterations": 100,
+      "status": 8,
+      "reference_trace": [
+        "[AlgPhd-BWD] adjoint iters=100 db_grad.norm()=0.000833032 rhs_qbar.norm()=31.2947 diverged=0"
+      ]
+    },
+    {
+      "budget": 500,
+      "relative": 0.18571297274417484,
+      "port_mu_norm": 0.0014675769000373638,
+      "port_actual_iterations": 500,
+      "status": 24,
+      "reference_trace": [
+        "[AlgPhd-BWD] adjoint iters=500 db_grad.norm()=0.00189427 rhs_qbar.norm()=31.2947 diverged=0"
+      ]
+    },
+    {
+      "budget": 2000,
+      "relative": 0.04350573812932008,
+      "port_mu_norm": 0.002163683853831619,
+      "port_actual_iterations": 2000,
+      "status": 24,
+      "reference_trace": [
+        "[AlgPhd-BWD] adjoint iters=2000 db_grad.norm()=0.00224738 rhs_qbar.norm()=31.2947 diverged=0"
+      ]
+    }
+  ],
+  "budget_audit_method": "Forward unchanged at max_iterations=2000. Only backward max_pd_iter/max_iterations varies. Relative error is ||dL/df_port-dL/df_reference||/||dL/df_reference||, including reference cascade clipping.",
+  "native_perturbation": [
+    {
+      "epsilon": 0.0,
+      "relative": 0.0,
+      "trace": [
+        "[AlgPhd-BWD] adjoint iters=2000 db_grad.norm()=0.00224738 rhs_qbar.norm()=31.2947 diverged=0"
+      ]
+    },
+    {
+      "epsilon": 1e-15,
+      "relative": 0.07074242663054646,
+      "trace": [
+        "[AlgPhd-BWD] adjoint iters=2000 db_grad.norm()=0.00200553 rhs_qbar.norm()=31.2947 diverged=0"
+      ]
+    },
+    {
+      "epsilon": 1e-14,
+      "relative": 0.010459247299155797,
+      "trace": [
+        "[AlgPhd-BWD] adjoint iters=2000 db_grad.norm()=0.00220504 rhs_qbar.norm()=31.2947 diverged=0"
+      ]
+    },
+    {
+      "epsilon": -1e-14,
+      "relative": 1.0,
+      "trace": [
+        "[AlgPhd-BWD] adjoint iters=2000 db_grad.norm()=1e+06 rhs_qbar.norm()=31.2947 diverged=1"
+      ]
+    }
+  ],
+  "native_perturbation_method": "Reference only: after its identical forward solve, add epsilon*N(0,1) (numpy default_rng seed73) to free-node q_next passed to PyBackward; pinned coordinates unchanged. Same binary and max_pd_iter=2000. Compare force gradient with unperturbed native output. epsilon0 reproduces baseline exactly.",
+  "interpretation": "The first 50 iterates agree to float32 gradient roundoff. The original capped Anderson recurrence amplifies tiny floating-point perturbations; even the same native binary changes its result substantially. This is evidence of sensitivity, not a passing strict comparison or a convergence guarantee.",
+  "additional_convergent_fixture": {
+    "case": "pinned_contrast_10x_per_element_small_dt",
+    "dt_seconds": 0.001,
+    "gradient_threshold_unchanged": true,
+    "initial_check": "PASS all existing checks; port forward/backward status bits [0,0]; original failing fixture retained"
+  },
+  "raw_artifact_directory": "nsys/results/reference-adjoint-sensitivity-2026-11-02",
+  "reproduction_scripts": [
+    "nsys/results/reference-adjoint-sensitivity-2026-11-02/diffphd-audit-adjoint-budget.py",
+    "nsys/results/reference-adjoint-sensitivity-2026-11-02/diffphd-native-sensitivity.py"
+  ],
+  "production_changes_for_this_diagnostic": "None: no convergence threshold, iteration law or guard was changed to obtain a passing diagnostic.",
+  "port_revision": "8a50babc68ef26491094691b1eae4f7b90348576+uncommitted"
+}

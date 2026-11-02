@@ -1,0 +1,26 @@
+{
+  "example": "softbody_diff_phd_cantilever",
+  "module": "newton_solver_diff_phd.examples.example_softbody_diff_phd_cantilever",
+  "caption": "Live forward simulation of the released DiffPhD cantilever_3d.py axial benchmark: 756 nodes, 500 intact Hex8 cells, original heterogeneous material, muscle and vertex-plane energies, fixed root and per-tip-vertex axial force ramp. All 25 steps use dt=0.01 s, totaling 0.25 simulated seconds; shown at 12 fps. No tetrahedral subdivision. Playback is not solver throughput.",
+  "arguments": [
+    "--test"
+  ],
+  "device": "cuda:0",
+  "frames": 25,
+  "fps": 12,
+  "width": 960,
+  "height": 540,
+  "recording_wall_seconds": 2.97347976200399,
+  "playback_is_performance_benchmark": false,
+  "simulation_time": [
+    {
+      "attribute": "sim_time",
+      "end": 0.25
+    }
+  ],
+  "dependencies": {
+    "newton_solver_diff_phd": "0.1.0",
+    "newton": "1.7.0",
+    "warp-lang": "1.17.0+cu13"
+  }
+}

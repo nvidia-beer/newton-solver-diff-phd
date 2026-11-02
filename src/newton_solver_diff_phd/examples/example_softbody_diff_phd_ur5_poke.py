@@ -1,22 +1,25 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 The Newton Developers
 # SPDX-License-Identifier: Apache-2.0
 
-"""Fit a die's placement, stiffness or compressibility to PokeFlex deformations.
+"""SolverDiffPhD: fit a die's placement, stiffness or compressibility to PokeFlex deformations.
 
 Run ``python -m newton_solver_diff_phd.examples softbody_diff_phd_ur5_poke`` with locally
 prepared recording data. The original scanned surface is embedded in native
-DiffPhD tetrahedra; the magenta probe makes physical frictional contact.
-Optimization is offline. ``--load-alignment PATH`` instead runs live forward
-simulation with the saved placement and material, without a Tape or a reference rollout.
+DiffPhD tetrahedra. The magenta probe uses the original training demo's root
+prescription and two-way mesh contact state force. These equations do not
+guarantee nonpenetration. The prepared geometry differs from the original demo.
+Optimization is offline. ``--forward-only`` runs live simulation at the specified
+placement and material; ``--load-alignment PATH`` uses a compatible saved fit.
+Both forward modes run without a Tape or an optimizer.
 Use ``--fit-mode stiffness --initial-xy X Y`` after registering the die to fit
 Young's modulus at fixed placement and Poisson ratio. This calibrates the
 simulation; the supplied scans alone do not establish the real foam's modulus.
 ``--fit-mode compressibility`` instead varies Poisson's ratio at fixed Young's
 modulus and placement, avoiding a joint fit of poorly identifiable parameters.
-The prescribed robot motion is precalculated; the deformable dynamics remain
-live during inference.
+The prescribed robot motion is the reference script's hand-authored trajectory,
+not measured probe poses from the recording; deformable dynamics remain live.
 The display places the clamped die on the floor; recording and solver
-coordinates remain unchanged so saved alignments stay compatible.
+coordinates remain unchanged.
 """
 
 import hashlib
@@ -29,13 +32,13 @@ import newton.examples
 import numpy as np
 import warp as wp
 
-from newton_solver_diff_phd import PokeAlignmentProblem, UR5Kinematics, command_poke_velocities, damp_poke_velocities
-
-from ._diff_phd_poke import build_poke_scene
+from ._diff_phd_poke import CONTACT_RADIUS, FRICTION, POKE_PHYSICS, SUBSTEPS, build_poke_scene
+from ._diff_phd_poke_alignment import PokeAlignmentProblem, command_poke_positions, damp_poke_velocities
+from ._ur5_kinematics import UR5Kinematics
 
 
 def default_recording_path(*, reference=False):
-    name = "recording_reference.npz" if reference else "recording_debug.json"
+    name = "recording_reference.json" if reference else "recording_fine.json"
     return Path(__file__).parent / "assets" / "pokeflex_local" / name
 
 
@@ -63,13 +66,16 @@ def _load_alignment(path):
     with Path(path).open() as stream:
         data = json.load(stream)
     xy = np.asarray(data.get("xy_m"), dtype=np.float64)
-    contact_tolerance = data.get("contact_tolerance_m", 1.0e-8)
     velocity_damping = data.get("velocity_damping", 1.0)
     young = data.get("young_pa", 5.0e5)
     poisson = data.get("poisson", 0.40)
     if (
         data.get("format") != "newton.diff_phd.poke_alignment"
-        or data.get("version") != 1
+        or data.get("version") != 5
+        or data.get("physics") != POKE_PHYSICS
+        or not isinstance(data.get("scene_sha256"), str)
+        or len(data["scene_sha256"]) != 64
+        or any(c not in "0123456789abcdef" for c in data["scene_sha256"])
         or xy.shape != (2,)
         or not np.isfinite(xy).all()
         or not isinstance(data.get("substeps"), int)
@@ -77,10 +83,10 @@ def _load_alignment(path):
         or data["substeps"] < 1
         or not np.isfinite(data.get("friction", np.nan))
         or data["friction"] < 0.0
-        or not isinstance(contact_tolerance, (int, float))
-        or isinstance(contact_tolerance, bool)
-        or not np.isfinite(contact_tolerance)
-        or contact_tolerance <= 0.0
+        or not isinstance(data.get("contact_radius_m"), (int, float))
+        or isinstance(data["contact_radius_m"], bool)
+        or not np.isfinite(data["contact_radius_m"])
+        or data["contact_radius_m"] <= 0.0
         or not isinstance(velocity_damping, (int, float))
         or isinstance(velocity_damping, bool)
         or not np.isfinite(velocity_damping)
@@ -94,16 +100,31 @@ def _load_alignment(path):
         or not np.isfinite(poisson)
         or not 0.0 <= poisson < 0.5
     ):
-        raise ValueError("Invalid DiffPhD poke alignment checkpoint")
-    data["contact_tolerance_m"] = float(contact_tolerance)
+        raise ValueError(
+            "Invalid DiffPhD poke alignment checkpoint; version 5 requires refitting with the original "
+            "training contact, probe material and prescribed-position semantics"
+        )
     data["velocity_damping"] = float(velocity_damping)
     data["young_pa"], data["poisson"] = float(young), float(poisson)
     return data
 
 
+def _scene_fingerprint(scene):
+    """Identify the loaded geometry, clamp, observations and commanded trajectory."""
+    digest = hashlib.sha256()
+    arrays = {f"recording/{key}": value for key, value in scene["data"].items() if isinstance(value, np.ndarray)}
+    arrays.update({key: scene[key] for key in ("rest", "tets", "tool_positions")})
+    arrays["particle_mass"] = scene["model"].particle_mass.numpy()
+    for name, value in sorted(arrays.items()):
+        value = np.ascontiguousarray(value)
+        digest.update(json.dumps([name, value.dtype.str, value.shape], separators=(",", ":")).encode())
+        digest.update(value.tobytes())
+    return digest.hexdigest()
+
+
 class Example:
     class _Forward:
-        """Two-state, untaped replay of the recorded physical tool commands."""
+        """Two-state, untaped simulation driven by the reference tool commands."""
 
         def __init__(self, scene, xy):
             self.scene = scene
@@ -118,36 +139,45 @@ class Example:
             self.state.particle_f.zero_()
             self.next_state.particle_f.zero_()
             self.endpoints = wp.array(scene["tool_positions"], dtype=wp.vec3, device=self.model.device)
+            self.dirichlet_positions = wp.empty_like(self.state.particle_q)
             self.dt = scene["frame_dt"] / scene["substeps"]
             self.velocity_damping = scene.get("velocity_damping", 1.0)
             self.damped_velocity = wp.empty_like(self.state.particle_qd)
             self.elapsed_steps = 0
-            self.max_residual = 0.0
 
         def advance(self):
             for _ in range(self.scene["substeps"]):
                 # After frame 53, keep the last tool pose and continue dynamics.
                 index = min(self.elapsed_steps, len(self.endpoints) - 2)
                 wp.launch(
-                    command_poke_velocities,
+                    command_poke_positions,
                     self.model.particle_count,
                     inputs=[
                         self.state.particle_q,
-                        self.state.particle_qd,
                         self.endpoints,
                         index,
                         self.scene["soft_count"],
-                        self.dt,
                     ],
-                    outputs=[self.state.particle_qd],
+                    outputs=[self.dirichlet_positions],
                     device=self.model.device,
                 )
-                self.solver.step(self.state, self.next_state, self.control, None, self.dt)
+                self.solver.step(
+                    self.state,
+                    self.next_state,
+                    self.control,
+                    None,
+                    self.dt,
+                    dirichlet_positions=self.dirichlet_positions,
+                )
+                if self.scene.get("swept_contact", False):
+                    # A rejected swept step must not advance the trajectory clock
+                    # or silently render the restored state as a successful poke.
+                    self.solver.check_status()
                 if self.velocity_damping != 1.0:
                     wp.launch(
                         damp_poke_velocities,
                         self.model.particle_count,
-                        inputs=[self.next_state.particle_qd, self.model.particle_inv_mass, self.velocity_damping],
+                        inputs=[self.next_state.particle_qd, self.velocity_damping],
                         outputs=[self.damped_velocity],
                         device=self.model.device,
                     )
@@ -155,11 +185,13 @@ class Example:
                         self.damped_velocity,
                         self.next_state.particle_qd,
                     )
-                self.max_residual = max(self.max_residual, self.solver.last_step_info.residual)
                 self.state, self.next_state = self.next_state, self.state
                 self.elapsed_steps += 1
 
     def __init__(self, viewer, args):
+        self.swept_contact = bool(getattr(args, "swept_contact", False))
+        if self.swept_contact and (not args.forward_only or args.load_alignment):
+            raise ValueError("--swept-contact requires --forward-only; training and saved fits need a contact adjoint")
         if args.train_iters < 0:
             raise ValueError("train-iters must be nonnegative")
         if args.refinement is not None:
@@ -171,47 +203,44 @@ class Example:
             if args.refinement != 1:
                 raise ValueError("Prepare a different recording mesh instead of using --refinement")
         checkpoint = _load_alignment(args.load_alignment) if args.load_alignment else None
-        if checkpoint and (args.check_gradients or args.save_alignment or args.output):
-            raise ValueError("Gradient checks and training output options cannot be used with --load-alignment")
-        if checkpoint and args.target_rms_mm is not None:
-            raise ValueError("--target-rms-mm validates a complete training trajectory; omit --load-alignment")
+        inference = checkpoint is not None or args.forward_only
+        if inference and (args.check_gradients or args.save_alignment or args.output):
+            raise ValueError("Gradient checks and training output options require training mode")
+        if inference and args.target_rms_mm is not None:
+            raise ValueError("--target-rms-mm validates a complete training trajectory; use training mode")
         self.reference = args.reference or bool(checkpoint and checkpoint.get("reference", False))
         if args.reference and checkpoint and not checkpoint.get("reference", False):
             raise ValueError("--reference cannot change the model of an existing fast checkpoint")
-        substeps = (
-            args.substeps
-            if args.substeps is not None
-            else checkpoint["substeps"]
-            if checkpoint
-            else 30
-            if self.reference
-            else 1
-        )
+        substeps = args.substeps if args.substeps is not None else checkpoint["substeps"] if checkpoint else SUBSTEPS
         velocity_damping = (
             args.velocity_damping
             if args.velocity_damping is not None
             else checkpoint["velocity_damping"]
             if checkpoint
             else 0.30
-            if self.reference
-            else 1.0
         )
-        friction = args.friction if args.friction is not None else checkpoint["friction"] if checkpoint else 0.5
+        friction = (
+            args.friction
+            if args.friction is not None
+            else checkpoint["friction"]
+            if checkpoint
+            else 0.0
+            if self.swept_contact
+            else FRICTION
+        )
+        contact_radius = (
+            args.contact_radius
+            if args.contact_radius is not None
+            else checkpoint["contact_radius_m"]
+            if checkpoint
+            else CONTACT_RADIUS
+        )
+        if not np.isfinite(contact_radius) or contact_radius <= 0.0:
+            raise ValueError("contact-radius must be finite and positive")
         young = args.young if args.young is not None else checkpoint["young_pa"] if checkpoint else 5.0e5
         poisson = args.poisson if args.poisson is not None else checkpoint["poisson"] if checkpoint else 0.40
-        contact_tolerance = (
-            args.contact_tolerance
-            if args.contact_tolerance is not None
-            else checkpoint["contact_tolerance_m"]
-            if checkpoint
-            else 1.0e-8
-            if self.reference
-            else 1.0e-7
-        )
         if not np.isfinite(friction) or friction < 0.0:
             raise ValueError("friction must be finite and nonnegative")
-        if not np.isfinite(contact_tolerance) or contact_tolerance <= 0.0:
-            raise ValueError("contact-tolerance must be finite and positive")
         if not np.isfinite(velocity_damping) or not 0.0 <= velocity_damping <= 1.0:
             raise ValueError("velocity-damping must be finite and between zero and one")
         if args.target_rms_mm is not None and (not np.isfinite(args.target_rms_mm) or args.target_rms_mm <= 0):
@@ -219,30 +248,36 @@ class Example:
         if checkpoint and (
             substeps != checkpoint["substeps"]
             or friction != checkpoint["friction"]
-            or contact_tolerance != checkpoint["contact_tolerance_m"]
+            or contact_radius != checkpoint["contact_radius_m"]
             or velocity_damping != checkpoint["velocity_damping"]
             or young != checkpoint["young_pa"]
             or poisson != checkpoint["poisson"]
         ):
             raise ValueError(
-                "Inference must use the checkpoint's material, substeps, friction, contact tolerance and damping"
+                "Inference must use the checkpoint's material, substeps, friction, contact radius and damping"
             )
         self.viewer, self.args = viewer, args
-        self.inference = checkpoint is not None
+        self.inference = inference
         self.saved_rms_m = checkpoint.get("rms_surface_error_m") if checkpoint else None
         self.recording_path = (
             Path(args.recording) if args.recording else default_recording_path(reference=self.reference)
         )
         self.scene = build_poke_scene(
-            self.recording_path, substeps=substeps, reference=self.reference, young=young, poisson=poisson
+            self.recording_path,
+            substeps=substeps,
+            reference=self.reference,
+            young=young,
+            poisson=poisson,
+            friction=friction,
+            contact_radius=contact_radius,
+            swept_contact=self.swept_contact,
         )
         self.young, self.poisson = float(young), float(poisson)
         self.recording_hash = hashlib.sha256(self.recording_path.read_bytes()).hexdigest()
+        self.scene_hash = _scene_fingerprint(self.scene)
         s, data = self.scene, self.scene["data"]
-        s["solver"].friction = friction
-        s["solver"].contact_tolerance = contact_tolerance
         self.friction = float(friction)
-        self.contact_tolerance = float(contact_tolerance)
+        self.contact_radius = float(contact_radius)
         self.velocity_damping = float(velocity_damping)
         s["velocity_damping"] = self.velocity_damping
         self.target_rms_m = None if args.target_rms_mm is None else args.target_rms_mm / 1000.0
@@ -258,10 +293,11 @@ class Example:
             raise ValueError("--reference requires full recorded scans; prepare the recording again with --reference")
         if checkpoint and (
             checkpoint.get("recording_sha256") != self.recording_hash
+            or checkpoint.get("scene_sha256") != self.scene_hash
             or checkpoint.get("frame_dt") != s["frame_dt"]
             or not np.array_equal(checkpoint.get("reference_xy_m"), data["reference_xy"])
         ):
-            raise ValueError("The checkpoint requires the same prepared recording and frame interval")
+            raise ValueError("The checkpoint requires the same loaded geometry, motion, recording and frame interval")
         xy = np.asarray(checkpoint["xy_m"] if checkpoint else args.initial_xy, dtype=np.float64)
         self.xy = xy.copy()
         s["model"].tet_materials.requires_grad = not self.inference and args.fit_mode != "position"
@@ -304,7 +340,7 @@ class Example:
                 args.save_alignment
                 or (
                     f"outputs/diff_phd_poke/{args.fit_mode if args.fit_mode != 'position' else 'alignment'}"
-                    f"_{'reference' if self.reference else 'fast'}.json"
+                    f"_{'reference' if self.reference else 'fast'}_v5.json"
                 )
             )
         )
@@ -362,10 +398,18 @@ class Example:
         print(
             "Recorded die ready to display. "
             + (
-                "Loaded alignment: live forward simulation."
+                "Live forward simulation from "
+                + ("saved alignment." if checkpoint else "specified placement/material.")
                 if self.inference
                 else "Initial loss/adjoint evaluation starts after the first draw; optimization is offline."
             ),
+            flush=True,
+        )
+        print(
+            "Contact mode: swept CCD, kinematic probe, frictionless."
+            if self.swept_contact
+            else "Contact mode: original reference penalty; CCD is off. "
+            "Use --forward-only --swept-contact for swept collision.",
             flush=True,
         )
 
@@ -375,12 +419,42 @@ class Example:
             return
         started = perf_counter()
         if self.inference:
+            previous_steps = self.forward.elapsed_steps
+            motion_steps = len(self.scene["tool_positions"]) - 1
+            if previous_steps == 0:
+                print(
+                    "Starting the first simulation frame. Initial solver setup can take about a minute "
+                    "for this prepared mesh; the viewer waits during setup."
+                    if self.scene["solver"].inverse is None
+                    else "Starting the poke with existing solver setup.",
+                    flush=True,
+                )
             self.forward.advance()
             self.frame += 1
+            elapsed_steps = self.forward.elapsed_steps
+            if previous_steps == 0:
+                wp.synchronize_device(self.scene["model"].device)
+                print(
+                    f"First simulation frame ready after {perf_counter() - started:.2f}s (including setup).", flush=True
+                )
+            if elapsed_steps <= motion_steps and (self.frame == 1 or self.frame % 5 == 0):
+                print(
+                    f"Poke motion: {elapsed_steps}/{motion_steps} substeps; "
+                    f"simulation time {elapsed_steps * self.forward.dt:.3f}s.",
+                    flush=True,
+                )
+            if previous_steps < motion_steps <= elapsed_steps:
+                wp.synchronize_device(self.scene["model"].device)
+                print(
+                    "Prescribed poke motion complete. Holding the final tool pose while physics continues. "
+                    "Use 'Restart poke' in the example controls to replay it.",
+                    flush=True,
+                )
         else:
             p = self.problem
             if p.value is None:
                 p.prepare()
+                self._print_training_timing("Initial evaluation")
                 if self.args.check_gradients:
                     self.gradient_check = p.check_gradient()
                     self.gradient_check_xy = p.xy
@@ -405,9 +479,30 @@ class Example:
                         f"loss={p.value:.7g} m²; {perf_counter() - started:.2f}s",
                         flush=True,
                     )
+                    self._print_training_timing("Optimizer update")
                     self._save_results()
         self.last_step_seconds = perf_counter() - started
         self._draw_step = True
+
+    def _restart_forward(self):
+        """Restart the prescribed poke with fresh states and the existing solver factors."""
+        self.forward = self._Forward(self.scene, self.xy)
+        self.frame = 0
+        self.last_step_seconds = 0.0
+        self._draw_step = False
+        self._first_frame = True
+        print("Poke restarted at its initial pose; existing solver setup is reused.", flush=True)
+
+    def _print_training_timing(self, label):
+        p, timing = self.problem, self.problem.last_training_timing
+        print(
+            f"{label}: {timing['seconds']:.2f}s total; "
+            f"forward {timing['forward_seconds']:.2f}s ({timing['forward_rollouts']} rollouts), "
+            f"backward {timing['backward_seconds']:.2f}s ({timing['backward_rollouts']} rollouts). "
+            f"Each rollout: {p.frames} recorded frames × {p.substeps} substeps = {p.steps} solver steps. "
+            "Viewer FPS includes these offline training pauses.",
+            flush=True,
+        )
 
     def render(self):
         s = self.scene
@@ -487,10 +582,14 @@ class Example:
 
     def gui(self, ui):
         ui.text("UR5e / recorded PokeFlex die")
-        ui.text("Native frictional probe contact")
+        ui.text(
+            "Swept mesh contact; kinematic probe; frictionless; forward only"
+            if self.swept_contact
+            else "Original training demo's mesh contact force; penetration is possible"
+        )
         ui.text(f"Young's modulus: {self.young / 1000:.3f} kPa; Poisson ratio: {self.poisson:.3f}")
-        ui.text("Precalculated recorded robot motion")
-        ui.text("White: original scan surface (source texture unavailable)")
+        ui.text("Hand-authored reference robot trajectory; no measured probe poses")
+        ui.text("White: simulated die; blue: recorded scan")
         ui.text(f"Placement: x={self.xy[0]:.5f}, y={self.xy[1]:.5f} m")
         observed = (
             min(self.frame, len(self.recorded_points) - 1) if self.inference else self.frame % len(self.recorded_points)
@@ -505,6 +604,14 @@ class Example:
                 ui.text("Blue points: recorded target (legacy recording has no full meshes)")
         if self.inference:
             ui.text("LIVE forward simulation; no optimizer or adjoint")
+            elapsed_steps = self.forward.elapsed_steps
+            motion_steps = len(self.scene["tool_positions"]) - 1
+            ui.text(f"Simulation time: {elapsed_steps * self.forward.dt:.3f} s")
+            ui.text(f"Poke motion: {min(elapsed_steps, motion_steps)}/{motion_steps} substeps")
+            if elapsed_steps >= motion_steps:
+                ui.text("Prescribed motion complete; holding the final tool pose")
+            if ui.button("Restart poke"):
+                self._restart_forward()
             if self.saved_rms_m is not None:
                 ui.text(f"Saved fit Chamfer RMS: {1000 * self.saved_rms_m:.2f} mm")
             ui.text(f"Latest frame computation: {1000 * self.last_step_seconds:.1f} ms")
@@ -525,6 +632,15 @@ class Example:
         if p.fit_mode != "position":
             ui.text("Model calibration; real foam stiffness is not yet verified")
         ui.text("Offline optimization; recorded trajectories replay at 30 Hz")
+        ui.text("Viewer FPS measures playback updates and includes training pauses")
+        ui.text(f"Each training rollout: {p.frames} frames × {p.substeps} substeps = {p.steps} solver steps")
+        if p.last_training_timing is not None:
+            timing = p.last_training_timing
+            ui.text(f"Latest training evaluation/update: {timing['seconds']:.2f} s")
+            ui.text(
+                f"Forward: {timing['forward_seconds']:.2f} s / {timing['forward_rollouts']} rollouts; "
+                f"backward: {timing['backward_seconds']:.2f} s / {timing['backward_rollouts']} rollouts"
+            )
         if p.value is None:
             ui.text("Initial evaluation will start after the first draw")
         else:
@@ -559,7 +675,9 @@ class Example:
         p = self.problem
         report = {
             "format": "newton.diff_phd.poke_alignment",
-            "version": 1,
+            "version": 5,
+            "physics": self.scene["physics"],
+            "scene_sha256": self.scene_hash,
             "xy_m": p.xy.tolist(),
             "fit_mode": p.fit_mode,
             "young_pa": p.young,
@@ -577,7 +695,7 @@ class Example:
             "frame_dt": p.frame_dt,
             "substeps": p.substeps,
             "friction": self.friction,
-            "contact_tolerance_m": self.contact_tolerance,
+            "contact_radius_m": self.contact_radius,
             "velocity_damping": self.velocity_damping,
             "reference": self.reference,
             "optimizer": p.optimizer,
@@ -595,6 +713,7 @@ class Example:
             "loss_m2": p.value,
             "initial_loss_m2": p.initial_loss,
             "history": p.history,
+            "last_training_timing": p.last_training_timing,
             "gradient_check": None
             if self.gradient_check is None
             else {
@@ -635,8 +754,8 @@ class Example:
     def test_final(self):
         if self.inference:
             positions = self.forward.state.particle_q.numpy()
-            if self.forward.max_residual > self.scene["solver"].tolerance:
-                raise AssertionError("Forward inference exceeded the physical residual tolerance")
+            if self.scene["solver"].read_status() & ~1:
+                raise AssertionError("Forward inference failed a projection or activation check")
         elif self.problem.positions is None:
             if self.target_rms_m is not None:
                 raise AssertionError("Accuracy target requires a completed alignment evaluation")
@@ -670,7 +789,7 @@ class Example:
         parser.add_argument(
             "--reference",
             action="store_true",
-            help="Use the reference mesh, full-scan objective, and 30 substeps with 0.30 retained velocity.",
+            help="Use the separately prepared reference mesh and full-scan objective; solver settings are unchanged.",
         )
         parser.add_argument("--optimizer", choices=("lbfgs", "gradient_descent"), default="lbfgs")
         parser.add_argument(
@@ -700,10 +819,15 @@ class Example:
             help="Compressibility search bounds; these are numerical bounds, not measured material limits.",
         )
         parser.add_argument(
-            "--velocity-damping", type=float, help="Retained velocity per substep (reference: 0.30; fast: 1.0)."
+            "--velocity-damping", type=float, help="Retained velocity per substep (default: 0.30, as in the reference)."
         )
         parser.add_argument(
             "--show-target", action="store_true", help="Overlay the recorded target at the current frame."
+        )
+        parser.add_argument(
+            "--swept-contact",
+            action="store_true",
+            help="Enable swept mesh collision response with a kinematic probe. Requires --forward-only; friction=0.",
         )
         parser.add_argument(
             "--target-rms-mm",
@@ -715,16 +839,17 @@ class Example:
             "--substeps",
             type=int,
             default=None,
-            help="Physics substeps per recorded frame (fast: 1; reference: 30; inference: checkpoint value).",
+            help="Physics substeps per 30 Hz recorded frame (default: 30; inference: checkpoint value).",
         )
         parser.add_argument(
             "--friction", type=float, default=None, help="Coulomb coefficient (default: 0.5, or checkpoint value)."
         )
         parser.add_argument(
-            "--contact-tolerance",
+            "--contact-radius",
             type=float,
             default=None,
-            help="Contact residual tolerance [m] (fast: 1e-7; reference: 1e-8; inference: checkpoint value).",
+            help="Mesh contact force radius [m] (default: 0.00055, from reference dice_material_optimize.py; "
+            "inference: checkpoint value).",
         )
         parser.add_argument(
             "--refinement",
@@ -740,9 +865,17 @@ class Example:
             help="Check the fitted parameters' derivatives by finite differences.",
         )
         parser.add_argument(
-            "--save-alignment", help="Training JSON path (default: outputs/diff_phd_poke/alignment_fast.json)."
+            "--save-alignment", help="Training JSON path (default: outputs/diff_phd_poke/alignment_fast_v5.json)."
         )
-        parser.add_argument("--load-alignment", help="Run untaped live inference using a saved alignment JSON.")
+        forward = parser.add_mutually_exclusive_group()
+        forward.add_argument(
+            "--load-alignment", help="Run untaped live inference using a compatible saved alignment JSON."
+        )
+        forward.add_argument(
+            "--forward-only",
+            action="store_true",
+            help="Run live simulation at --initial-xy and the selected material, without training or a checkpoint.",
+        )
         parser.add_argument(
             "--output", help="Optional prefix for the training report and initial/optimized trajectories."
         )

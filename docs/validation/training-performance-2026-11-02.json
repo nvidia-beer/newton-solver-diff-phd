@@ -1,0 +1,505 @@
+{
+  "date": "2026-11-02",
+  "checkout": "newton-solver-diff-phd",
+  "base_revision": "8a50babc68ef26491094691b1eae4f7b90348576",
+  "runtime_python_sha256": "d9fb33c7262cdc1a52a5a7b36f2a2a79331790d57576a2b9e88337ab647657bf",
+  "runtime_hash_scope": "Sorted src/**/*.py relative paths and content, each followed by NUL",
+  "environment": {
+    "gpu": "NVIDIA GB10",
+    "sm": 121,
+    "warp": "1.17.0+cu13",
+    "newton": "1.7.0",
+    "conditional_graphs": true,
+    "cuda_access": "GPU accessible outside the restricted command sandbox"
+  },
+  "change": "Skip Woodbury contact correction when no material or activation gradient is requested; preserve state-gradient formula and snapshots.",
+  "workload": {
+    "particles": 3689,
+    "tetrahedra": 18660,
+    "frames": 35,
+    "substeps": 30,
+    "forward_steps": 1050,
+    "friction": 0.5,
+    "contact_radius_m": 0.0015,
+    "rel_tol": 0.0001,
+    "max_iterations": 2000,
+    "fit_mode": "position"
+  },
+  "unprofiled_backward_tail": {
+    "scope": "Last 2 observation frames, 60 backward steps, after a complete 1050-step forward rollout. Each run starts with zero contact multipliers. Not a full rollout or optimizer speedup.",
+    "baseline": {
+      "repeat": 0,
+      "forward_seconds": 62.73687391900012,
+      "backward_seconds": 102.38504273599983,
+      "total_seconds": 165.12191665499995,
+      "loss": 0.030694877283432374,
+      "gradient": null,
+      "backward_frames": 2,
+      "backward_steps": 60,
+      "positions_sha256": "dc0a5efaa7257e067d7ac3eced9c30060b75dc1028a2484f32c400e52b8b2b57",
+      "contact_steps": 880,
+      "boundary_gradient_sha256": "3e79a6b23f29a79ceaf9a3f639164967a7f8c981bc11705186f5844bcafa60e8",
+      "boundary_gradient_norm": 0.04027213901281357,
+      "status_bits": 0
+    },
+    "candidate": {
+      "repeat": 0,
+      "forward_seconds": 66.6555961920003,
+      "backward_seconds": 0.6741329329997825,
+      "total_seconds": 67.32972912500009,
+      "loss": 0.030694877283432384,
+      "gradient": null,
+      "backward_frames": 2,
+      "backward_steps": 60,
+      "positions_sha256": "dc0a5efaa7257e067d7ac3eced9c30060b75dc1028a2484f32c400e52b8b2b57",
+      "contact_steps": 880,
+      "boundary_gradient_sha256": "8aa6265120ae7e86793c64ed0670313cd080120263a93a48bf0981d8603e0068",
+      "boundary_gradient_norm": 0.04027214273810387,
+      "status_bits": 0
+    }
+  },
+  "tests": {
+    "cpu": {
+      "run": 138,
+      "passed": 134,
+      "skipped": 4,
+      "seconds": 110.01,
+      "log": "nsys/results/training-investigation/tests-cpu.log"
+    },
+    "ruff_check": "PASS",
+    "ruff_format": "PASS",
+    "cuda": {
+      "run": 138,
+      "passed": 137,
+      "skipped": 1,
+      "seconds": 100.832,
+      "skip_reason": "CPU-only graph capture test",
+      "log": "nsys/results/training-investigation/tests-cuda.log",
+      "command": "env -u VIRTUAL_ENV UV_CACHE_DIR=/tmp/codex-diffphd-uv WARP_CACHE_PATH=/tmp/diffphd-training-warp NEWTON_TEST_DEVICE=cuda:0 uv run --locked --no-sync python -m unittest discover -s tests -v"
+    }
+  },
+  "build": {
+    "private_source_file_count": 7,
+    "archives": [
+      {
+        "archive": "dist/newton_solver_diff_phd-0.1.0-py3-none-any.whl",
+        "bytes": 5069635,
+        "sha256": "0b95056894cdae037f5f3a6475897cd9e84d0fd77335fe1fe343e1cab31a12c0",
+        "files": 88,
+        "solver_family_file_counts": {
+          "diff_pd": 7,
+          "diff_phd": 12
+        },
+        "private_recording_matches": [],
+        "dataset_binary_files": []
+      },
+      {
+        "archive": "dist/newton_solver_diff_phd-0.1.0.tar.gz",
+        "bytes": 5067733,
+        "sha256": "5d86409cd51fbbbe9282b260e07ba1f4afc605ff20e9c181da58facd4d48faa0",
+        "files": 82,
+        "solver_family_file_counts": {
+          "diff_pd": 6,
+          "diff_phd": 11
+        },
+        "private_recording_matches": [],
+        "dataset_binary_files": []
+      }
+    ]
+  },
+  "remaining_limits": [
+    "Forward steps reached the 2000-iteration cap; last iterates retained.",
+    "State derivatives freeze contact, as in reference.",
+    "Material and activation fitting still require Woodbury projection.",
+    "No claim of zero penetration or successful convergence across the whole dataset."
+  ],
+  "actual_example_profile": {
+    "path": "nsys/results/20261102T093224.513364Z_softbody_diff_phd_ur5_poke_ztoxw_8o",
+    "label": "training-one-update-fixed",
+    "scope": "Actual example defaults, null viewer, 38 display frames, warmup 0, train-iters 1. Includes initial full evaluation and first accepted optimizer update. Timings include profiler overhead.",
+    "status": "complete",
+    "nsys": "NVIDIA Nsight Systems version 2025.3.2.474-253236389321v0",
+    "graph_coverage": {
+      "kernel_events": 42477,
+      "graph_kernel_events": 0,
+      "whole_graph_events": 4236,
+      "unique_graph_nodes": 0,
+      "unique_graphs": null,
+      "graph_launch_api_calls": {
+        "CUPTI_ACTIVITY_KIND_RUNTIME": 4236
+      },
+      "cupti_lost_records": 0,
+      "diagnostics": [
+        {
+          "severity": 2,
+          "message": "Not all CUDA events might have been collected.",
+          "count": 1
+        },
+        {
+          "severity": 2,
+          "message": "Not all NVTX events might have been collected.",
+          "count": 1
+        },
+        {
+          "severity": 2,
+          "message": "Not all OS runtime libraries events might have been collected.",
+          "count": 1
+        },
+        {
+          "severity": 2,
+          "message": "Scheduling information is absent. The thread activity is deduced based on OS runtime libraries traces. This is inaccurate and does not take into account asynchronous interrupts and exception faults.",
+          "count": 1
+        },
+        {
+          "severity": 3,
+          "message": "CUDA device 0: Unified Memory trace is not supported by the current driver version or configuration.",
+          "count": 1
+        }
+      ]
+    },
+    "initial_evaluation": {
+      "iteration": 0,
+      "xy": [
+        0.73,
+        0.115
+      ],
+      "young_pa": 500000.0,
+      "poisson": 0.4,
+      "loss": 0.030694877283432374,
+      "rms_surface_error_m": 0.029614126592090364,
+      "seconds": 84.50092207999978,
+      "timing": {
+        "forward_seconds": 67.80231709500003,
+        "backward_seconds": 16.692738142000053,
+        "forward_rollouts": 1,
+        "backward_rollouts": 1,
+        "seconds": 84.50092207999978,
+        "frames_per_rollout": 35,
+        "substeps_per_frame": 30,
+        "steps_per_rollout": 1050,
+        "forward_substeps": 1050,
+        "backward_substeps": 1050
+      }
+    },
+    "accepted_update": {
+      "iteration": 1,
+      "xy": [
+        0.7216721527747929,
+        0.1063601527447755
+      ],
+      "young_pa": 500000.0,
+      "poisson": 0.4,
+      "loss": 0.01967942705546337,
+      "rms_surface_error_m": 0.023712219306547638,
+      "step": 0.01199999999999998,
+      "backtracks": 0,
+      "seconds": 21.414008064999962,
+      "timing": {
+        "forward_seconds": 5.040010614000039,
+        "backward_seconds": 16.37193789899993,
+        "forward_rollouts": 1,
+        "backward_rollouts": 1,
+        "seconds": 21.414008064999962,
+        "frames_per_rollout": 35,
+        "substeps_per_frame": 30,
+        "steps_per_rollout": 1050,
+        "forward_substeps": 1050,
+        "backward_substeps": 1050
+      }
+    },
+    "stop_reason": "iteration budget",
+    "scene_initialization_seconds": 34.300554664000174,
+    "display_loop_seconds": 106.03507256099965
+  },
+  "unprofiled_full_initial_evaluation": {
+    "source": "/home/beer/Dev/Robotics/NewtonSolvers/newton-solver-diff-phd/src/newton_solver_diff_phd/__init__.py",
+    "device": "cuda:0",
+    "particles": 3689,
+    "tets": 18660,
+    "frames": 35,
+    "substeps": 30,
+    "steps": 1050,
+    "rel_tol": 0.0001,
+    "max_iterations": 2000,
+    "conditional_graphs": true,
+    "setup_seconds": 1.2257569529997454,
+    "evaluations": [
+      {
+        "repeat": 0,
+        "forward_seconds": 65.99702185800015,
+        "backward_seconds": 14.793162777999896,
+        "total_seconds": 80.79018463600005,
+        "observation_frames_per_second": 0.4332209433323169,
+        "physics_steps_per_second": 12.996628299969508,
+        "loss": 0.030694877283432394,
+        "gradient": [
+          0.6706918446766998,
+          0.6958115336452799
+        ],
+        "backward_frames": 35,
+        "backward_steps": 1050,
+        "positions_sha256": "dc0a5efaa7257e067d7ac3eced9c30060b75dc1028a2484f32c400e52b8b2b57",
+        "contact_steps": 880,
+        "boundary_gradient_sha256": "95632c2a8b4be130329d3a88d0f1b00782c8e19f0101de4f4577e43b47bc4636",
+        "boundary_gradient_norm": 0.04027215763926506,
+        "status_bits": 0
+      }
+    ],
+    "forward_completed": {
+      "seconds": 65.99702185800015,
+      "loss": 0.030694877283432394
+    }
+  },
+  "boundary_gradient_comparison": {
+    "scope": "Gradient of boundary state after reversing the last 60 substeps of an identical 1,050-step forward rollout. Baseline traced; candidate unprofiled. q and qd buffers float32.",
+    "size": 22134,
+    "finite": true,
+    "max_absolute_error": 1.1920928955078125e-07,
+    "relative_l2_error": 3.2880192389276707e-06,
+    "strict_diagnostic_pass": false,
+    "strict_diagnostic_tolerance": 1e-06,
+    "existing_contact_relative_tolerance": 0.0001,
+    "within_existing_contact_tolerance": true,
+    "note": "Cross-process float32 gradient arrays are not bitwise identical. The existing native-reference contact acceptance tolerance predates this measurement; the stricter 1e-6 diagnostic is recorded separately."
+  },
+  "baseline_trace": {
+    "scope": "Full 1050-step forward followed by the last 60 backward steps only. All graph durations matched to runtime launch records and enclosing NVTX phases.",
+    "path": "nsys/results/training-investigation/before-tail-trace.nsys-rep",
+    "analysis": "nsys/results/training-investigation/before-tail-attribution.json",
+    "script": "nsys/results/training-investigation/analyze_graph_attribution.py",
+    "graph_events": 1170,
+    "matched_graph_events": 1170,
+    "excluded_nested_events": 0,
+    "excluded_duplicate_events": 0,
+    "graph_groups": [
+      {
+        "phase": "backward_solve:Adjoint._batch_fixed_point",
+        "training_phase": "backward",
+        "graphId": 13,
+        "graphExecId": 15,
+        "events": 60,
+        "gpu_seconds": 104.12081792000001,
+        "minimum_ms": 1500.5792640000002,
+        "maximum_ms": 2462.2968320000004
+      },
+      {
+        "phase": "solve:SolverDiffPhD._solve",
+        "training_phase": "forward",
+        "graphId": 1,
+        "graphExecId": 3,
+        "events": 1050,
+        "gpu_seconds": 7.181479456000001,
+        "minimum_ms": 1.6608,
+        "maximum_ms": 3096.8633600000003
+      },
+      {
+        "phase": "backward_solve:Adjoint._fixed_point",
+        "training_phase": "backward",
+        "graphId": 7,
+        "graphExecId": 9,
+        "events": 60,
+        "gpu_seconds": 0.51270112,
+        "minimum_ms": 5.807264,
+        "maximum_ms": 21.724736
+      }
+    ],
+    "limitations": [
+      "GPU events are attributed by launch correlationId plus process ID and enclosing same-thread NVTX API ranges; GPU completion may be later than a host range's end.",
+      "Do not add nested NVTX host times; the parent backward/rollout range already contains child ranges.",
+      "Whole-graph trace does not resolve graph-internal kernel shares. Kernel statistics below are only events outside graphs.",
+      "The baseline tail capture contains all 1050 forward steps and only the last 60 backward steps; it is not a complete training-throughput benchmark.",
+      "The candidate example capture contains initial full evaluation and one accepted optimizer update; its workload differs from the baseline tail trace.",
+      "No fine-grained CPU attribution is claimed for unannotated setup functions without Python sampling records."
+    ]
+  },
+  "runtime_files": {
+    "src/newton_solver_diff_phd/__init__.py": "0193431718d54dad28be1143d4f41c92f6aefa460aef714106c8f009b830c956",
+    "src/newton_solver_diff_phd/_src/__init__.py": "b319fca915dfb04c8acae8974c7ba16003397ece36185da6e109b5d8405e0f19",
+    "src/newton_solver_diff_phd/_src/geometry/__init__.py": "9fef551af7662a74d33d23e08de151539dbb71329de33c0fb598e65977dad9d9",
+    "src/newton_solver_diff_phd/_src/geometry/usd.py": "8bd488f2d45adf66f587e22d9d1fe6d871b7a81c03f173c60d81e4a446c64417",
+    "src/newton_solver_diff_phd/_src/solvers/__init__.py": "0d7a6609b78fd2bc07d2b720422454ea00223679f04450855e49ab090a08b492",
+    "src/newton_solver_diff_phd/_src/solvers/diff_pd/__init__.py": "d222e303907c601fbafa88f6f91bb2457f92e2c97a1b6c8a0cbd018b47da2f31",
+    "src/newton_solver_diff_phd/_src/solvers/diff_pd/exceptions.py": "aa66748ab9894e09de33819b5f844205e5caaa9b98ec8169b92958a98adc1a6f",
+    "src/newton_solver_diff_phd/_src/solvers/diff_pd/kernels.py": "816fe11f38fa6b708a0b333f6e7ec1200b07b886724d4818b7440e8d5174b407",
+    "src/newton_solver_diff_phd/_src/solvers/diff_pd/projections.py": "57e105a72293ecff8c5c23afbfd5a541962aaa35bbaebe28e114e5282b206b21",
+    "src/newton_solver_diff_phd/_src/solvers/diff_pd/solver.py": "d52702b3c234097530272a670d2020dd83bed308b11b7dfa21591da4a67b50d0",
+    "src/newton_solver_diff_phd/_src/solvers/diff_pd/sparse.py": "97847f67abcd2e42e6b5e319252de89c77fe5bb9cd6ec3931e1c517980865c5d",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/__init__.py": "5d624166bc62b78e1c1dba8b9762dd2134af76123e31605b607e3e7282474f99",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/adjoint.py": "5236488545934eac36aecdef9200916792d490d744cc9012b3ea172e07bce873",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/anderson.py": "a3f76d850b58f94a96a24741d6f1f917a88a73da58528fcaff3eb64cab1b48f1",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/contact.py": "cda692c522b469206722e8117d5d971bcfd9aee39a9014b3c6f06e8645648468",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/dense.py": "403ddf1744666ca7e6d7bf543b64abbc85f89cecba2748084ff446f7b4a1dc1f",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/exceptions.py": "aa66748ab9894e09de33819b5f844205e5caaa9b98ec8169b92958a98adc1a6f",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/kernels.py": "099c913debb5b308c976f876473319451cbdddab80cd1a503abe897fb9d2db4c",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/mesh_contact.py": "f3a63dbd00e411345608755e80fddfe76e77898c249e81ac53f99cd711c4c3a9",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/projections.py": "9d41fffa594d4d2d87883895adb76e1378c1aabe734c2fd274f036095334f652",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/solver.py": "180eaae55cfea2c0776089e27a8c4a2c958d3e98786d38d705f7b442ef644b3e",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/sparse.py": "26eee209b0cedacaabcccde37f88acbe887111b6cf134c368daa78d48d090190",
+    "src/newton_solver_diff_phd/examples/__init__.py": "246ce9a6b292015a9414b30e676f7764fc5ef144b836a8a4827d545e60e1e998",
+    "src/newton_solver_diff_phd/examples/__main__.py": "62c0d075ed9a1bdd1ba180100e0719ff1b56488b367680e03221ceef0e27a681",
+    "src/newton_solver_diff_phd/examples/_bear_geometry.py": "f59e9e21af2da761f1af523d821c8a7d24bbcc7db6b03f217347c49e6dae5fa3",
+    "src/newton_solver_diff_phd/examples/_diff_phd_bear_checkpoint.py": "5fc5b5946725c5a091bde18804a75155b44872af48993899acdc2f3a430093aa",
+    "src/newton_solver_diff_phd/examples/_diff_phd_bear_problem.py": "18ecda699bf39574d7727bdd54bfa6b98607d0bfd6a44a4afbbc32c3b46b36c5",
+    "src/newton_solver_diff_phd/examples/_diff_phd_poke.py": "ce23b8dce6b5d62a26352e19822370c7d598f7558183c8f373e4da35ae7a68c0",
+    "src/newton_solver_diff_phd/examples/_diff_phd_poke_alignment.py": "c8cff0478d97bf01d433abbcf46d8f9fcddf799ab01bb108dec98f73ae5f9907",
+    "src/newton_solver_diff_phd/examples/_poke_recording.py": "737c93727b5d3f7bbf1247c59ccead72b65b66f5a218ef5080ee9fbaa0cf5214",
+    "src/newton_solver_diff_phd/examples/_progress.py": "91828d8de7457449c0c746125a9055e55ed911f1f0db8e0fea9d39e2e368f03e",
+    "src/newton_solver_diff_phd/examples/_ur5_kinematics.py": "5ca1a983fe373d674816e0157d7f4906dd850f8a862748eede3a33d97a9c9e52",
+    "src/newton_solver_diff_phd/examples/example_diffsim_diff_phd_bear.py": "5ee9e3e5e6622efd502fc5d0d91c77204c0dc264e2561592a40d6131b32b0b0c",
+    "src/newton_solver_diff_phd/examples/example_softbody_diff_pd_drop.py": "140822fb583308ff886b8f5820b748885f77e26baa82e49cfb282294ed626824",
+    "src/newton_solver_diff_phd/examples/example_softbody_diff_pd_duck.py": "efb7e6f20f469dbff6f5a4e5a73db464ec04c79fd6e8a3dab676e992a9c4ed62",
+    "src/newton_solver_diff_phd/examples/example_softbody_diff_phd_ur5_poke.py": "efb02986f6f82152305d6539140c4c1529e4d12c808250474ecdf848c7dd732e"
+  },
+  "training_duration_estimate": {
+    "default_updates": 12,
+    "minutes": [
+      6,
+      7
+    ],
+    "basis": "Extrapolation from one 21.41-second accepted update plus 84.50-second initial evaluation and 34.30-second cold scene setup; not a measured 12-update run. Extra line-search trials can increase time; convergence/stagnation can stop early."
+  },
+  "candidate_trace": {
+    "path": "nsys/results/20261102T093224.513364Z_softbody_diff_phd_ur5_poke_ztoxw_8o/capture.nsys-rep",
+    "analysis": "nsys/results/training-investigation/after-example-attribution.json",
+    "graph_events": 4236,
+    "matched_graph_events": 4236,
+    "excluded_nested_events": 0,
+    "excluded_duplicate_events": 0,
+    "graph_groups": [
+      {
+        "phase": "backward_solve:Adjoint._fixed_point",
+        "training_phase": "backward",
+        "graphId": 10,
+        "graphExecId": 12,
+        "events": 2100,
+        "gpu_seconds": 29.911496640000003,
+        "minimum_ms": 6.711488000000001,
+        "maximum_ms": 22.754336
+      },
+      {
+        "phase": "solve:SolverDiffPhD._solve",
+        "training_phase": "forward",
+        "graphId": 4,
+        "graphExecId": 6,
+        "events": 2100,
+        "gpu_seconds": 11.81438,
+        "minimum_ms": 1.663296,
+        "maximum_ms": 3028.872448
+      },
+      {
+        "phase": "initialization",
+        "training_phase": "initialization",
+        "graphId": 1,
+        "graphExecId": 2,
+        "events": 36,
+        "gpu_seconds": 0.040517632000000005,
+        "minimum_ms": 0.956192,
+        "maximum_ms": 1.861248
+      }
+    ],
+    "nvtx": {
+      "profile": {
+        "events": 1,
+        "host_seconds": 140.342036224,
+        "individual_seconds": [
+          140.342036224
+        ]
+      },
+      "initialization": {
+        "events": 1,
+        "host_seconds": 34.300310752,
+        "individual_seconds": [
+          34.300310752
+        ]
+      },
+      "solve:UR5Kinematics._solve": {
+        "events": 2,
+        "host_seconds": 27.825545888,
+        "individual_seconds": [
+          27.818605088,
+          0.0069408000000000004
+        ]
+      },
+      "forward:PokeAlignmentProblem._rollout": {
+        "events": 2,
+        "host_seconds": 72.84209924800001,
+        "individual_seconds": [
+          67.802067312,
+          5.040031936
+        ]
+      },
+      "solver:SolverDiffPhD.step": {
+        "events": 2100,
+        "host_seconds": 60.872425568000004
+      },
+      "linear_solve:newton_solver_diff_phd._src.solvers.diff_phd.sparse._factor_ldlt": {
+        "events": 1,
+        "host_seconds": 13.263211488000001,
+        "individual_seconds": [
+          13.263211488000001
+        ]
+      },
+      "solve:SolverDiffPhD._solve": {
+        "events": 2100,
+        "host_seconds": 0.319874128
+      },
+      "backward:PokeAlignmentProblem._backward": {
+        "events": 2,
+        "host_seconds": 33.064661712,
+        "individual_seconds": [
+          16.692720224000002,
+          16.371941488
+        ]
+      },
+      "backward:warp.Tape.backward": {
+        "events": 2,
+        "host_seconds": 31.163669456,
+        "individual_seconds": [
+          15.689099088,
+          15.474570368
+        ]
+      },
+      "backward:Adjoint.backward": {
+        "events": 2100,
+        "host_seconds": 6.428858464
+      },
+      "backward_solve:Adjoint._fixed_point": {
+        "events": 2100,
+        "host_seconds": 0.10497056
+      },
+      "optimization:PokeAlignmentProblem.optimize_step": {
+        "events": 1,
+        "host_seconds": 21.41389144,
+        "individual_seconds": [
+          21.41389144
+        ]
+      },
+      "final_device_sync": {
+        "events": 1,
+        "host_seconds": 2.4096e-05,
+        "individual_seconds": [
+          2.4096e-05
+        ]
+      },
+      "test_final": {
+        "events": 1,
+        "host_seconds": 1.312e-06,
+        "individual_seconds": [
+          1.312e-06
+        ]
+      }
+    },
+    "limitations": [
+      "GPU events are attributed by launch correlationId plus process ID and enclosing same-thread NVTX API ranges; GPU completion may be later than a host range's end.",
+      "Do not add nested NVTX host times; the parent backward/rollout range already contains child ranges.",
+      "Whole-graph trace does not resolve graph-internal kernel shares. Kernel statistics below are only events outside graphs.",
+      "The baseline tail capture contains all 1050 forward steps and only the last 60 backward steps; it is not a complete training-throughput benchmark.",
+      "The candidate example capture contains initial full evaluation and one accepted optimizer update; its workload differs from the baseline tail trace.",
+      "No fine-grained CPU attribution is claimed for unannotated setup functions without Python sampling records."
+    ],
+    "woodbury_calls": 0,
+    "batched_contact_fixed_point_calls": 0
+  },
+  "baseline_adjoint_sha256": "30514d6b22f646af74acc5b63d9030971929cd4537e0549b1b000e54108d9715",
+  "measurement_script_sha256": "b6a3cb433d1533c92dd14fcfad5677ea362e44f43692aa5ec164a60675b6468f"
+}

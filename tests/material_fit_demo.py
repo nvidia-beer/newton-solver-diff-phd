@@ -3,8 +3,11 @@
 
 """Recover two material stiffnesses from a small synthetic deformation trajectory.
 
-The two connected tetrahedra have fixed Poisson ratio 1/3. Independent log
-stiffness scales are optimized with the implicit rollout adjoint. This small
+The two connected tetrahedra have fixed Poisson ratio 1/3 and the PD material.
+Independent log stiffness scales are optimized with the reference rollout
+adjoint. Its global mean-weight Jacobian is an approximate derivative when
+the two materials differ; finite-difference checks use a homogeneous nominal
+material. This small
 headless check is a synthetic inverse problem, not a reproduction of a paper
 experiment or identification from measured data.
 """
@@ -49,14 +52,14 @@ class MaterialFit:
         builder.add_tetrahedron(0, 1, 2, 3, k_mu=1200.0, k_lambda=2400.0, k_damp=0.0)
         builder.add_tetrahedron(1, 2, 3, 4, k_mu=1200.0, k_lambda=2400.0, k_damp=0.0)
         self.model = builder.finalize(device=device, requires_grad=True)
+        # Unit mass for the two free nodes: the reference mass is density * mean volume (0.016 m^3).
         self.solver = SolverDiffPhD(
             self.model,
-            material="neo_hookean",
-            ground_plane=None,
-            self_contact=False,
-            soft_contact=False,
-            tolerance=1e-10,
-            max_iterations=500,
+            density=62.5,
+            material="pd",
+            abs_tol=1e-12,
+            rel_tol=1e-11,
+            max_iterations=5000,
         )
         self.initial = self.model.particle_q.numpy().copy()
         self.initial[3] += [0.025, -0.02, 0.05]
@@ -73,6 +76,8 @@ class MaterialFit:
         states = [self.model.state(requires_grad=gradient) for _ in range(5)]
         states[0].particle_q.assign(self.initial)
         loss = wp.zeros(1, dtype=wp.float64, device=self.model.device, requires_grad=gradient)
+        # The solver keeps its weights and factor until told that materials changed.
+        self.solver.notify_model_changed(newton.ModelFlags.MODEL_PROPERTIES)
         tape = wp.Tape() if gradient else None
         with tape if tape is not None else nullcontext():
             wp.launch(assign_materials, 2, inputs=[parameters, self.model.tet_materials], device=self.model.device)

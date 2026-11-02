@@ -20,4 +20,5 @@ htmlcov
 coverage.xml
 outputs
 src/newton_solver_diff_phd/examples/assets/pokeflex_local
+src/newton_solver_diff_phd/examples/assets/bunny_reference_local
 docs/media

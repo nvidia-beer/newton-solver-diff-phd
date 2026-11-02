@@ -1,0 +1,201 @@
+{
+  "schema_version": 2,
+  "date": "2026-11-02",
+  "example": "softbody_diff_phd_cantilever",
+  "workload": "Final README axial benchmark: 25 actual live steps, dt=0.01 s, 0.25 simulated seconds; 756 nodes, 500 intact Hex8 cells, eight Gauss samples per cell. Native heterogeneous material, muscle and vertex-plane energies, fixed root and per-tip-vertex force ramp. Surface edges enabled. No final-state hold frames.",
+  "status": "Both complete workloads and final checks passed.",
+  "geometry_sha256": {
+    "src/newton_solver_diff_phd/examples/assets/cantilever.usda": "fc3055eb7f4ee7ca533acb250c4af31bd227cc14704eb40fd84599fd3c9e56fb"
+  },
+  "runtime_file_sha256": {
+    "src/newton_solver_diff_phd/examples/example_softbody_diff_phd_cantilever.py": "936744cf2a71809fab3df9debec1fc22fb96dbd0b740c17ab9b83eed7632fb5b",
+    "src/newton_solver_diff_phd/examples/_diff_phd_cantilever.py": "b06e266761263d7f85f05842f8292b6067f5b092bd48c08a0dd5e14e86697ced",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/solver.py": "b700758d7350abc074e8efd21761d5a69808c158afe27297c09870521e0beb24",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/hex.py": "6b3c6b62b8b19281e15e1ff33a58a90967589085be7c2fb5f0445931ab7e9a0d",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/sparse.py": "48f8afa2a8abc39429a418673d602cccc3a6bd5377be34294fe2aacf83014806"
+  },
+  "device": "0, NVIDIA GB10, 580.126.09, [N/A]",
+  "nsight": "NVIDIA Nsight Systems version 2026.5.1.161-265138896106v0",
+  "dependencies": {
+    "newton_solver_diff_phd": "0.1.0",
+    "newton": "1.7.0",
+    "warp-lang": "1.17.0+cu13",
+    "numpy": "2.5.4",
+    "nvtx": "0.2.16"
+  },
+  "command_template": "./docker/run.sh --nsys softbody_diff_phd_cantilever --cuda-graph-trace <graph|node> --label \"Final original Hex8 axial benchmark\" --output-dir nsys/results/cantilever-hex-final-profiles -- --asset src/newton_solver_diff_phd/examples/assets/cantilever.usda",
+  "captures": {
+    "graph": {
+      "directory": "nsys/results/cantilever-hex-final-profiles/20261102T194428.766139Z_softbody_diff_phd_cantilever_qkbjv_2z",
+      "raw_capture": "nsys/results/cantilever-hex-final-profiles/20261102T194428.766139Z_softbody_diff_phd_cantilever_qkbjv_2z/capture.nsys-rep",
+      "raw_sqlite": "nsys/results/cantilever-hex-final-profiles/20261102T194428.766139Z_softbody_diff_phd_cantilever_qkbjv_2z/capture.sqlite",
+      "run_metadata": "nsys/results/cantilever-hex-final-profiles/20261102T194428.766139Z_softbody_diff_phd_cantilever_qkbjv_2z/run.json",
+      "workload_metadata": "nsys/results/cantilever-hex-final-profiles/20261102T194428.766139Z_softbody_diff_phd_cantilever_qkbjv_2z/workload.json",
+      "scoped_timings": "nsys/results/cantilever-hex-final-profiles/20261102T194428.766139Z_softbody_diff_phd_cantilever_qkbjv_2z/scoped-timings.json",
+      "source_sha256": "ecd1efab4a6407737d66432d31a243396223b19c1b7ef3e5d0513f89f9b29943",
+      "frames_completed": 25,
+      "constructor_seconds_after_independent_warmup": 0.014075630999286659,
+      "loop_wall_seconds": 0.3530110270003206,
+      "step_host_seconds_all_25": 0.3519237880173023,
+      "render_host_seconds_all_25": 0.0007564690167782828,
+      "first_step_including_factor_setup_seconds": 0.2784334120005951,
+      "two_outer_graph_capture_steps_host_seconds": 0.006565310002770275,
+      "replay_frames": 22,
+      "replay_step_host_seconds": 0.06692506601393688,
+      "recorded_gpu_graph_union_seconds_all_25": 0.05129847,
+      "recorded_gpu_graph_union_seconds_replay_22": 0.04191542,
+      "recorded_gpu_kernel_union_seconds_replay_22": null,
+      "measured_frame_graph_events": 25,
+      "raw_capture_coverage": {
+        "kernel_events": 72,
+        "graph_kernel_events": 0,
+        "whole_graph_events": 30,
+        "unique_graph_nodes": 0,
+        "unique_graphs": 0,
+        "graph_launch_api_calls": {
+          "CUPTI_ACTIVITY_KIND_RUNTIME": 25
+        },
+        "cupti_lost_records": 0,
+        "diagnostics": [
+          {
+            "severity": 2,
+            "message": "Not all CUDA events might have been collected.",
+            "count": 1
+          },
+          {
+            "severity": 2,
+            "message": "Not all NVTX events might have been collected.",
+            "count": 1
+          },
+          {
+            "severity": 2,
+            "message": "Not all OS runtime libraries events might have been collected.",
+            "count": 1
+          },
+          {
+            "severity": 2,
+            "message": "Scheduling information is absent. The thread activity is deduced based on OS runtime libraries traces. This is inaccurate and does not take into account asynchronous interrupts and exception faults.",
+            "count": 1
+          }
+        ]
+      }
+    },
+    "node": {
+      "directory": "nsys/results/cantilever-hex-final-profiles/20261102T194446.257153Z_softbody_diff_phd_cantilever_8zi5p4am",
+      "raw_capture": "nsys/results/cantilever-hex-final-profiles/20261102T194446.257153Z_softbody_diff_phd_cantilever_8zi5p4am/capture.nsys-rep",
+      "raw_sqlite": "nsys/results/cantilever-hex-final-profiles/20261102T194446.257153Z_softbody_diff_phd_cantilever_8zi5p4am/capture.sqlite",
+      "run_metadata": "nsys/results/cantilever-hex-final-profiles/20261102T194446.257153Z_softbody_diff_phd_cantilever_8zi5p4am/run.json",
+      "workload_metadata": "nsys/results/cantilever-hex-final-profiles/20261102T194446.257153Z_softbody_diff_phd_cantilever_8zi5p4am/workload.json",
+      "scoped_timings": "nsys/results/cantilever-hex-final-profiles/20261102T194446.257153Z_softbody_diff_phd_cantilever_8zi5p4am/scoped-timings.json",
+      "source_sha256": "ecd1efab4a6407737d66432d31a243396223b19c1b7ef3e5d0513f89f9b29943",
+      "frames_completed": 25,
+      "constructor_seconds_after_independent_warmup": 0.013928558000770863,
+      "loop_wall_seconds": 0.3518253489964991,
+      "step_host_seconds_all_25": 0.35084763301711064,
+      "render_host_seconds_all_25": 0.0007366099889623001,
+      "first_step_including_factor_setup_seconds": 0.27778086999751395,
+      "two_outer_graph_capture_steps_host_seconds": 0.0072566570015624166,
+      "replay_frames": 22,
+      "replay_step_host_seconds": 0.06581010601803428,
+      "recorded_gpu_graph_union_seconds_all_25": null,
+      "recorded_gpu_graph_union_seconds_replay_22": null,
+      "recorded_gpu_kernel_union_seconds_replay_22": 0.04283795,
+      "measured_frame_graph_events": 0,
+      "raw_capture_coverage": {
+        "kernel_events": 3697,
+        "graph_kernel_events": 3625,
+        "whole_graph_events": 0,
+        "unique_graph_nodes": 58,
+        "unique_graphs": 3,
+        "graph_launch_api_calls": {
+          "CUPTI_ACTIVITY_KIND_RUNTIME": 25
+        },
+        "cupti_lost_records": 0,
+        "diagnostics": [
+          {
+            "severity": 2,
+            "message": "Not all CUDA events might have been collected.",
+            "count": 1
+          },
+          {
+            "severity": 2,
+            "message": "Not all NVTX events might have been collected.",
+            "count": 1
+          },
+          {
+            "severity": 2,
+            "message": "Not all OS runtime libraries events might have been collected.",
+            "count": 1
+          },
+          {
+            "severity": 2,
+            "message": "Scheduling information is absent. The thread activity is deduced based on OS runtime libraries traces. This is inaccurate and does not take into account asynchronous interrupts and exception faults.",
+            "count": 1
+          }
+        ]
+      },
+      "recorded_gpu_kernel_summed_seconds_replay_22": 0.042838142,
+      "dominant_replay_kernels": [
+        {
+          "name": "local_step_0ea5e7ff_cuda_kernel_forward",
+          "seconds": 0.02522796,
+          "calls": 192,
+          "percent_recorded_replay_kernel_duration": 58.89134967618343
+        },
+        {
+          "name": "gather_f5e0e8c3_cuda_kernel_forward",
+          "seconds": 0.004276203,
+          "calls": 192,
+          "percent_recorded_replay_kernel_duration": 9.9822326561222
+        },
+        {
+          "name": "_gram_partials_e4849af6_cuda_kernel_forward",
+          "seconds": 0.00281601,
+          "calls": 192,
+          "percent_recorded_replay_kernel_duration": 6.573604429435805
+        },
+        {
+          "name": "_multiply_vec3_tiled_7eee1af0_cuda_kernel_forward",
+          "seconds": 0.002716045,
+          "calls": 384,
+          "percent_recorded_replay_kernel_duration": 6.340249303996424
+        },
+        {
+          "name": "_solve_0a7c8834_cuda_kernel_forward",
+          "seconds": 0.002020267,
+          "calls": 192,
+          "percent_recorded_replay_kernel_duration": 4.716047208583416
+        },
+        {
+          "name": "convergence_tiled_0f51775d_cuda_kernel_forward",
+          "seconds": 0.001817831,
+          "calls": 192,
+          "percent_recorded_replay_kernel_duration": 4.2434870307867225
+        },
+        {
+          "name": "_apply_590b6a55_cuda_kernel_forward",
+          "seconds": 0.000908516,
+          "calls": 192,
+          "percent_recorded_replay_kernel_duration": 2.1208109352641853
+        },
+        {
+          "name": "_reduce_b5774fad_cuda_kernel_forward",
+          "seconds": 0.000616801,
+          "calls": 192,
+          "percent_recorded_replay_kernel_duration": 1.4398406915033803
+        }
+      ]
+    }
+  },
+  "scope_notes": [
+    "The two captures ran sequentially, with no other agent GPU workload. Each used five independent warmup frames before fresh initialization and all 25 measured live steps.",
+    "This report replaces the obsolete tetrahedral twist-release timing report. It makes no before/after speedup claim and contains no measurements of that removed discretization.",
+    "Nsight and NVTX overhead is included. Graph-mode timings and node-mode kernel shares come from separate runs of the same source, asset and workload.",
+    "Zero explicit CUPTI lost records were reported; generic capture-end CUDA/NVTX/OS-runtime completeness warnings remain. Zero explicit loss does not establish perfect trace completeness.",
+    "Raw capture coverage can include retained warmup events. GPU timing is restricted to measured NVTX frame intervals; overlapping graph intervals are unioned to avoid nested double counting. The graph capture has exactly 25 whole-graph events in measured frames, versus 30 in its complete raw database.",
+    "Step host timings include check_status synchronization, position downloads, per-frame Gauss determinant validation and the final validation performed inside step. The first measured step also assembles and factors the system.",
+    "Frames 1 and 2 create the two ping-pong outer graphs; frames 3 through 24 are their 22 replays. The inner conditional iteration graph also executes during the first step.",
+    "Every render callback runs, including surface-edge GPU preparation, but NullViewer omits actual OpenGL drawing, encoding and readback. Asynchronous rendering kernels extending past an NVTX frame boundary are clipped by the scoped GPU accounting.",
+    "The video presents 0.25 simulated seconds at 12 fps. Playback duration is not physics throughput; these profiled runs do not establish unprofiled real-time or interactive GUI performance."
+  ]
+}

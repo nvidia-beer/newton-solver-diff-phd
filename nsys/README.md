@@ -40,6 +40,25 @@ uv run --locked python nsys/profile_examples.py --all
 without requiring CUDA or Nsight. `--help` lists all options. Extra example
 arguments follow `--`; they are recorded alongside the video defaults.
 
+The recorded poke video's defaults use `--forward-only --show-target --test`;
+the retained clip is historical and does not validate the current solver.
+To capture training instead, omit those defaults explicitly:
+
+```bash
+./docker/run.sh --nsys softbody_diff_phd_ur5_poke \
+  --no-video-args --frames 2 --warmup 0 \
+  -- --train-iters 0 --save-alignment /tmp/poke-profile-alignment.json
+```
+
+The first viewer frame only draws the scene; the second evaluates the complete
+initial training trajectory and its adjoint. This retains all 35 recorded frames
+and the default 30 physical substeps per frame. Use `--frames 38` and
+`--train-iters 1` to include the first optimizer update, including its line-search
+trials. Training blocks viewer updates: viewer FPS is not training throughput.
+The example prints completed forward/backward wall times and rollout counts, and
+saves them in the alignment report. These times include host orchestration and
+use the existing result reads to wait for GPU completion.
+
 ## What is measured
 
 The default run warms five frames in a separate instance, then captures fresh
@@ -60,6 +79,7 @@ for warmup when `--warmup` is nonzero. Frame counts are marked inapplicable;
 | `--viewer gl` | Adds actual OpenGL drawing, at 960 × 540 by default; Docker needs the normal X11 access. |
 | `--warmup N` | Changes independent warmup frames; zero skips warmup. |
 | `--frames N` | Shortens or extends a visual workload. Short captures may omit the feature shown in the video. |
+| `--no-video-args` | Uses example defaults and arguments after `--`, omitting video options such as `--load-alignment`. The selected video frame budget and scripted interactions still apply. |
 | `--include-startup` | Also captures initial imports and warmup. |
 | `--cpu-sampling` | Adds native CPU sampling and context switches when host performance-counter permissions allow it. |
 | `--cuda-graph-trace node\|graph` | Resolves graph kernels individually, or records whole-graph GPU durations. Overrides any example setting in `nsys/config.json`. |

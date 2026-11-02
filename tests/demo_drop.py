@@ -48,15 +48,13 @@ class Example:
         surface_centers = np.asarray(builder.particle_q)[np.asarray(builder.tri_indices)].mean(axis=1)
         builder.tri_color = [(0.8, 0.35, 0.8) if p[0] > 0.0 else (0.1, 0.8, 0.95) for p in surface_centers]
         self.model = builder.finalize()
+        # The ground is the reference planar frictional boundary on the surface vertices.
         self.solver = SolverDiffPhD(
             self.model,
+            density=500.0,
             material="neo_hookean",
+            frictional_boundary=("planar", (0.0, 0.0, 1.0, 0.0)),
             friction=0.4,
-            contact_thickness=0.002,
-            self_contact=False,
-            soft_contact=False,
-            tolerance=1e-7,
-            mass_damping=2.0,
         )
         self.states = [self.model.state(), self.model.state()]
         self.control = self.model.control()

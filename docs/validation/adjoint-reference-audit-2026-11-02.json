@@ -1,0 +1,343 @@
+{
+  "schema": "newton.diff_phd_adjoint_audit.v1",
+  "date": "2026-11-02",
+  "scope": "Fresh CPU-only selected reference-mode audit after swept-contact iteration, geometry and QP corrections; not a complete suite or a swept adjoint validation.",
+  "environment": {
+    "python": "3.12.3",
+    "platform": "Linux-6.14.0-1015-nvidia-aarch64-with-glibc2.39",
+    "machine": "aarch64",
+    "warp": "1.17.0",
+    "newton": "1.7.0",
+    "device": "cpu",
+    "revision": "8a50babc68ef26491094691b1eae4f7b90348576+uncommitted",
+    "source_sha256": [
+      "caa9c0f79b0ce7bcc9a7f38e9a8539a91af2170c732463661a1ec46d3b866f9d"
+    ]
+  },
+  "reference": {
+    "repository": "https://github.com/Akinesia112/DiffPhD",
+    "revision": "d319435373a8a94aac2035bfe41f16f49bc1d2a1",
+    "expected_revision": "d319435373a8a94aac2035bfe41f16f49bc1d2a1",
+    "working_tree_changes": "M cpp/CMakeLists.txt\n M external/preconditioner-for-cloth-and-deformable-body-simulation/SeSchwarzPreconditioner.cpp\n M external/preconditioner-for-cloth-and-deformable-body-simulation/SeVectorSimd.h\n?? aarch64-build.patch\n?? external/sse2neon/",
+    "binary_sha256": "75d03471d4c0a88088977257fcb6ab1e263e1ccf0af612ce370e7ee513e7a134",
+    "eigen_submodule": "baf9a985ece8c02d45ae151d64bdf25d3e2faeaa",
+    "build_patch": "tools/parity/aarch64-build.patch",
+    "build_patch_sha256": "ef30616a58ce109644b0a2c4553055fce76f43ea1c982c83a4e1fa1294ccd2c1",
+    "method": "pd_eigen_alg_phd (ForwardProjectiveDynamicsAlgPhd / BackwardProjectiveDynamicsAlgPhd)",
+    "python": "3.12.12",
+    "nvcc": [
+      "Build cuda_13.0.r13.0/compiler.36424714_0"
+    ],
+    "gcc": [
+      "gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0"
+    ]
+  },
+  "source_sha256": {
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/__init__.py": "5d624166bc62b78e1c1dba8b9762dd2134af76123e31605b607e3e7282474f99",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/adjoint.py": "a3d92e3ffcbcf0622796ded8e46e405f83acded98ab344a15679c090acdaf866",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/anderson.py": "a3f76d850b58f94a96a24741d6f1f917a88a73da58528fcaff3eb64cab1b48f1",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/ccd.py": "271e9edb477b48c836dcf70c18913705f1458d182b167f1ce10e776e3fcc434a",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/contact.py": "cda692c522b469206722e8117d5d971bcfd9aee39a9014b3c6f06e8645648468",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/dense.py": "403ddf1744666ca7e6d7bf543b64abbc85f89cecba2748084ff446f7b4a1dc1f",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/exceptions.py": "aa66748ab9894e09de33819b5f844205e5caaa9b98ec8169b92958a98adc1a6f",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/kernels.py": "10e765379ba1f1a152d44028b3976f5dc361e51eab426c55dec22de5229a3b8e",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/mesh_contact.py": "f3a63dbd00e411345608755e80fddfe76e77898c249e81ac53f99cd711c4c3a9",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/projections.py": "9d41fffa594d4d2d87883895adb76e1378c1aabe734c2fd274f036095334f652",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/solver.py": "bb34b147b590026ddb1d16175a86313c6828df0d8b188a062830f362df548e39",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/sparse.py": "26eee209b0cedacaabcccde37f88acbe887111b6cf134c368daa78d48d090190",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_contact.py": "67e30a0dd33c16b96fca549e6c4594cfaeb2bd1ec80fd8cf04ce5386af754288",
+    "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_qp.py": "306da2ca0cb635a42f8f35f9d7b38853afbc30f9551b51140b4d13d2c395a243",
+    "tests/reference_oracle.py": "8f87117f5dc8f4ed58d163ff85897112a7f65abd7921b756e3a857da95f4d95b",
+    "tests/test_diff_phd_adjoint.py": "dd15561639efb1d60f8c36d1f2a9ce57dd1ecba747be27ea07823fccc472c212",
+    "tests/test_diff_phd_dirichlet.py": "1d07a78802c2a675fff435e1884a30fb628aa65e4d2ef209b899b472f8ef135b",
+    "tests/test_diff_phd_mesh_contact.py": "a52b858213c705d9c951fc30bbed8dc86633a38da1c6b8a8b57d0905b51efc0f",
+    "tests/test_diff_phd_mesh_boundary.py": "4ee7298199adbcac4fa91fd0dcf6f0798b16ffebc232aaf7b8e78d6bc2efa231",
+    "tests/test_parity_tools.py": "b614ed347213825ec5edd7dbf99c6fc157539770d19afdd1c8a6d6fe6c4a205b",
+    "tests/test_diff_phd_swept_contact.py": "ac58b7e4183f45a8c1ff931cbc506e0ff06711560c87eeaf7482bb5f50592a62",
+    "tools/parity/port_cases.py": "eeac8f75cb8be54fd1e42a95034eb26e7319a6ec6c60de0dab89b6242d306916",
+    "tools/parity/reference_runner.py": "72ba8d4ddf89560d24b5d2639ccf78566bcdc9598ecb571dbda043c13500d87a",
+    "tools/parity/compare.py": "66e58502b99a89eb36fef31c52bf44612a6ecc6808425db19329902cc20de1e7"
+  },
+  "unit_tests": {
+    "command": "env -u VIRTUAL_ENV PYTHONPATH=src:. WARP_CACHE_PATH=/tmp/diffphd-audit-warp .venv/bin/python -m unittest tests.test_diff_phd_adjoint tests.test_diff_phd_dirichlet tests.test_diff_phd_mesh_contact tests.test_diff_phd_mesh_boundary tests.test_parity_tools tests.test_diff_phd_swept_contact -v",
+    "run": 44,
+    "passed": 42,
+    "skipped": 2,
+    "failures": 0,
+    "errors": 0,
+    "seconds": 22.735,
+    "exit_code": 0,
+    "skips": "CUDA captured contact backward and captured swept forward; CPU only.",
+    "log": "nsys/results/adjoint-audit-2026-11-02-swept-final/tests.log",
+    "log_sha256": "91633fbe037d7d77397523b4b9e23aee24279686c3ac542076df8cbbdb09c48e"
+  },
+  "native_parity": {
+    "command": "env -u VIRTUAL_ENV PYTHONPATH=src:. WARP_CACHE_PATH=/tmp/diffphd-audit-warp .venv/bin/python tools/parity/port_cases.py --out nsys/results/adjoint-audit-2026-11-02-swept-final/native --device cpu --benchmark-steps 0 --reference-root /home/beer/Dev/Robotics/DiffPhD-reference-build --cases homogeneous_free zero_volume_weight pinned_contrast_10x_per_element pinned_contrast_10x_per_element_small_dt neo_hookean_large_deformation muscle_activation mesh_contact_prescribed mesh_boundary_poke",
+    "comparison_command": ".venv/bin/python tools/parity/compare.py --results nsys/results/adjoint-audit-2026-11-02-swept-final/native --reference-root /home/beer/Dev/Robotics/DiffPhD-reference-build --report nsys/results/adjoint-audit-2026-11-02-swept-final/native-comparison.json",
+    "run_exit_code": 0,
+    "comparison_exit_code": 1,
+    "cases": [
+      {
+        "case": "homogeneous_free",
+        "forward_pass": true,
+        "backward_pass": true,
+        "case_pass": true,
+        "reference_forward_iterations": [
+          27
+        ],
+        "port_forward_iterations": [
+          27
+        ],
+        "identical_to_retained_16_case_report": true,
+        "failed_checks": []
+      },
+      {
+        "case": "mesh_boundary_poke",
+        "forward_pass": true,
+        "backward_pass": true,
+        "case_pass": true,
+        "reference_forward_iterations": [
+          27
+        ],
+        "port_forward_iterations": [
+          27
+        ],
+        "identical_to_retained_16_case_report": true,
+        "failed_checks": []
+      },
+      {
+        "case": "mesh_contact_prescribed",
+        "forward_pass": true,
+        "backward_pass": true,
+        "case_pass": true,
+        "reference_forward_iterations": [
+          18,
+          18,
+          18
+        ],
+        "port_forward_iterations": [
+          18,
+          18,
+          18
+        ],
+        "identical_to_retained_16_case_report": true,
+        "failed_checks": []
+      },
+      {
+        "case": "muscle_activation",
+        "forward_pass": true,
+        "backward_pass": true,
+        "case_pass": true,
+        "reference_forward_iterations": [
+          26,
+          27
+        ],
+        "port_forward_iterations": [
+          26,
+          27
+        ],
+        "identical_to_retained_16_case_report": true,
+        "failed_checks": []
+      },
+      {
+        "case": "neo_hookean_large_deformation",
+        "forward_pass": true,
+        "backward_pass": true,
+        "case_pass": true,
+        "reference_forward_iterations": [
+          19
+        ],
+        "port_forward_iterations": [
+          19
+        ],
+        "identical_to_retained_16_case_report": true,
+        "failed_checks": []
+      },
+      {
+        "case": "pinned_contrast_10x_per_element",
+        "forward_pass": true,
+        "backward_pass": false,
+        "case_pass": false,
+        "reference_forward_iterations": [
+          56
+        ],
+        "port_forward_iterations": [
+          56
+        ],
+        "identical_to_retained_16_case_report": true,
+        "failed_checks": [
+          {
+            "metric": "dL/dq relative",
+            "max_error": 0.033501242112153676,
+            "threshold": 1e-05,
+            "pass": false,
+            "reference_norm": 41.93893691888795
+          },
+          {
+            "metric": "dL/dv relative",
+            "max_error": 0.04350574078610582,
+            "threshold": 1e-05,
+            "pass": false,
+            "reference_norm": 0.1291789695797925
+          },
+          {
+            "metric": "dL/df_ext step 0 relative",
+            "max_error": 0.04350573812932008,
+            "threshold": 1e-05,
+            "pass": false,
+            "reference_norm": 0.0013227926484970756
+          },
+          {
+            "metric": "dL/dw corotated energy 0",
+            "max_error": 1.4473125100498694e-07,
+            "threshold": 1.4783806716585827e-11,
+            "pass": false,
+            "port": 1.5827961881154096e-06,
+            "reference": 1.4380649371104226e-06,
+            "relative": 0.10064305670076544
+          },
+          {
+            "metric": "dL/dw volume energy 1",
+            "max_error": 4.599946922031247e-08,
+            "threshold": 2.8088602282116066e-12,
+            "pass": false,
+            "port": 3.094648166335201e-07,
+            "reference": 2.6346534741320763e-07,
+            "relative": 0.17459400134382339
+          }
+        ]
+      },
+      {
+        "case": "pinned_contrast_10x_per_element_small_dt",
+        "forward_pass": true,
+        "backward_pass": true,
+        "case_pass": true,
+        "reference_forward_iterations": [
+          20
+        ],
+        "port_forward_iterations": [
+          20
+        ],
+        "identical_to_retained_16_case_report": true,
+        "failed_checks": []
+      },
+      {
+        "case": "zero_volume_weight",
+        "forward_pass": true,
+        "backward_pass": true,
+        "case_pass": true,
+        "reference_forward_iterations": [
+          14
+        ],
+        "port_forward_iterations": [
+          14
+        ],
+        "identical_to_retained_16_case_report": true,
+        "failed_checks": []
+      }
+    ],
+    "summary": {
+      "forward_pass": 8,
+      "backward_pass": 7,
+      "backward_fail": 1,
+      "case_pass": 7,
+      "case_fail": 1,
+      "all_selected_case_metrics_identical_to_retained_report": true
+    },
+    "raw_report": "nsys/results/adjoint-audit-2026-11-02-swept-final/native-comparison.json",
+    "raw_report_sha256": "b1ed66efcd1884609808fb141d719a184b65ed22b91dd6ae91f806d104b01c3e"
+  },
+  "caveats": [
+    "The eight selected native case records, including the known failed heterogeneous case, exactly equal the retained 16-case CPU report. This audit does not replace that broader report.",
+    "The original 10x heterogeneous 4 ms backward reaches its iteration budget; discrepancies remain 4.3506% for force/velocity and 17.4594% for volume-energy material sensitivity. These fail unchanged tolerances. Its separate 1 ms fixture passes.",
+    "Swept contact rejects recording on a Warp Tape before stepping. No swept-contact backward or gradient is implemented.",
+    "The dense NumPy reference backward oracle uses direct solves and finite-difference projection Jacobians. It checks converged algebraic branches, not iterative cap, clipping, divergence or zero-weight suppression behavior; focused guard tests and the compiled reference cover those behaviors.",
+    "The native comparison label exact is a tolerance category. It does not turn Neo-Hookean reference material sensitivities, heterogeneous mean-weight adjoints, frozen-contact state derivatives or clipped outputs into exact derivatives of the forward simulation.",
+    "This CPU run does not validate CUDA graph behavior. Earlier 187-test suites and older training performance reports are separate historical evidence."
+  ],
+  "diff_pd_forward_audit": {
+    "scope": "Five one-step CPU scenes against DiffPhD compiled pd_eigen with use_bfgs=1, homogeneous scalar PD energies. Not a fresh duck rollout or compiled diff_pd_public build.",
+    "thresholds": {
+      "position_m": 1e-12,
+      "velocity": "1e-12 / dt m/s",
+      "iterations": "equal"
+    },
+    "cases": [
+      {
+        "case": "arc",
+        "max_position_error_m": 5.551115123125783e-17,
+        "max_velocity_error_m_s": 5.551115123125783e-15,
+        "port_iterations": 12,
+        "reference_iterations": 12,
+        "passed": true
+      },
+      {
+        "case": "free",
+        "max_position_error_m": 2.220446049250313e-16,
+        "max_velocity_error_m_s": 2.220446049250313e-14,
+        "port_iterations": 7,
+        "reference_iterations": 7,
+        "passed": true
+      },
+      {
+        "case": "line_search",
+        "max_position_error_m": 2.9976021664879227e-15,
+        "max_velocity_error_m_s": 1.509903313490213e-14,
+        "port_iterations": 126,
+        "reference_iterations": 126,
+        "passed": true
+      },
+      {
+        "case": "pinned",
+        "max_position_error_m": 2.220446049250313e-16,
+        "max_velocity_error_m_s": 2.220446049250313e-14,
+        "port_iterations": 7,
+        "reference_iterations": 7,
+        "passed": true
+      },
+      {
+        "case": "planar",
+        "max_position_error_m": 5.551115123125783e-17,
+        "max_velocity_error_m_s": 5.551115123125783e-15,
+        "port_iterations": 10,
+        "reference_iterations": 10,
+        "passed": true
+      }
+    ],
+    "unit_tests": {
+      "command": "env -u VIRTUAL_ENV PYTHONPATH=src:. WARP_CACHE_PATH=/tmp/diffphd-audit-warp .venv/bin/python -m unittest tests.test_diff_pd_solver tests.test_diff_pd_duck.TestDuckMesh tests.test_diff_pd_duck.TestDuckScene.test_reference_parameters -v",
+      "run": 14,
+      "passed": 13,
+      "skipped": 1,
+      "seconds": 1.55,
+      "failures": 0,
+      "errors": 0,
+      "exit_code": 0,
+      "skip": "CUDA caller graph capture",
+      "log": "nsys/results/adjoint-audit-2026-11-02-swept-final/diffpd-tests.log",
+      "log_sha256": "869b6a4c91fd091cfe110b050894da06b8e95fcf01cd4d1d17e9317cc8116fce"
+    },
+    "native_command": "env -u VIRTUAL_ENV PYTHONPATH=src:. WARP_CACHE_PATH=/tmp/diffphd-audit-warp .venv/bin/python nsys/results/adjoint-audit-2026-11-02-swept-final/diffpd_small_native.py",
+    "native_exit_code": 0,
+    "script_sha256": "5df20100e6b9ad5bc1fdc1685f82549394d4283a3acb380092c4d1d16afb2274",
+    "source_sha256": {
+      "src/newton_solver_diff_phd/_src/solvers/diff_pd/__init__.py": "d222e303907c601fbafa88f6f91bb2457f92e2c97a1b6c8a0cbd018b47da2f31",
+      "src/newton_solver_diff_phd/_src/solvers/diff_pd/exceptions.py": "aa66748ab9894e09de33819b5f844205e5caaa9b98ec8169b92958a98adc1a6f",
+      "src/newton_solver_diff_phd/_src/solvers/diff_pd/kernels.py": "816fe11f38fa6b708a0b333f6e7ec1200b07b886724d4818b7440e8d5174b407",
+      "src/newton_solver_diff_phd/_src/solvers/diff_pd/projections.py": "57e105a72293ecff8c5c23afbfd5a541962aaa35bbaebe28e114e5282b206b21",
+      "src/newton_solver_diff_phd/_src/solvers/diff_pd/solver.py": "d52702b3c234097530272a670d2020dd83bed308b11b7dfa21591da4a67b50d0",
+      "src/newton_solver_diff_phd/_src/solvers/diff_pd/sparse.py": "97847f67abcd2e42e6b5e319252de89c77fe5bb9cd6ec3931e1c517980865c5d",
+      "tests/test_diff_pd_solver.py": "d877573c89d6d32780317b3b4614402f7154c0a0d22175f3d83dbd088630c6bc",
+      "tests/reference_oracle_diff_pd.py": "9ea68aa05fe402a82c2717e96d6674301df60f718a316f4bbb74bf5a87bf5802",
+      "tests/test_diff_pd_duck.py": "1795f13b7562f8b9395d9baded6ab2da24793cb67c8fcb295ce245d7a5bbd1a1"
+    },
+    "reference_method": "pd_eigen, use_bfgs=1; same compiled DiffPhD reference binary identified above. No new diff_pd_public binary was built.",
+    "diff_pd_public_source_revision": "1594aa07a6983ff9a9c107e9f0d83d07fa99c8d1",
+    "all_six_solver_family_source_files_equal_archived_baseline": true,
+    "not_tested": [
+      "No DiffPD adjoint exists; recording is explicitly rejected.",
+      "The historical 200-step duck native comparison and GPU performance were not rerun.",
+      "This smoke comparison covers homogeneous scalar energies, not unimplemented elasticity, actuation or frictional-boundary modes."
+    ]
+  }
+}

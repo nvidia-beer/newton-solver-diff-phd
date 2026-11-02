@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-02",
+  "target_checkout": "/home/beer/Dev/Robotics/NewtonSolvers/newton-solver-diff-phd",
+  "scope": "Unit and formatting validation for the optional forward-only swept-contact extension and existing solver regressions. This is neither a native C++ parity report nor acceptance of the full recorded poke trajectory.",
+  "source": {
+    "sha256": "d26ab92db75b4b115eab2ebd78be597b365d85c57cfecdbab7d0c3c54e0fc08f",
+    "hash_scope": "Sorted src/tests/tools Python paths and content, then pyproject.toml and uv.lock; NUL separated",
+    "unchanged_between_during_run_snapshot_and_completion": true,
+    "changed_files": [],
+    "core_and_contact_test_sha256": {
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/__init__.py": "5d624166bc62b78e1c1dba8b9762dd2134af76123e31605b607e3e7282474f99",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/adjoint.py": "a3d92e3ffcbcf0622796ded8e46e405f83acded98ab344a15679c090acdaf866",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/anderson.py": "a3f76d850b58f94a96a24741d6f1f917a88a73da58528fcaff3eb64cab1b48f1",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/ccd.py": "267251590f7599ba48d27be998198b0a90ff13ae3bb6d86db12654e164ee6edd",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/contact.py": "cda692c522b469206722e8117d5d971bcfd9aee39a9014b3c6f06e8645648468",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/dense.py": "403ddf1744666ca7e6d7bf543b64abbc85f89cecba2748084ff446f7b4a1dc1f",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/exceptions.py": "aa66748ab9894e09de33819b5f844205e5caaa9b98ec8169b92958a98adc1a6f",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/kernels.py": "10e765379ba1f1a152d44028b3976f5dc361e51eab426c55dec22de5229a3b8e",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/mesh_contact.py": "f3a63dbd00e411345608755e80fddfe76e77898c249e81ac53f99cd711c4c3a9",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/projections.py": "9d41fffa594d4d2d87883895adb76e1378c1aabe734c2fd274f036095334f652",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/solver.py": "e96dc5a644937f31665ff4a9de76fe7713111bd582d04a1a443693d818910c7b",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/sparse.py": "26eee209b0cedacaabcccde37f88acbe887111b6cf134c368daa78d48d090190",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_contact.py": "48ec24b66cfa424aa0e0c32883e2d95e92d5eedaa9fb2ae02027fa750be20772",
+      "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_qp.py": "7365833fcfe36c001644562a8eaba19d5fee40fde645c144c6ae81ad3e978b7b",
+      "tests/test_diff_phd_ccd.py": "0540b1e6d5383d29f281466e9a2e6c447b5c15836969a7819419596d4c751270",
+      "tests/test_diff_phd_swept_contact.py": "ac58b7e4183f45a8c1ff931cbc506e0ff06711560c87eeaf7482bb5f50592a62",
+      "tests/test_diff_phd_swept_qp.py": "67841c6ef36e39000020b0ff990e2453eb753a3c62dd48d301a1ac6a7df9415e",
+      "tests/test_diff_phd_swept_response.py": "5e62278a1042558cc9d3426a3434184842cd35c2e4a312d9c4f7bbdf7570421c"
+    }
+  },
+  "environment": {
+    "python": "3.12.3",
+    "architecture": "aarch64",
+    "newton": "1.7.0",
+    "warp": "1.17.0+cu13",
+    "numpy": "2.5.4"
+  },
+  "cpu_current": {
+    "result": "PASS",
+    "run": 187,
+    "passed": 182,
+    "skipped": 5,
+    "seconds": 113.008,
+    "log": "nsys/results/swept-contact-validation/final-full-cpu.log",
+    "log_sha256": "6285bd6582909970a17a6be5c647c35fea43d5ece2f2265ad7df118f26bd5b5f",
+    "device": "cpu",
+    "scope": "Complete unittest discovery after the final proximity-witness and uncertain-trial recovery changes.",
+    "command": "UV_CACHE_DIR=/tmp/diffphd-audit-uv WARP_CACHE_PATH=/tmp/diffphd-audit-warp uv run --locked --no-sync python -m unittest discover -s tests -v",
+    "exit_code": 0
+  },
+  "cuda_current": {
+    "result": "PASS",
+    "run": 187,
+    "passed": 186,
+    "skipped": 1,
+    "seconds": 98.054,
+    "device": "cuda:0",
+    "gpu": "NVIDIA GB10",
+    "scope": "Complete unittest discovery after the final proximity-witness and uncertain-trial recovery changes, using the same source fingerprint as the final CPU run.",
+    "runner": "python -m unittest discover -s tests -v",
+    "environment": {
+      "NEWTON_TEST_DEVICE": "cuda:0"
+    },
+    "execution": "Parent-owned run outside the filesystem sandbox to expose the GPU.",
+    "log": "nsys/results/swept-contact-validation/final-full-cuda.log",
+    "log_sha256": "399ef413c9aa0b329c5150f74f944351c2099830c0abaf4c482f62ed5164f419",
+    "source_sha256": "d26ab92db75b4b115eab2ebd78be597b365d85c57cfecdbab7d0c3c54e0fc08f",
+    "command": "env -u VIRTUAL_ENV NEWTON_TEST_DEVICE=cuda:0 PYTHONPATH=src WARP_CACHE_PATH=/tmp/diffphd-training-warp .venv/bin/python -m unittest discover -s tests -v > /tmp/diffphd-swept-final-full-cuda.log 2>&1",
+    "exit_code": 0
+  },
+  "cuda_historical_targeted": {
+    "result": "PASS",
+    "run": 25,
+    "passed": 25,
+    "skipped": 0,
+    "seconds": 20.734,
+    "log": "nsys/results/swept-contact-validation/historical-targeted-cuda-before-final-recovery.log",
+    "log_sha256": "28d94dec9ac18adcc2ad67e381e295c8df72b3f514da7fa322956bf557d24f58",
+    "device": "cuda:0",
+    "gpu": "NVIDIA GB10",
+    "validates_current_source": false,
+    "scope": "Historical intermediate source: this 25-test run preceded proximity-activation-cap witness retention and recovery from uncertain trial sweeps. It does not validate the final sources.",
+    "modules": [
+      "tests.test_diff_phd_swept_contact",
+      "tests.test_diff_phd_ccd",
+      "tests.test_diff_phd_swept_qp"
+    ],
+    "command": "UV_CACHE_DIR=/tmp/diffphd-audit-uv WARP_CACHE_PATH=/tmp/diffphd-audit-warp NEWTON_TEST_DEVICE=cuda:0 uv run --no-sync python -m unittest tests.test_diff_phd_swept_contact tests.test_diff_phd_ccd tests.test_diff_phd_swept_qp -v",
+    "execution": "Outside the filesystem sandbox to expose the GPU."
+  },
+  "lint": {
+    "ruff_check": "PASS",
+    "ruff_format_check": "PASS",
+    "python_files": 96,
+    "commands": [
+      "UV_CACHE_DIR=/tmp/diffphd-audit-uv uv run --locked --no-sync ruff check .",
+      "UV_CACHE_DIR=/tmp/diffphd-audit-uv uv run --locked --no-sync ruff format --check ."
+    ]
+  },
+  "contact_scope": {
+    "reference_default_unchanged": true,
+    "extension_requires_fully_prescribed_right_mesh": true,
+    "extension_frictionless": true,
+    "extension_supports_tape": false,
+    "synthetic_acceptance": [
+      "Continuous vertex-face and edge-edge crossing queries, including separated endpoints and resting contact.",
+      "Normal QP certificates, duplicate/dependent constraints and explicit infeasibility.",
+      "PD and Neo-Hookean complete prescribed press, hold and release, with independent intersection and tetrahedron-orientation checks.",
+      "Recovery from an unresolved trial requires a corrected candidate and a fresh successful physical sweep.",
+      "Failed response rolls back the entire incoming position and physical velocity."
+    ],
+    "limitation": "Synthetic and unit passes do not establish completion or nonpenetration of the full prepared recording. Recorded-scene geometry diagnostics are separate."
+  },
+  "validates_current_source": false,
+  "superseded_by": "solver-validation-2026-11-02.json",
+  "historical_note": "This187-test snapshot predates the constrained-map, current-geometry, inner-accuracy and pivot corrections. Original results retained for provenance."
+}

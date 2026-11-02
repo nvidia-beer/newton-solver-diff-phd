@@ -3,12 +3,14 @@
 import argparse
 import csv
 import importlib.util
+import io
 import json
 import shutil
 import sqlite3
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -33,6 +35,7 @@ def options(directory):
         height=540,
         include_startup=False,
         cpu_sampling=False,
+        no_video_args=False,
         cuda_graph_trace=None,
         arguments=[],
         output_dir=Path(directory),
@@ -43,10 +46,58 @@ def options(directory):
 
 
 class TestProfiling(unittest.TestCase):
+    def test_selected_example_is_not_blocked_by_unrelated_stale_video(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            media = root / "docs/media"
+            media.mkdir(parents=True)
+            examples = {
+                "current": ("Current scene", False, "example_current"),
+                "historical": ("Historical scene", False, "example_historical"),
+            }
+            for name in examples:
+                (media / f"{name}.mp4").touch()
+                (media / f"{name}.gif").touch()
+                (media / f"{name}.json").write_text(json.dumps({"frames": 12, "arguments": ["--test"]}))
+            (root / "docs/videos.json").write_text(
+                json.dumps(
+                    {
+                        "current": {"frames": 12, "args": ["--test"]},
+                        "historical": {"frames": 12, "args": ["--forward-only"]},
+                    }
+                )
+            )
+            project = {"project": lambda _root: ("project", "test_package", examples)}
+            with (
+                patch.object(profiling, "ROOT", root),
+                patch.object(profiling.runpy, "run_path", return_value=project),
+            ):
+                output = io.StringIO()
+                with patch.object(sys, "argv", ["profile_examples", "current", "--dry-run"]), redirect_stdout(output):
+                    profiling.main()
+                command = json.loads(output.getvalue())
+                self.assertEqual(command["example"], "current")
+                self.assertEqual(command["default_arguments"], ["--test"])
+                self.assertEqual(command["command"][command["command"].index("--frames") + 1], "12")
+
+                # A selected stale example and all-example discovery still
+                # enforce the recorded workload instead of silently changing it.
+                for selection in ("historical", "--all", "--list"):
+                    with self.subTest(selection=selection):
+                        error = io.StringIO()
+                        with (
+                            patch.object(sys, "argv", ["profile_examples", selection, "--dry-run"]),
+                            redirect_stderr(error),
+                            self.assertRaises(SystemExit) as raised,
+                        ):
+                            profiling.main()
+                        self.assertEqual(raised.exception.code, 1)
+                        self.assertIn("historical: video arguments differ", error.getvalue())
+
     def test_known_incompatible_profiler_is_rejected_before_capture(self):
-        entries = {"bear": {"minimum_nsys_version": "2026.5.1"}}
+        entries = {"scene": {"minimum_nsys_version": "2026.5.1"}}
         for version in ("NVIDIA Nsight Systems version 2025.3.2.474", "unknown"):
-            with self.subTest(version=version), self.assertRaisesRegex(ValueError, "bear requires Nsight"):
+            with self.subTest(version=version), self.assertRaisesRegex(ValueError, "scene requires Nsight"):
                 profiling.check_profiler_version(version, entries)
         for version in ("NVIDIA Nsight Systems version 2026.5.1.161", "2026.10.1.1"):
             profiling.check_profiler_version(version, entries)
@@ -111,6 +162,23 @@ class TestProfiling(unittest.TestCase):
             config.write_text(json.dumps({"recorded": {"frames": 30, "args": ["--different"]}}))
             with self.assertRaisesRegex(ValueError, "video arguments differ"):
                 profiling.video_examples(root)
+            _, explicit = profiling.video_examples(root, no_video_args=True)
+            self.assertEqual(list(explicit), ["recorded"])
+            self.assertEqual(explicit["recorded"]["frames"], 30)
+            # Retain the actual clip provenance while the explicit invocation
+            # omits its stale arguments. Do not silently rewrite media metadata.
+            self.assertEqual(explicit["recorded"]["arguments"], ["--test"])
+            opts = options(root)
+            opts.no_video_args = True
+            opts.arguments = ["--forward-only", "--swept-contact"]
+            command = profiling.profile_command("nsys", "recorded", explicit["recorded"], opts, root)
+            self.assertIn("--no-video-args", command)
+            self.assertEqual(command[command.index("--") + 1 :], opts.arguments)
+            self.assertNotIn("--test", command)
+            # The flag omits arguments only; video frame metadata is still used.
+            config.write_text(json.dumps({"recorded": {"frames": 31, "args": ["--different"]}}))
+            with self.assertRaisesRegex(ValueError, "video frame count differs"):
+                profiling.video_examples(root, no_video_args=True)
 
     def test_capture_scope_and_literal_example_arguments(self):
         opts = options("/tmp/not-created")
@@ -138,6 +206,9 @@ class TestProfiling(unittest.TestCase):
         command = profiling.profile_command("nsys", "scene", {"frames": 540}, opts, opts.output_dir)
         self.assertIn("--trace=cuda-sw,nvtx,osrt,cusparse,cusolver,opengl", command)
         self.assertIn("--cuda-graph-trace=node", command)
+        opts.no_video_args = True
+        command = profiling.profile_command("nsys", "scene", {"frames": 540}, opts, opts.output_dir)
+        self.assertIn("--no-video-args", command[: command.index("--")])
 
     def test_failed_capture_retains_history_and_error(self):
         with tempfile.TemporaryDirectory() as directory:

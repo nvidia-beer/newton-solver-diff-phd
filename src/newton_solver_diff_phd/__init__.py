@@ -1,23 +1,11 @@
-"""Differentiable tetrahedral mechanics for stock Newton."""
+"""Differentiable Tet4 mechanics and forward Hex8 mechanics for stock Newton."""
 
-from ._src.coupling import UR5Kinematics
-from ._src.geometry import Mesh, load_mesh, load_poke_recording
-from ._src.solvers import (
-    BearProblem,
-    PokeAlignmentProblem,
-    SolverDiffPhD,
-    command_poke_velocities,
-    damp_poke_velocities,
-)
+from ._src.geometry import Mesh, load_mesh
+from ._src.solvers import SolverDiffPD, SolverDiffPhD
 
 __all__ = [
-    "BearProblem",
     "Mesh",
+    "SolverDiffPD",
     "SolverDiffPhD",
     "load_mesh",
-    "load_poke_recording",
-    "PokeAlignmentProblem",
-    "UR5Kinematics",
-    "command_poke_velocities",
-    "damp_poke_velocities",
 ]

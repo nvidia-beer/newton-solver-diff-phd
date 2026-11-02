@@ -70,7 +70,8 @@ def input_fingerprints(arguments, root=ROOT):
     return fingerprints
 
 
-def video_examples(root=ROOT):
+def video_examples(root=ROOT, *, no_video_args=False, example=None):
+    """Discover playable examples and validate metadata for the requested scope."""
     project = runpy.run_path(str(root / "tools/build_readme.py"))["project"]
     _, package, examples = project(root)
     config_path = root / "docs/videos.json"
@@ -79,6 +80,8 @@ def video_examples(root=ROOT):
     profiling = json.loads(profiling_path.read_text()) if profiling_path.is_file() else {}
     selected = {}
     for name, (description, terminal, module) in examples.items():
+        if example is not None and name != example:
+            continue
         media = root / "docs/media"
         # Exactly the condition build_readme uses to display a playable preview.
         if not (media / f"{name}.mp4").is_file() or not any(
@@ -90,8 +93,10 @@ def video_examples(root=ROOT):
         config = configs.get(name, {})
         # The sidecar describes the clip actually displayed; config also holds
         # current scripted controls and is checked against it before running.
+        # Explicit example arguments do not reuse the clip's arguments, so an
+        # older checkpoint or launch mode in the sidecar must not block them.
         arguments = scene_arguments(recorded.get("arguments", config.get("args", [])))
-        if recorded and arguments != scene_arguments(config.get("args", [])):
+        if not no_video_args and recorded and arguments != scene_arguments(config.get("args", [])):
             raise ValueError(f"{name}: video arguments differ from docs/videos.json; refresh the video metadata first")
         frames = recorded.get("frames", config.get("frames", 240))
         if recorded and frames != config.get("frames", frames):
@@ -195,6 +200,8 @@ def profile_command(nsys, name, entry, options, output):
         "--height",
         str(options.height),
     ]
+    if options.no_video_args:
+        command.append("--no-video-args")
     if options.arguments:
         command += ["--", *options.arguments]
     return command
@@ -245,14 +252,25 @@ def capture(name, entry, package, options, nsys):
             dependencies[dependency] = packages.version(dependency)
         except packages.PackageNotFoundError:
             dependencies[dependency] = None
-    input_hashes = input_fingerprints((*entry["arguments"], *options.arguments))
+    default_arguments = [] if options.no_video_args else entry["arguments"]
+    input_hashes = input_fingerprints((*default_arguments, *options.arguments))
     environment = os.environ.copy()
     directives = environment.get("NSYS_CONFIG_DIRECTIVES", entry.get("nsys_config_directives", ""))
     if directives:
         environment["NSYS_CONFIG_DIRECTIVES"] = directives
     settings = {
         key: getattr(options, key)
-        for key in ("device", "viewer", "width", "height", "warmup", "include_startup", "cpu_sampling", "arguments")
+        for key in (
+            "device",
+            "viewer",
+            "width",
+            "height",
+            "warmup",
+            "include_startup",
+            "cpu_sampling",
+            "no_video_args",
+            "arguments",
+        )
     }
     settings["frames"] = options.frames or entry["frames"]
     settings["cuda_graph_trace"] = options.cuda_graph_trace or entry.get("cuda_graph_trace", "node")
@@ -382,6 +400,11 @@ def main():
     parser.add_argument("--list", action="store_true", help="List only examples with playable README previews.")
     parser.add_argument("--dry-run", action="store_true", help="Print commands without requiring CUDA, nvtx or nsys.")
     parser.add_argument("--device", default="cuda:0")
+    parser.add_argument(
+        "--no-video-args",
+        action="store_true",
+        help="Use example defaults plus arguments after --; omit video options such as a trained checkpoint.",
+    )
     parser.add_argument("--frames", type=int, help="Override video frame count; a short run may omit scenario events.")
     parser.add_argument(
         "--warmup", type=int, default=5, help="Independent warmup frames before a fresh scenario (default 5)."
@@ -415,7 +438,11 @@ def main():
     options = parser.parse_args(args[:separator])
     options.arguments = args[separator + 1 :]
     try:
-        package, examples = video_examples()
+        package, examples = video_examples(
+            ROOT,
+            no_video_args=options.no_video_args,
+            example=None if options.all or options.list else options.example,
+        )
         if options.list:
             for name, entry in examples.items():
                 unit = "presentation frames; profile actual optimization" if entry["terminal"] else "simulation frames"
@@ -445,7 +472,12 @@ def main():
                 )
                 print(
                     json.dumps(
-                        {"example": name, "video_arguments": examples[name]["arguments"], "command": command}, indent=2
+                        {
+                            "example": name,
+                            "default_arguments": [] if options.no_video_args else examples[name]["arguments"],
+                            "command": command,
+                        },
+                        indent=2,
                     )
                 )
             return

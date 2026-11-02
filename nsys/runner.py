@@ -19,6 +19,11 @@ DOMAIN = "newton-solver"
 
 def phase(name, module="", owner=""):
     """Label Python orchestration only; never wrap Warp kernels or scalar math."""
+    if owner == "Adjoint":
+        if name == "_woodbury":
+            return "contact_solve"
+        if name in {"_fixed_point", "_batch_fixed_point"}:
+            return "backward_solve"
     if name in {
         "backward",
         "_backward",
@@ -27,7 +32,7 @@ def phase(name, module="", owner=""):
         "pressure_step",
     }:
         return "backward"
-    if name in {"forward", "_forward", "_forward_frame"}:
+    if name in {"forward", "_forward", "_forward_frame", "_rollout"}:
         return "forward"
     if name in {"train", "optimize_step", "optimize_velocity"}:
         return "optimization"
@@ -310,7 +315,8 @@ def profile(options):
         )
     if any(arg.startswith("--benchmark") for arg in options.arguments):
         raise ValueError("Newton --benchmark adds frame synchronization; use the profiler's boundary timing instead")
-    arguments = [*video.get("args", []), *options.arguments, "--device", options.device]
+    default_arguments = [] if options.no_video_args else video.get("args", [])
+    arguments = [*default_arguments, *options.arguments, "--device", options.device]
     module = f"{package}.examples.{relative_module}"
     import nvtx
     import warp as wp
@@ -337,6 +343,7 @@ def profile(options):
         "example": options.example,
         "module": module,
         "arguments": arguments,
+        "uses_video_arguments": not options.no_video_args,
         "device": options.device,
         "viewer": options.viewer,
         "render_note": "Every example.render call runs, including visualization preparation used by scenario checks. NullViewer omits OpenGL drawing; gl includes drawing without recording or readback.",
@@ -409,6 +416,7 @@ def main():
     parser.add_argument("example")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--device", default="cuda:0")
+    parser.add_argument("--no-video-args", action="store_true")
     parser.add_argument("--frames", type=int, required=True)
     parser.add_argument("--warmup", type=int, default=5)
     parser.add_argument("--viewer", choices=("null", "gl"), default="null")

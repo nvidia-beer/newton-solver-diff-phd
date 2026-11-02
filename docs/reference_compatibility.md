@@ -1,0 +1,169 @@
+# Reference compatibility
+
+`SolverDiffPhD` replaces the earlier solver with a validated subset of the
+executed public DiffPhD reference, [Akinesia112/DiffPhD at
+d319435](https://github.com/Akinesia112/DiffPhD/tree/d319435373a8a94aac2035bfe41f16f49bc1d2a1)
+(MIT; see [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)). The reference
+entry points are `ForwardProjectiveDynamicsAlgPhd` and
+`BackwardProjectiveDynamicsAlgPhd`. Each row maps one executed step to the code
+here and to the test that checks it. "Replacement" names the code of the
+previous solver that the row superseded.
+
+Status values:
+
+- **Matched**: same arithmetic, checked against an independent oracle or
+  against finite differences.
+- **Deviation**: intentional and documented difference.
+- **Restored with limitation**: reference equations are implemented and tested,
+  with a known native-reference numerical parity failure stated explicitly.
+- **Unsupported**: a reference feature that was not ported.
+- **Added**: this package only.
+
+The backward mean-weight convention and reference safeguards have been restored.
+This is not a claim of full reference equivalence: Newton float32 state storage,
+added Dirichlet derivatives, prepared geometry and unsupported branches remain
+explicit. “Matched” describes the listed operation and test, not every scene or
+derivative branch. The current native-reference report passes all 16 forward
+fixtures but fails one unconverged heterogeneous backward comparison. Current
+and historical results are separated in [validation](validation.md).
+
+The optional `swept_contact` mode is an explicit extension, not part of these
+reference-parity claims. The original contact modes and default material
+equations are unchanged; its supported scope is described below.
+
+The oracle in [tests/reference_oracle.py](../tests/reference_oracle.py) is a
+dense NumPy transcription of the reference: dense solves, the literal contact
+panels, and finite-difference projection Jacobians.
+
+## Forward step
+
+| Source permalink | Equation step | Reference function | Current function | Discrepancy | Replacement | Validating test | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| [deformable.cpp#L36](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable.cpp#L36), [forward.cpp#L572](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward.cpp#L572) | Every particle has mass $m=\rho\bar V$, where $\bar V$ is the mean tetrahedron volume. Every element uses $\bar V$. | `Deformable::Initialize`, `element_volume_` | `SolverDiffPhD.__init__` (`particle_mass`, `mean_volume`) | Newton models carry no density, so `density` is a required argument. Model particle masses only mark Dirichlet particles. | Lumped per-node mass | `test_reference_mass_uses_density_and_mean_volume` | Matched |
+| [forward_gpu.cpp#L435](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L435) | $\tilde q=q+hv+h^2/m\,(f_{ext}+mg)$. The first iterate is $x=q$. | `ForwardProjectiveDynamicsAlgPhd` | `kernels.begin_step`, `begin_solve` | None | `kernels.predictor` | `test_rigid_free_fall_is_the_inertial_target`, `test_forward_matches_dense_reference_iterates` | Matched |
+| [forward.cpp#L9](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward.cpp#L9), [forward_gpu.cpp#L34](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L34) | Per-axis $A=m/h^2I+\sum_e w_e\bar V G_e^TG_e$, with Dirichlet rows eliminated. $A^{-1}=S^TS$ uses exact sparse inverse factors. | `SetupProjectiveDynamicsSolver`, RealSim `SparseLDLT` | `SolverDiffPhD._build`, `SparseInverse.apply` | The package's nested-dissection LDLᵀ replaces the METIS ordering. Both are exact, with no dropping. | Preconditioner weight $2\mu+\lambda$ (`_prepare`) | `test_forward_matches_dense_reference_iterates`, `test_heterogeneous_pinned_contrast_matches_dense_reference` | Matched (ordering differs) |
+| [deformation_gradient_auxiliary_data.cpp](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/pd_energy/deformation_gradient_auxiliary_data.cpp) | Unsigned SVD $F=U\Sigma V^T$ with $\sigma\ge0$ sorted descending. | Eigen `JacobiSVD` | `projections.unsigned_svd` | Original Warp implementation reproducing Eigen's two-sided Jacobi conventions. | Warp signed `svd3` | `test_degenerate_deformations_follow_eigen_jacobi_svd` | Matched |
+| [corotated_pd_element_energy.cpp#L5](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/pd_energy/corotated_pd_element_energy.cpp#L5), [volume_pd_element_energy.cpp#L22](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/pd_energy/volume_pd_element_energy.cpp#L22) | Corotated projection $R=UV^T$ with weight $2\mu_e$. Volume projection by offset iteration (50 iterations) with weight $\lambda_e$. | `ProjectToManifold` | `projections.corotated_projection`, `volume_offset`, `kernels.local_step` | None | `elasticity.py` | `test_projections_match_independent_numpy_reference` | Matched |
+| [neohookean_pd_element_energy.cpp#L63](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/pd_energy/neohookean_pd_element_energy.cpp#L63) | Neo-Hookean proximal map: Newton in $\sigma$ (32 iterations, tolerance $10^{-10}$, $\sigma\ge10^{-4}$). Uses mean $\bar\mu,\bar\lambda$, $k=2\bar\mu$ and weight $2\mu_e$. | `SolveProximal`, `ProjectToManifold` | `projections.nh_prox_stretches`, `nh_prox_hessian`, `ldlt3_solve` | None. The mean parameters are the reference convention. | Logarithmic energy gradient | `test_projections_match_independent_numpy_reference` | Matched |
+| [pd_muscle_energy.cpp#L112](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/pd_energy/pd_muscle_energy.cpp#L112) | Fibre projection $a\,Fm/\lVert Fm\rVert$ with target length $a=1-u$. | `PdMuscleEnergy::ProjectToManifold` | `projections.muscle_projection`, `kernels.read_activations` | An invalid activation sets status bit 4. | `muscle.py` | `test_muscle_activation_matches_dense_reference` | Matched |
+| [forward_gpu.cpp#L1099](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L1099) | Global step $x\leftarrow A^{-1}(m/h^2\tilde q+\sum_e w_e\bar VG_e^T(P_e-G_ex_D))$. | `ProjectiveDynamicsLocalStep` with the Dirichlet map | `kernels.local_step`, `gather`, `global_rhs`, `impose_boundary` | Element contributions are summed per vertex in a fixed order, so results are deterministic. | Force-residual Newton/line search | `test_forward_matches_dense_reference_iterates`, `test_dirichlet_particles_are_fixed_or_prescribed` | Matched |
+| [forward_gpu.cpp#L1340](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L1340) | Type-II Anderson: window 5, $\mathrm{reg}=\max(10^{-6}\lVert dG\rVert^2/m,10^{-12})$; reset when $\lVert\gamma\rVert\ge10$. | AA block in `ForwardProjectiveDynamicsAlgPhd` | `anderson.Anderson.mix` | Runs on the device, inside CUDA graphs. | Bounded host Anderson | `test_forward_matches_dense_reference_iterates` | Matched |
+| [forward_gpu.cpp#L1392](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L1392) | Dual gate: $\lVert\Delta x\rVert\le r\lVert x_{prev}\rVert+a$ and $\lVert\Delta p\rVert\le r\lVert p_{prev}\rVert+a$, for iterations after the first. | `q_step_small`, `pd_rhs_small` | `kernels.convergence_partials`, `check_convergence` | When `max_iterations` is reached, the last iterate is kept as in the reference, and status bit 1 is set. | Force-residual check + `ConvergenceError` | `test_status_reports_nonconvergence_until_checked`, `test_changed_convergence_settings_apply_to_the_next_step` | Matched + status |
+| [forward_gpu.cpp#L456](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L456), [planar#L26](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/friction/planar_frictional_boundary.cpp#L26), [spherical#L24](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/friction/spherical_frictional_boundary.cpp#L24) | Every registered vertex is a candidate. Frames come from `GetLocalFrame` at the step start. | `SetFrictionalBoundary("planar"/"spherical")` | `contact.FrictionalContact`, `begin_contact_step` | Obstacle parameters live in a device array and may move between steps. | Swept CCD vertex–face/edge–edge | `test_frictionless_plane_impact_matches_reference`, `test_spherical_obstacle_matches_reference`, `test_moving_sphere_in_captured_graph_matches_direct_steps` | Matched |
+| [forward_gpu.cpp#L850](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L850) | $W_{ij}=(n_i\cdot n_j)B_{ij}$ with $B=A^{-1}$ at the candidates; $r=\max(h^2W_{cc},10^{-10})$. | Delassus panels | `FrictionalContact.build`, `contact_delassus` | $B$ is formed once per factorization, and $A^{-1}(b+J^T\lambda)$ replaces the $N\times K$ panels. This only reorders the arithmetic. | `ContactResponse.make_compliance` | contact tests above | Matched |
+| [forward_gpu.cpp#L1149](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L1149) | One Fischer–Burmeister Newton step per iteration: $(\Omega W\Omega+E)\,d\lambda=-\phi+\Omega n\cdot x-\Omega n\cdot A^{-1}g$, with $\lambda$ clamped to $[0,10^8]$. | NCP block | `contact_scalars`, `contact_newton_rhs`, `contact_system`, `dense.spd_tile_solve`/`ldlt_solve`, `contact_update` | Only the coupled block is factorized. This is exact because $\omega=0$ rows decouple. Blocks of at most 32 rows use a tile Cholesky. | Safeguarded natural-map Newton | `test_frictionless_plane_impact_matches_reference`, `test_friction_chatter_without_convergence_matches_reference` | Matched |
+| [forward_gpu.cpp#L1252](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L1252) | Coulomb stick/slip disk with $W_{tt}=B_{cc}I$. | NCP-integrated friction | `contact_friction` | None | Natural-map friction residual | `test_sticking_and_sliding_friction_match_reference` | Matched |
+| [forward_gpu.cpp#L1071](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L1071), [#L1543](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L1543) | Normal multipliers warm-start the next step. | `alg_phd_prev_lambda_` | `FrictionalContact.multiplier` (`contact_multipliers`) | A factor rebuild zeroes them. The examples zero them at the start of each rollout. | None | `test_friction_chatter_without_convergence_matches_reference` | Matched |
+| [forward_gpu.cpp#L1484](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L1484) | Post-loop normal restitution. | restitution block | `apply_restitution` | None | None | `test_restitution_matches_reference` | Matched |
+| [forward_gpu.cpp#L1533](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L1533) | $q^+=x$, $v^+=(x-q)/h$. | output | `kernels.write_state` | No damping | Mass damping | `test_rigid_free_fall_is_the_inertial_target` | Matched |
+| [forward_gpu.cpp#L456](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L456), [forward_gpu.cpp#L1112](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L1112), [forward_gpu.cpp#L1486](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L1486), [mesh_frictional_boundary.cpp](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/friction/mesh_frictional_boundary.cpp) | Mesh frictional boundary between two bodies: vertices below `split_index` against `faces_right`, others against `faces_left`. Candidates are registered vertices within `GetDistance` $\le 5r$ at the step start; the normal is anchored there as $(p-c)/\lVert p-c\rVert$ with Gram-Schmidt tangents; each iteration's gap is `GetSignedDistanceWithReferenceNormal` against the surface at the iterate; restitution slop $0.1r$. The backward tape keeps the forward's anchored normals, $\omega$ and $\lambda$. | `MeshFrictionalBoundary`, `SetFrictionalBoundary("mesh")` | `contact.FrictionalContact` (`begin_mesh_step`, `mesh_contact_scalars`, `apply_mesh_restitution`) | Filtered vertices stay in fixed-size arrays with $\omega=\lambda=0$ (identical products, graph-capturable) instead of a shorter list; their warm start restarts at zero as in the reference's node-keyed lookup. | Swept soft–soft CCD contact | `tests/test_diff_phd_mesh_boundary.py`; `mesh_boundary_poke` in the [reference parity report](validation/parity-reference-cpu.json) | Matched |
+| [mesh_contact_state_force.cpp](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/state_force/mesh_contact_state_force.cpp), [deformable_state_force.cpp#L86](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_state_force.cpp#L86), [forward_gpu.cpp#L435](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_forward_gpu.cpp#L435) | `mesh_contact` state force between two bodies: every vertex of A against every face of B (`kn_left`) and of B against A (`kn_right`); within `contact_radius`, $k_n(r-d)\,n$ plus friction $-\min(k_f,\mu f_n/(\lVert v_t\rVert+\epsilon))\,v_t$ on the vertex and the barycentric opposite on the face. It is evaluated on the start-of-step $(q,v)$ and added to $\tilde q$ as $h^2/m\,f$. `BackwardForce` is zero. | `MeshContactStateForce::ForwardForce`, `ClosestPointTriangle` | `mesh_contact.MeshContact`, `closest_point_triangle`, `add_state_force` | Each particle's force is summed in a fixed order instead of the reference loop order. The bounding-box early exit is omitted because it cannot change the force. | Swept soft–soft CCD contact | `test_force_matches_reference_transcription`, `test_step_matches_reference_with_state_force_in_the_target`, `test_gradients_hold_the_state_force_fixed`; `mesh_contact_poke` in the [reference parity report](validation/parity-reference-cpu.json) | Matched |
+| None (not in the reference) | Self-contact, mass damping, native Newton `Contacts`. | None | None | Removed by decision; the old keyword arguments no longer exist. | `contact.py`, `response.py`, `mass_damping` | `test_invalid_configuration_is_rejected` (native `Contacts`, removed keyword arguments) | Unsupported |
+| None | Device status bits replace exceptions: 1 not converged, 2 singular volume projection, 4 invalid activation, 8 adjoint not converged, 16 backward safeguard modified a contribution; optional swept mode adds 32 contact failure and 64 invalid final element. | None | `SolverDiffPhD.status`, `read_status`, `check_status` | The reference throws or continues; a failed swept step restores its incoming state. | `ConvergenceError` raised inside the loop | `test_status_reports_nonconvergence_until_checked`, `test_immobile_contact_fails_without_accepting_partial_motion` | Added |
+| None | The whole iteration runs as one `wp.capture_while` loop, inside an outer capture or as a cached graph. | None | `SolverDiffPhD._solve` | The reference loops on the host. | Host loop with an inner graph | `test_step_captured_in_an_outer_graph_matches_direct_steps`, `test_cpu_graph_capture_replays_the_whole_loop` | Added |
+
+## Optional swept contact
+
+`swept_contact=(clearance, split_index, faces_left, faces_right)` opts into
+continuous vertex–face and edge–edge queries, with a coupled frictionless normal
+QP that moves the deformable surface while preserving the entire commanded
+probe endpoint. Every right-side particle must be prescribed. The selected
+material projections and implicit matrix are retained, but the contact law is
+an addition and its trajectories are not expected to match the reference.
+This mode cannot be combined with the reference contacts, friction or
+restitution, and recording it on a `wp.Tape` is explicitly unsupported.
+
+`ccd.SweptMeshCCD`, `swept_contact.SweptContact` and
+`swept_qp.CertifiedNormalQP` perform the query, coupled response and complementarity
+check. An accepted correction must pass the repeated continuous query and
+endpoint-clearance check. Unresolved physical intersection searches, exhausted capacity or response
+budgets, and infeasible constraints report failure; they do not silently shorten
+the commanded motion. Status 32 restores the incoming positions and physical
+velocities. A final inverted or degenerate element similarly rejects the step
+with status 64. This final check is not a different Neo-Hookean projection or
+an automatic remeshing operation.
+
+The [CCD](../tests/test_diff_phd_ccd.py),
+[normal QP](../tests/test_diff_phd_swept_qp.py) and
+[public solver tests](../tests/test_diff_phd_swept_contact.py) cover analytic
+crossings, resting contact, PD and Neo-Hookean press/hold/release with full
+probe tracking, independent surface-intersection and tet-orientation checks,
+failure rollback and CUDA capture. The reference oracle tests continue to
+exercise the original start-of-step candidate selection separately.
+
+## Backward step
+
+| Source permalink | Equation step | Reference function | Current function | Discrepancy | Replacement | Validating test | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| [backward_gpu.cpp#L702](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_backward_gpu.cpp#L702) | $g=\partial L/\partial q^++\partial L/\partial v^+/h$, and $\partial L/\partial q\mathrel{-}=\partial L/\partial v^+/h$. | `BackwardProjectiveDynamicsAlgPhd` | `adjoint._seed` | None | `KKTSystem` seed | `test_contact_woodbury_projection_matches_dense_reference` | Matched |
+| [backward_gpu.cpp#L821](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_backward_gpu.cpp#L821) | Backbone $(A-K)\mu=g$ by the fixed point $\mu\leftarrow A^{-1}(g+K\mu)$ with Anderson. Dirichlet entries are zeroed, with the stop rule $\lVert raw-\mu_{prev}\rVert<r\lVert\mu\rVert+a$. | backbone loop | `Adjoint._fixed_point`, `_local_jacobian`, `_apply_local` | $K$ uses the global mean weight per energy family, matching the reference per-element material encoding. This is an approximate derivative for heterogeneous forward weights. | Matrix-free physical KKT solve | `test_single_energy_heterogeneous_adjoint_uses_reference_mean_weights`; native 1 ms contrast passes, original 4 ms capped backward fails | Restored with limitation |
+| [backward_gpu.cpp#L805](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_backward_gpu.cpp#L805), [#L862](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_backward_gpu.cpp#L862) | NaN→0 scrubbing, a $10^6$ norm clip, cascade guards and skipping non-finite contributions. | `safe_clip`, `backbone_diverged` | `Adjoint._safe_clip`, `_routing_guard`, `_parameter_guard` | Status bit 8 reports nonconvergence; bit 16 reports scrubbing, clipping or suppression. | Unguarded backward iteration | `test_reference_safe_clip_scrubs_components_before_limiting_norm`, `test_reference_cascade_guard_uses_rhs_norm_plus_one`, `test_reference_backbone_clip_suppresses_unreliable_contributions` | Matched on tested branches; unstable capped parity limitation below |
+| [backward_gpu.cpp#L899](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_backward_gpu.cpp#L899) | State gradients from $\mu$ ignore contact: $\partial L/\partial q\mathrel{+}=m/h^2\mu$, $\partial L/\partial v\mathrel{+}=h\,m/h^2\mu$, $\partial L/\partial f_{ext}\mathrel{+}=\mu$. | state injection | `_state_gradients` | For homogeneous PD materials on unclipped, converged branches, equals the derivative with each step's contact force frozen. | Full KKT including contact | `test_contact_gradient_is_the_frozen_contact_force_derivative` | Matched |
+| [backward_gpu.cpp#L938](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_backward_gpu.cpp#L938), [#L1074](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_backward_gpu.cpp#L1074), [#L1185](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_backward_gpu.cpp#L1185) | Woodbury $z=\mu-W_TG^{-1}J\mu$ over active rows ($\lambda>0$, $\omega\ge0.5$), with tangents when friction is on. Rows are pruned by $\lvert J\mu\rvert\ge\max(10^{-12},10^{-3}\max)$. $W_T$ columns are fixed points (at most 120 iterations). $G$ is solved by `ldlt`. | Woodbury block | `Adjoint._woodbury`, `_batch_fixed_point`, `dense.ldlt_solve` | Columns are solved in device batches of 64. Selected rows are compacted before the LDLT. The backward pass can be captured in a CUDA graph. | Contact KKT rows | `test_contact_woodbury_projection_matches_dense_reference`, `test_contact_backward_captured_on_first_use_matches_direct` | Matched |
+| [backward_gpu.cpp#L1231](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_backward_gpu.cpp#L1231), [pd_energy.cpp#L368](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_pd_energy.cpp#L368), [neohookean#L182](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/pd_energy/neohookean_pd_element_energy.cpp#L182) | Weight gradient $-z^T\bar VG^T\,\mathrm{StressTensor}(F)/w$. | `PdEnergyForceDifferential(dw)` | `_material_gradients` | Distributed per element as $\partial L/\partial\mu_e$, $\partial L/\partial\lambda_e$; the reference returns one value per energy. For Neo-Hookean, `StressTensor` is the hyperelastic PK1 at $F$, not the proximal residual of the forward step, so it is **not** a derivative of the step. | `elasticity.material_vjp` | `test_pd_state_and_material_gradients_match_finite_differences`, `test_neo_hookean_material_gradients_follow_the_reference_formula` | Matched reference formula (PD finite differences only on homogeneous unclipped branches) |
+| [backward_gpu.cpp#L1261](https://github.com/Akinesia112/DiffPhD/blob/d319435373a8a94aac2035bfe41f16f49bc1d2a1/cpp/core/src/fem/deformable_projective_dynamics_backward_gpu.cpp#L1261) | Activation gradient $z^T\bar V\,k/l\,G^T(Fmm^T)$. | `BackwardProjectiveDynamicsLocalStepDa` | `_activation_gradients` | Returned as $\partial L/\partial u$ for the contraction $u=1-a$. | Muscle VJP | `test_activation_gradients_match_finite_differences` | Matched |
+| None (Dirichlet values are constants in the reference) | $\partial L/\partial x_D=g_D-(A-K)_{DF}\,\mu_F$, chained to independent endpoint targets when supplied, otherwise to the start positions (and to $h\,v$ when integrated). | None | `_dirichlet_coupling`, `_dirichlet_gradients`, `_explicit_dirichlet_gradients` | Needed when a parameter moves clamped particles, such as the die placement. | Pinned-node VJP | `test_integrated_dirichlet_gradients_match_finite_differences`, `test_prescribed_positions_do_not_replace_physical_input_velocity` | Added |
+
+## Cross-repository parity
+
+The current [CPU report](validation/parity-reference-cpu.json) contains 16 cases:
+all forward comparisons pass, with 13 accepted backward comparisons, one failed
+backward comparison and two grouped-energy encodings whose backward results are
+reported without a verdict. The 4 ms, 10× heterogeneous per-element fixture
+fails strict backward parity after both solvers reach 2,000 adjoint iterations.
+A separate 1 ms fixture converges and passes; it does not replace the failure.
+The [sensitivity report](validation/reference-adjoint-sensitivity-2026-11-02.json)
+records agreement at early iteration budgets and severe sensitivity to tiny
+position perturbations in the compiled reference itself. This evidence explains
+the limitation; it does not turn the failed comparison into a pass.
+
+The `zero_volume_weight` fixture also checks the original aggregate suppression
+when every PD volume weight is zero. The reference stress/mean-weight expression
+becomes nonfinite, so the material gradient is suppressed; this port reproduces
+the output and reports status 16. This is reference behavior, not a
+finite-difference derivative of the zero-weight forward model.
+
+The retained [CPU report](validation/parity-reference-cpu-pre-reference-training.json), dated
+2026-11-02, compares 13 fixtures against the executed C++ reference at
+d319435. All judged checks pass: forward checks in all 13 cases, and backward
+checks in 11. The two per-element heterogeneous cases explicitly report
+gradient differences without accepting them as parity. This report predates the
+restored mean-weight adjoint, backward guards and original-training scene
+settings. It is historical evidence, not validation of those changes. The
+reference used its CPU fallback in that run.
+
+The [older CUDA report](validation/parity-reference-cuda.json) is historical
+and does not validate the current source. It also did not contain the mesh
+boundary case that earlier prose attributed to it. Build and execution steps
+are in [tools/parity](../tools/parity/README.md), with scope and limitations in
+[validation](validation.md#reference-parity).
+
+## Removed experiments
+
+The worktree's `converged_contact`, `signed_svd`, `anderson_restart` and
+`frictional_face_vertices` options are absent from the public solver. Their
+alternate algorithms are not in the pinned reference. The reference mesh candidate
+window no longer looks ahead to prescribed endpoint geometry: it uses the
+start-of-step surface, as the mapped reference function does. The reflected-tet
+and moving-prescribed-mesh regressions cover the demonstrated discrepancies;
+[validation](validation.md#corrections-to-the-poke-handoff) records the limits of
+what these fixes establish.
+
+## Recorded poke scene
+
+The default example now uses `dice_material_optimize.py` settings: bidirectional
+`mesh_contact` penalty forces, radius 0.55 mm, stiffnesses 5e3/5e4 N/m, friction
+0.5, a 1e13 Pa probe with only its root prescribed, 30 substeps and 0.30 retained
+velocity on all particles. Endpoint targets are independent of incoming physical
+velocities. `test_prepared_scene_uses_reference_contact` and the poke rollout
+tests check these choices through the public API. The prepared fine mesh,
+12-section probe and scanned-surface embedding differ from the original generated
+slab and 24-section TetGen cylinder. No contact QP, injectivity guard or clamp
+remeshing is enabled. The original penalty force permits penetration; matching
+the source equations does not establish zero overlap or full-scene parity.
+
+The separate `--forward-only --swept-contact` example option selects the added
+CCD mode and prescribes all probe particles. It is a different contact and
+boundary configuration from the original root-only training scene; it does
+not fit or load a training checkpoint. It retains the prepared mesh and chosen
+material law.

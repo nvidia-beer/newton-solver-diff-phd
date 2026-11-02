@@ -25,7 +25,7 @@ def graph_database(directory, events=()):
 
 def metadata():
     return {
-        "example": "bear",
+        "example": "scene",
         "status": "complete",
         "git": {"commit": "abc"},
         "source_sha256": "digest",

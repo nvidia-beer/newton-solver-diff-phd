@@ -1,0 +1,2010 @@
+{
+  "format": "newton.diff_phd.tessellation_audit.v1",
+  "created_utc": "2026-11-02T18:29:38.337345+00:00",
+  "verdict": "Full recorded deep poke remains unresolved; restored original assets and corrected contact/setup code are validated within the stated scopes.",
+  "original_asset": {
+    "manifest_sha256": "d5bbc2decceb8557dc3d2263843729cfea10b62550bea47a710fcdae4749095f",
+    "geometry_sha256": "0c4a6323e088b6525e7473ece4f8e3b2300e1679b950befe031e832404455ad4",
+    "recording_sha256": "5dcca03b9fce3bbfba96268dafe95b21f3dbde45abc8c9cc1ed535f8a56abb92",
+    "die_nodes": 6223,
+    "die_tets": 27129,
+    "die_boundary_triangles": 6814,
+    "pinned_die_nodes": 623,
+    "probe_nodes": 1165,
+    "probe_tets": 4389,
+    "probe_boundary_triangles": 1632,
+    "preparation": {
+      "tool": "tools/prepare_poke_reference.py",
+      "recipe": "original ur5_poke_demo.py and dice_material_optimize.py geometry defaults",
+      "reference_scripts_sha256": {
+        "ur5_poke_demo.py": "98b11525a4b53cfbcc94e797af59960d5aa7fbc3ca41cd56115f18cf93530776",
+        "dice_material_optimize.py": "dd1377d474cb45512bf05d02f3675e5312be5e33bcb9a0e4f75f609053b578bb"
+      },
+      "source_mesh_sha256": {
+        "mesh-f00018.obj": "3ae99e580810f88b042fed314d63cf62512112ec86c1b817e7a5881a2219ae90",
+        "mesh-f00019.obj": "10e78dde8057ab6c2037756b801419a1f78cc5724532f300b85424347a70c68b",
+        "mesh-f00020.obj": "d7fd187399761b1122fbd339fbb34eb9e53f91207d869d9ea4e4cfae8ba2635d",
+        "mesh-f00021.obj": "7042755b05efc530ac965f9c7a436b5488fff1cb99d2b35f3467d71462f5f28f",
+        "mesh-f00022.obj": "db0df9536658c1409906f7dc5e27a31ae9da16a66d15c899c8edb938c814a2eb",
+        "mesh-f00023.obj": "0607fc66888fe0773460307531a13e5a668893c9e78cbc83a818f49709480c88",
+        "mesh-f00024.obj": "b72e59ece6233be08e05ef2bbac3fb67ddfad6a4f9b093d342b1d9a30c1531e5",
+        "mesh-f00025.obj": "6971d45b325d63521c4f9b187ad8ebb1d7575a9262b58dd55c59e24c6a4b43c5",
+        "mesh-f00026.obj": "450de8f86fdd3c69d314a4cc1c9fe58dc7631c337a079c7588e0d40d6d481249",
+        "mesh-f00027.obj": "975254ed31276c12f896f73b9a95d2f6f3e837bcf52d6501554527a329e81f54",
+        "mesh-f00028.obj": "b12d362abcae8bc743222442b86587d1f343c9c04096d720e0f907f3f7196cd0",
+        "mesh-f00029.obj": "6d66b91ac5ed4e51f5e2a2768a26512f4168affe3ec8a980585de7a0279b935d",
+        "mesh-f00030.obj": "29ce99380628c0b60fc14818f800c8b4948e3f72d7933f342606e368aac00a84",
+        "mesh-f00031.obj": "d31c30f773bcfc164550039d6e747adcbd6d0de615c9928442a5d83f6eb049d0",
+        "mesh-f00032.obj": "0bc22bbe9d1b60607bf9994a661e251c1daff3396c42981c49c2936ecf54aca0",
+        "mesh-f00033.obj": "39613a7662fd5093023c20f3b5fd6808bbe55ad51faa03c4a1881b37b436774e",
+        "mesh-f00034.obj": "554c2e34bf28d0c2de47992b33fcc4aaccc7570808ce9613535c2ca44af697b3",
+        "mesh-f00035.obj": "6e64c6b52c93b75fdb45406eb9ddcaa107dbdd46743066a6e3057496cff0c859",
+        "mesh-f00036.obj": "0cf678f19b5af541ea865a5e1e12aa81ccd74acf2ecc15e97106c6e434e5c05d",
+        "mesh-f00037.obj": "28f1b2a5fc0668c661dd10be3c4db014cf21fb0861735989d85288ea57436ebc",
+        "mesh-f00038.obj": "0d89db786ab7d3b70b65eff38fcc9b5902aa0e0d2c76e188e9067b749186d65b",
+        "mesh-f00039.obj": "8b35f5a7f53f879fce6f2dad135a6b14d0246bdb9eec414460bbccf8dd6bf03d",
+        "mesh-f00040.obj": "065fc80480cdce3d8a0589458e40dd4f0d7dd05a9bdddc9f37205710123f6346",
+        "mesh-f00041.obj": "914bbdb6b1ab2d2f8dcfb229b9b0a6dd5adec4484963e5b9b67eba0317695342",
+        "mesh-f00042.obj": "776508b47b9b4ba8f2dbfebb9ef7807664c5cce03c63fbe687fe5578dab60574",
+        "mesh-f00043.obj": "f2e2d567a0754eb6f31ec98817de39c69c97303d2992e2407556cc902ad25ab0",
+        "mesh-f00044.obj": "42c4e18729e4dd68320944d247dfcd1b7fc6b2a738ec02e2fe7d587fd1786b04",
+        "mesh-f00045.obj": "0ae7d82a7eef9833f606ebd0feffd260556776c3f4c66c39ff57180849b985a9",
+        "mesh-f00046.obj": "a46a62b19cab0791bddb777d0ebdf7c984e1fc2065d0011f1e30bcfc9f2c175f",
+        "mesh-f00047.obj": "8bfcc8964d85ce53e89aa5a7ec62fbd6f864b226a286e205d8e9c489cd60d065",
+        "mesh-f00048.obj": "9c6762ea5893a70cd57a1f0133339792f608bb0c76529c16e2dc8660eae780e9",
+        "mesh-f00049.obj": "4d63eb1cbb30214e6dd1eb9d72aaddce9852b54d864ec2fa0af9c53c2a5d40fa",
+        "mesh-f00050.obj": "82492f0f4d10677755d776fc1b472050a35fc9bd394592a4091497790bc83f52",
+        "mesh-f00051.obj": "31cec7f561f1d72a3c65ca8cc4afad96cd2463812e14e8923949937d38def704",
+        "mesh-f00052.obj": "6312c4e0ca7979044587ca9aa27f61d6b1d6f5ec67243bdbe09c18521d3f0063",
+        "mesh-f00053.obj": "d70b96861aed11521e269ccb86e541a9995389d2f1d512660ec3af846448ac9f"
+      },
+      "versions": {
+        "numpy": "2.4.3",
+        "pyvista": "0.49.2",
+        "tetgen": "0.8.4",
+        "trimesh": "5.2.0"
+      },
+      "die_hull_decimation": 0.85,
+      "die_tetgen_minratio": 1.3,
+      "bottom_quantile": 0.1,
+      "world_z_offset_m": 0.5,
+      "probe_radius_m": 0.01,
+      "probe_length_m": 0.1,
+      "probe_sections": 24,
+      "probe_tetgen_minratio": 1.2,
+      "tetgen_api_compatibility": "Use the first two results; recent TetGen returns optional extra arrays.",
+      "die_quality": {
+        "vertices": 6223,
+        "tets": 27129,
+        "boundary_faces": 6814,
+        "pinned": 623,
+        "positive_volume": true,
+        "min_volume_m3": 7.371280075200077e-12,
+        "mean_ratio_min": 0.04604771378149007,
+        "mean_ratio_p01": 0.24157113008972866,
+        "three_pinned_tets": 749
+      },
+      "probe_quality": {
+        "vertices": 1165,
+        "tets": 4389,
+        "boundary_faces": 1632,
+        "pinned": 36,
+        "positive_volume": true,
+        "min_volume_m3": 4.631045749737877e-10,
+        "mean_ratio_min": 0.17271645575101185,
+        "mean_ratio_p01": 0.4031089437113919,
+        "three_pinned_tets": 46
+      },
+      "embedding_max_rest_error_m": 2.435541875787129e-16,
+      "embedding_search": "Nearest 128 centroids, then complete radius/AABB containment fallback; outside vertices retain affine extrapolation.",
+      "embedding_min_weight": -0.24407642609308902,
+      "embedding_outside_fraction": 0.29693055656338435
+    },
+    "provenance_comparison": "nsys/results/reference-asset-preparation/original-comparison.json",
+    "pre_rebake_asset_input_equality": {
+      "report": "current-asset-common-input-equality.json",
+      "common_fixture_sha256": "a9717a9713524ffac8ab42724140859703d08419d61aaadef21ea13f2c651f96",
+      "bitwise_equal": {
+        "rest_vertices": true,
+        "tets": true,
+        "mu": true,
+        "lambda": true,
+        "dirichlet": true,
+        "faces_a": true,
+        "faces_b": true,
+        "tool_endpoints": true,
+        "rest_poses": true
+      },
+      "pre_rebake_manifest_sha256": "fc9d8df2f912e09d378b5158469c699027e77970886d46895ecddb8c4b84892b"
+    },
+    "current_asset_input_equality": {
+      "report": "nsys/results/tessellation-fix/reference-rebake-equivalence.json",
+      "current_manifest_sha256": "d5bbc2decceb8557dc3d2263843729cfea10b62550bea47a710fcdae4749095f",
+      "common_fixture_sha256": "a9717a9713524ffac8ab42724140859703d08419d61aaadef21ea13f2c651f96",
+      "identical_physics_fields": {
+        "rest_vertices": "e39647a473b6e64d4a0cd8dd0ab7e89112da185fcec2e0d7cf826060813ca976",
+        "tets": "4605d26424fc3be87b91b7ba3e98f95d52184abd11dd7924bb3bfa689fe28d25",
+        "targets": "4a509bab2d1d3dfb692de2885580affc07f0253505b3742642be38cc8366d8c3",
+        "dirichlet": "f746a8914761df4fd7571cad91d1f7ca550c507a84d451b7d592c6523808dc1d",
+        "mu": "26818af59f48bc76673f5c1e88b8732fca457b4c501a43c97c372ce9ea8523b2",
+        "lambda": "b635ca876639c8ddcc909f7e45734f5aeb574d34146554dd8f46b22d7fa27da6",
+        "density": "6fac440655568a2ee02e10ac9f94bc870626556b934aa3e1d3d9a715331cdf34",
+        "dt": "9b430e862ae31c7abd60ea1f0fe62c12b455803fbb4de6b8a408b76e3a471ea9",
+        "damping": "186b4ce7fc00a72bd6530e35af307df73e3acebb3bfdb56116fde39a8e0df89b",
+        "faces_a": "d73546b45616684bdc5c79daf3a5e1fc37ff35ee00059dd96812260a372ca620",
+        "faces_b": "7d1f0ce342c286b80da0e7ad1fc85ece8979c95817377336066b72b7c17e7149",
+        "contact_parameters": "230d1ebab21d267dd1f53243816395e0677cc49c50de938ba4ab7f39e5997467",
+        "soft_count": "44b1b024ad0dcd4b6d3b97d893b7b76c53c3dada7cf3e1cd923e92a62653ecaa",
+        "rest_poses": "eabaa623667e062a7511276ef130739b49ef29908d5e5e47bd233d3ce2b970a3"
+      },
+      "scope": "Current post-rebake physical inputs are bitwise identical to the tested native fixture. Only provenance metadata and two display embeddings change."
+    },
+    "display_embedding_rebake": {
+      "evidence": "nsys/results/tessellation-fix/reference-rebake-equivalence.json",
+      "pre_rebake_manifest_sha256": "fc9d8df2f912e09d378b5158469c699027e77970886d46895ecddb8c4b84892b",
+      "current_manifest_sha256": "d5bbc2decceb8557dc3d2263843729cfea10b62550bea47a710fcdae4749095f",
+      "changed_display_arrays": {
+        "surface_embedding_indices": {
+          "rows": [
+            2248,
+            2251
+          ],
+          "before": "0f141d4e2c77a1ff4f024e74e418ff82728e4b0cade699a207084edc28747df6",
+          "after": "2aae5b3db94c7af0909cf35546f179756a03b65577311e4002a744128ad9d4b2"
+        },
+        "surface_embedding_weights": {
+          "rows": [
+            2248,
+            2251
+          ],
+          "before": "b8e340ce23fd285038d7c0e573dd1ee7811f77ad44cede6ee3361ca16b6c50b5",
+          "after": "c844f2e0d50ed5b43e6c42ef53adcc83168c81d037167056e2ad0acedf8616a6"
+        }
+      },
+      "identical_physical_model_array_count_by_mode": {
+        "original_penalty": 111,
+        "swept": 111
+      },
+      "identical_native_physics_fields": {
+        "rest_vertices": "e39647a473b6e64d4a0cd8dd0ab7e89112da185fcec2e0d7cf826060813ca976",
+        "tets": "4605d26424fc3be87b91b7ba3e98f95d52184abd11dd7924bb3bfa689fe28d25",
+        "targets": "4a509bab2d1d3dfb692de2885580affc07f0253505b3742642be38cc8366d8c3",
+        "dirichlet": "f746a8914761df4fd7571cad91d1f7ca550c507a84d451b7d592c6523808dc1d",
+        "mu": "26818af59f48bc76673f5c1e88b8732fca457b4c501a43c97c372ce9ea8523b2",
+        "lambda": "b635ca876639c8ddcc909f7e45734f5aeb574d34146554dd8f46b22d7fa27da6",
+        "density": "6fac440655568a2ee02e10ac9f94bc870626556b934aa3e1d3d9a715331cdf34",
+        "dt": "9b430e862ae31c7abd60ea1f0fe62c12b455803fbb4de6b8a408b76e3a471ea9",
+        "damping": "186b4ce7fc00a72bd6530e35af307df73e3acebb3bfdb56116fde39a8e0df89b",
+        "faces_a": "d73546b45616684bdc5c79daf3a5e1fc37ff35ee00059dd96812260a372ca620",
+        "faces_b": "7d1f0ce342c286b80da0e7ad1fc85ece8979c95817377336066b72b7c17e7149",
+        "contact_parameters": "230d1ebab21d267dd1f53243816395e0677cc49c50de938ba4ab7f39e5997467",
+        "soft_count": "44b1b024ad0dcd4b6d3b97d893b7b76c53c3dada7cf3e1cd923e92a62653ecaa",
+        "rest_poses": "eabaa623667e062a7511276ef130739b49ef29908d5e5e47bd233d3ce2b970a3"
+      },
+      "public_launcher_smoke": {
+        "command": "./docker/run.sh --headless softbody_diff_phd_ur5_poke --reference --forward-only --swept-contact --num-frames 2 --test",
+        "exit_code": 0,
+        "display_frames": 2,
+        "reported_completed_substeps": 30,
+        "reported_first_frame_seconds_including_setup": 46.93,
+        "scope": "Startup and short direct-launch smoke only; does not establish full-motion success.",
+        "log": "nsys/results/tessellation-fix/reference-rebake-launcher.log"
+      },
+      "actual_rest_render": {
+        "scope": "Actual public Example/ViewerGL render at initial rest state, no simulation advance. This checks corrected display embedding loading/rendering only.",
+        "image_sha256": "afd745ba0a277a54065cc753964b501fc089b99b44d66936b4129ffc5070d137",
+        "recording_manifest_sha256": "d5bbc2decceb8557dc3d2263843729cfea10b62550bea47a710fcdae4749095f",
+        "pixel_shape": [
+          1080,
+          1920,
+          3
+        ],
+        "simulation_steps": 0,
+        "image": "nsys/results/tessellation-fix/reference-rebake-render.png",
+        "inspected": true
+      },
+      "scope": "Full rollouts precede this display-only rebake. All physical inputs are bitwise identical; two display vertices get corrected carrier cells. Latest public launch and rest rendering were checked after rebake."
+    },
+    "preparation_tool_sha256": "dc1136fe8e001447c34b3cd14d02dba9b5ec2de4c0e05fe15d5c364cbba213df"
+  },
+  "regressions": {
+    "command": "uv run --locked --no-sync python -m unittest discover -s tests -v",
+    "cpu": {
+      "tests": 206,
+      "passed": 201,
+      "skipped": 5,
+      "seconds": 222.223,
+      "device": "cpu",
+      "log": "/tmp/diffphd-tessellation-embedding-final-cpu.log",
+      "log_sha256": "d81d5a2a56298a69da2b53960e64ecac91a74e9faaeaf378562510a3008fdf3a"
+    },
+    "cuda": {
+      "tests": 206,
+      "passed": 205,
+      "skipped": 1,
+      "seconds": 124.531,
+      "device": "NVIDIA GB10 cuda:0",
+      "log": "/tmp/diffphd-tessellation-embedding-final-cuda.log",
+      "log_sha256": "c4f90af6293f055e702bf1d0b6aeb4f234feb455b9d8377b423dc49c3851f3e5"
+    },
+    "scope": "Production source frozen during these suites. Includes new asset round-trip tests, dependent-contact-row regression, and independent sparse solve tests. Does not validate completion of the recorded deep poke.",
+    "formatting": "Ruff check and format --check passed, 107 Python files; git diff --check passed.",
+    "package_build": {
+      "source_and_wheel": "passed",
+      "output_directory": "/tmp/diffphd-tessellation-dist",
+      "private_recording_paths_in_wheel": 0,
+      "public_swept_asset_in_wheel": true
+    }
+  },
+  "contact_fix": {
+    "description": "Exchange a dependent entering constraint along a feasible descent direction using the existing independent active block. Preserve W, physical tolerances and final original-constraint KKT checks.",
+    "frozen_private_case": {
+      "old_iteration_budget": 65536,
+      "old_residual": 1.60057e-12,
+      "required_residual": 1e-12,
+      "new_iterations": 28,
+      "new_cuda_residual": 8.67e-19
+    },
+    "local_evidence": "nsys/results/tessellation-fix/qp-exchange-integration.json"
+  },
+  "sparse_setup": {
+    "paired_3500_rows": {
+      "size": 3500,
+      "matrix_nnz": 23482,
+      "source_before": "26eee209b0cedacaabcccde37f88acbe887111b6cf134c368daa78d48d090190",
+      "source_after": "48f8afa2a8abc39429a418673d602cccc3a6bd5377be34294fe2aacf83014806",
+      "scope": "Complete CPU SparseInverse initialization, including validation, ordering, LDLT, inverse rows, transpose/CSR and CPU Warp arrays. No simulation/rendering. Alternating paired calls; concurrent user workloads may affect timing.",
+      "timings": {
+        "old": [
+          32.35165912299999,
+          32.20600169499812,
+          35.38156673800404
+        ],
+        "new": [
+          4.326196925001568,
+          4.348606010004005,
+          7.207247087004362
+        ]
+      },
+      "inverse_nnz": 1897798,
+      "all_repetitions_bitwise_equal": true,
+      "six_csr_arrays_sha256": "062dcd66cb554ba3a0d26ac015c8562e84b6900f30e94dabca9790ad0b498ad1",
+      "median_speedup": 7.439547075217834,
+      "percent_less_setup_time": 86.55832149606071
+    },
+    "full_swept_matrix": {
+      "size": 7388,
+      "matrix_nnz": 72914,
+      "source_before": "26eee209b0cedacaabcccde37f88acbe887111b6cf134c368daa78d48d090190",
+      "source_after": "48f8afa2a8abc39429a418673d602cccc3a6bd5377be34294fe2aacf83014806",
+      "scope": "Complete CPU SparseInverse initialization on the unchanged full swept-contact matrix; final production implementation compared bitwise with saved legacy factors. One constructor timing, including all setup and CPU Warp arrays; concurrent user workloads may affect timing. Excludes simulation and rendering.",
+      "timings": {},
+      "new_seconds": 45.31278562600346,
+      "baseline_cache": "/home/beer/Dev/Robotics/NewtonSolvers/newton-solver-diff-phd/nsys/results/contact-investigation/factor-cache/41beb63caae27389fb9f7353674b29d8bafc5d9a0e450d878ecce2bc7cab1c39.npz",
+      "bitwise_equal": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "inverse_nnz": 7973283
+    },
+    "full_penalty_matrix": {
+      "scope": "Final production SparseInverse on original-mesh penalty-contact matrix against factors saved by an independent replay using the prior implementation. Complete CPU constructor timing is one sample with concurrent workloads.",
+      "size": 7388,
+      "matrix_nnz": 85242,
+      "factor_nnz": 8170084,
+      "constructor_seconds": 41.462210129000596,
+      "bitwise_equal_legacy": {
+        "s_offsets": true,
+        "s_columns": true,
+        "s_values": true,
+        "st_offsets": true,
+        "st_columns": true,
+        "st_values": true,
+        "permutation": true
+      },
+      "source_sha256": "48f8afa2a8abc39429a418673d602cccc3a6bd5377be34294fe2aacf83014806",
+      "matrix_sha256": "f1f154e5f72f4a6242edb69e252a049d14f44e3e8f181281f3f4276bb4894353",
+      "legacy_factor_sha256": "3accaa781ab8bb6cffaf93de94d6c1248c28de7a58e9ddc7422a3daf9b247737"
+    }
+  },
+  "mesh_only_experiment": {
+    "source": {
+      "nodes": 3663,
+      "tets": 18624,
+      "volume_m3": 0.01291469335889867,
+      "minimum_volume_m3": 8.212417190193196e-11,
+      "minimum_mean_ratio_quality": 0.034577522269656165,
+      "mean_ratio_quantiles": [
+        0.034577522269656165,
+        0.0745614819075091,
+        0.15461056186216623,
+        0.861797049550451,
+        0.9984861123374195
+      ],
+      "maximum_edge_basis_condition": 147.74586327017207,
+      "nonpositive_after_float32": 0
+    },
+    "subdivided": {
+      "nodes": 3995,
+      "tets": 20261,
+      "volume_m3": 0.01291469335889867,
+      "minimum_volume_m3": 9.843248368523672e-12,
+      "minimum_mean_ratio_quality": 0.002484825173804681,
+      "mean_ratio_quantiles": [
+        0.002484825173804681,
+        0.017496846769904137,
+        0.09573078358932907,
+        0.848719047254886,
+        0.9984861123374195
+      ],
+      "maximum_edge_basis_condition": 4943.066637290585,
+      "nonpositive_after_float32": 0
+    },
+    "remeshed": {
+      "nodes": 5353,
+      "tets": 29022,
+      "volume_m3": 0.01291469335889867,
+      "minimum_volume_m3": 6.690077096928586e-11,
+      "minimum_mean_ratio_quality": 0.009958790824675358,
+      "mean_ratio_quantiles": [
+        0.009958790824675358,
+        0.06678436785264742,
+        0.17719584630901097,
+        0.8555479474757199,
+        0.9975488039909721
+      ],
+      "maximum_edge_basis_condition": 1052.1998678426744,
+      "nonpositive_after_float32": 0,
+      "active_tets": 27861,
+      "minimum_active_mean_ratio_quality": 0.009958790824675358,
+      "maximum_active_edge_basis_condition": 1052.1998678426744
+    },
+    "clamp_z": 0.12853886311864776,
+    "pins": 422,
+    "crossing_clamp_tets": 0,
+    "surface_face_incidence_max": 2,
+    "tetgen_version": "0.8.4",
+    "config": {
+      "output": "nsys/results/tessellation-fix/recording-clamp-remeshed-grid.npz",
+      "volume": 1e-06,
+      "ratio": 1.4,
+      "angle": 10,
+      "nobisect": true,
+      "plane_grid": 0.012
+    },
+    "relative_volume_change": 0.0,
+    "embedding_max_rest_error_m": 2.482534153247273e-16,
+    "embedding_weight_min": -0.22711115242825397,
+    "embedding_outside_fraction": 0.3028082142079675,
+    "adopted": false,
+    "result": "Rejects step482 for inversion. Six well-shaped interior elements already invert in the unconstrained mechanical update; preserving the surface and conforming the clamp did not fix the full motion."
+  },
+  "swept_rollouts": {
+    "grid-exchange-swept": {
+      "xy_m": [
+        0.73,
+        0.115
+      ],
+      "completed_substeps": 481,
+      "complete": false,
+      "failed_step": 482,
+      "failure": "Swept step produced an inverted or degenerate element; the input state was restored",
+      "failure_diagnostics": {
+        "solver_status": 64,
+        "contact_status": 0,
+        "count": 218,
+        "contact_iterations": 7,
+        "gap_residual": 3.467353663857153e-08,
+        "qp_status": 0,
+        "qp_residual": 9.875531372812239e-19
+      },
+      "summary": {
+        "total_capped_steps": 0,
+        "contact_substeps": 290,
+        "max_iterations": 4660,
+        "mean_iterations": 16.422037422037423,
+        "status": 64,
+        "elapsed_seconds_including_diagnostics": 634.7567408859977,
+        "max_probe_in_die_mm": 0.0,
+        "max_probe_in_display_mm": 0.0,
+        "max_die_in_probe_mm": 0.0,
+        "max_die_inverted_tets": 0,
+        "max_tool_inverted_tets": 0,
+        "max_die_max_displacement_mm": 64.98410034179688,
+        "max_die_rms_displacement_mm": 20.39320182800293,
+        "max_tool_max_tracking_error_mm": 3.20939368817032e-05,
+        "max_tool_free_tracking_error_mm": 0.0,
+        "max_tool_root_tracking_error_mm": 3.20939368817032e-05,
+        "max_max_contact_pairs": 449,
+        "die_min_jacobian": 0.0014939591372756563,
+        "tool_min_jacobian": 0.9999890235655114
+      },
+      "local_evidence": "nsys/results/tessellation-fix/grid-exchange-swept/report.json",
+      "source_before": {
+        "combined_sha256": "83a63f512cd54d293ae85052a983a44373b11774847a9674ea794cbfb0a3bbc1",
+        "files": {
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/__init__.py": "5d624166bc62b78e1c1dba8b9762dd2134af76123e31605b607e3e7282474f99",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/adjoint.py": "a3d92e3ffcbcf0622796ded8e46e405f83acded98ab344a15679c090acdaf866",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/anderson.py": "a3f76d850b58f94a96a24741d6f1f917a88a73da58528fcaff3eb64cab1b48f1",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/ccd.py": "271e9edb477b48c836dcf70c18913705f1458d182b167f1ce10e776e3fcc434a",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/contact.py": "cda692c522b469206722e8117d5d971bcfd9aee39a9014b3c6f06e8645648468",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/dense.py": "403ddf1744666ca7e6d7bf543b64abbc85f89cecba2748084ff446f7b4a1dc1f",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/exceptions.py": "aa66748ab9894e09de33819b5f844205e5caaa9b98ec8169b92958a98adc1a6f",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/kernels.py": "10e765379ba1f1a152d44028b3976f5dc361e51eab426c55dec22de5229a3b8e",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/mesh_contact.py": "f3a63dbd00e411345608755e80fddfe76e77898c249e81ac53f99cd711c4c3a9",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/projections.py": "9d41fffa594d4d2d87883895adb76e1378c1aabe734c2fd274f036095334f652",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/solver.py": "bb34b147b590026ddb1d16175a86313c6828df0d8b188a062830f362df548e39",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/sparse.py": "26eee209b0cedacaabcccde37f88acbe887111b6cf134c368daa78d48d090190",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_contact.py": "67e30a0dd33c16b96fca549e6c4594cfaeb2bd1ec80fd8cf04ce5386af754288",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_qp.py": "e1f2c34923345c95051fd41d797cde2e256181480532b493be69965c0c8c93e5",
+          "src/newton_solver_diff_phd/examples/_diff_phd_poke.py": "0897f23ff1f8d516b4b7ba89b9d807d876604b055374e2148036cd8b980eaab6",
+          "src/newton_solver_diff_phd/examples/_diff_phd_poke_alignment.py": "86a88f110c4c7446b45175a83dd8e3c38828d35b166135988b01cf157c32bbf4",
+          "src/newton_solver_diff_phd/examples/example_softbody_diff_phd_ur5_poke.py": "68a953647f971c12ab84f85b7d66e95309fdfd83265142adcc77b00c670c6887"
+        }
+      },
+      "source_after": {
+        "combined_sha256": "149c1f2c519346a0eb051be0dfbaf5a57470b8de5066764c7e649a4e49a233da",
+        "files": {
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/__init__.py": "5d624166bc62b78e1c1dba8b9762dd2134af76123e31605b607e3e7282474f99",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/adjoint.py": "a3d92e3ffcbcf0622796ded8e46e405f83acded98ab344a15679c090acdaf866",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/anderson.py": "a3f76d850b58f94a96a24741d6f1f917a88a73da58528fcaff3eb64cab1b48f1",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/ccd.py": "271e9edb477b48c836dcf70c18913705f1458d182b167f1ce10e776e3fcc434a",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/contact.py": "cda692c522b469206722e8117d5d971bcfd9aee39a9014b3c6f06e8645648468",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/dense.py": "403ddf1744666ca7e6d7bf543b64abbc85f89cecba2748084ff446f7b4a1dc1f",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/exceptions.py": "aa66748ab9894e09de33819b5f844205e5caaa9b98ec8169b92958a98adc1a6f",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/kernels.py": "10e765379ba1f1a152d44028b3976f5dc361e51eab426c55dec22de5229a3b8e",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/mesh_contact.py": "f3a63dbd00e411345608755e80fddfe76e77898c249e81ac53f99cd711c4c3a9",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/projections.py": "9d41fffa594d4d2d87883895adb76e1378c1aabe734c2fd274f036095334f652",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/solver.py": "bb34b147b590026ddb1d16175a86313c6828df0d8b188a062830f362df548e39",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/sparse.py": "48f8afa2a8abc39429a418673d602cccc3a6bd5377be34294fe2aacf83014806",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_contact.py": "67e30a0dd33c16b96fca549e6c4594cfaeb2bd1ec80fd8cf04ce5386af754288",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_qp.py": "18706ea38933c6d54a3eeddf7bd1b0998d1aa4efbbfeb1f1ba5f9eec120d1309",
+          "src/newton_solver_diff_phd/examples/_diff_phd_poke.py": "0897f23ff1f8d516b4b7ba89b9d807d876604b055374e2148036cd8b980eaab6",
+          "src/newton_solver_diff_phd/examples/_diff_phd_poke_alignment.py": "86a88f110c4c7446b45175a83dd8e3c38828d35b166135988b01cf157c32bbf4",
+          "src/newton_solver_diff_phd/examples/example_softbody_diff_phd_ur5_poke.py": "68a953647f971c12ab84f85b7d66e95309fdfd83265142adcc77b00c670c6887"
+        }
+      },
+      "source_unchanged": false,
+      "qp_implementation_override": {
+        "path": "/home/beer/Dev/Robotics/NewtonSolvers/newton-solver-diff-phd/nsys/results/tessellation-fix/swept_qp_exchange.py",
+        "sha256": "ce46cd9d83011fd5b3cd0f63c5a1b2f69e177ac775f8da924c78e191f53a8ff3"
+      },
+      "failure_spatial_audit": {
+        "scope": "Spatial audit of accepted step 481 and rejected step 482 of the grid-conforming mesh. Uses the actual solver original rest gradients from Newton model.tet_poses, not the previous deformed state. Initial unshifted model coordinates define rest quality.",
+        "failure_archive_sha256": "2f9793bf1eb6f7d7dbfebb7edd096da3260e8437a28ae21349b119bd785cb390",
+        "failed_step": 482,
+        "failure_status": {
+          "solver_status": 64,
+          "contact_status": 0,
+          "count": 218,
+          "contact_iterations": 7,
+          "gap_residual": 3.467353663857153e-08,
+          "qp_status": 0,
+          "qp_residual": 9.875531372812239e-19
+        },
+        "rest_basis_initial_jacobian_range": [
+          0.9999977889790913,
+          1.0000027477946727
+        ],
+        "failed_tets": [
+          {
+            "tet": 1109,
+            "nodes": [
+              1661,
+              2166,
+              3072,
+              4310
+            ],
+            "pinned_nodes": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "surface_nodes": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "rest_mean_ratio_quality": 0.9493507616492824,
+            "rest_edge_basis_condition": 2.1748002204404338,
+            "rest_edge_range_m": [
+              0.01391518781235288,
+              0.01755591003707459
+            ],
+            "rest_height_above_clamp_range_m": [
+              0.197643293682576,
+              0.21226973706865387
+            ],
+            "original_rest_volume_m3": 4.556582446331019e-07,
+            "incoming_J": 0.05853392142789133,
+            "unconstrained_base_J": -1.163829276111785,
+            "candidate_J": -1.3014984756326309,
+            "nodes_in_contact_rows": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "contact_correction_norm_m": [
+              0.0027744513780567468,
+              0.0019913140263880073,
+              0.002324860441157581,
+              0.0016278842018600751
+            ]
+          },
+          {
+            "tet": 10086,
+            "nodes": [
+              1661,
+              3154,
+              3783,
+              4310
+            ],
+            "pinned_nodes": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "surface_nodes": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "rest_mean_ratio_quality": 0.9377543706281477,
+            "rest_edge_basis_condition": 2.2607363643175935,
+            "rest_edge_range_m": [
+              0.013706442084154674,
+              0.017743420756089704
+            ],
+            "rest_height_above_clamp_range_m": [
+              0.197643293682576,
+              0.21226973706865387
+            ],
+            "original_rest_volume_m3": 4.379747285847158e-07,
+            "incoming_J": 0.3877959987962903,
+            "unconstrained_base_J": -0.8566329996450525,
+            "candidate_J": -0.9631061587462616,
+            "nodes_in_contact_rows": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "contact_correction_norm_m": [
+              0.0027744513780567468,
+              0.002149638974784644,
+              0.0020068938753793593,
+              0.0016278842018600751
+            ]
+          },
+          {
+            "tet": 13196,
+            "nodes": [
+              1661,
+              2310,
+              3154,
+              4310
+            ],
+            "pinned_nodes": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "surface_nodes": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "rest_mean_ratio_quality": 0.9409956605096296,
+            "rest_edge_basis_condition": 2.1373242494228966,
+            "rest_edge_range_m": [
+              0.013706442084154674,
+              0.018419327321408357
+            ],
+            "rest_height_above_clamp_range_m": [
+              0.197643293682576,
+              0.21226973706865387
+            ],
+            "original_rest_volume_m3": 4.66443389915717e-07,
+            "incoming_J": 0.3727869370082921,
+            "unconstrained_base_J": -0.8967492923493035,
+            "candidate_J": -1.0129550529268196,
+            "nodes_in_contact_rows": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "contact_correction_norm_m": [
+              0.0027744513780567468,
+              0.001830696919469234,
+              0.002149638974784644,
+              0.0016278842018600751
+            ]
+          },
+          {
+            "tet": 15362,
+            "nodes": [
+              2166,
+              1661,
+              3783,
+              4310
+            ],
+            "pinned_nodes": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "surface_nodes": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "rest_mean_ratio_quality": 0.97737555900896,
+            "rest_edge_basis_condition": 2.21318801097333,
+            "rest_edge_range_m": [
+              0.015237558282698467,
+              0.017743420756089704
+            ],
+            "rest_height_above_clamp_range_m": [
+              0.197643293682576,
+              0.21226973706865387
+            ],
+            "original_rest_volume_m3": 5.278178841456124e-07,
+            "incoming_J": 0.30965449410380186,
+            "unconstrained_base_J": -0.9482960997916569,
+            "candidate_J": -1.0665179509368186,
+            "nodes_in_contact_rows": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "contact_correction_norm_m": [
+              0.0019913140263880073,
+              0.0027744513780567468,
+              0.0020068938753793593,
+              0.0016278842018600751
+            ]
+          },
+          {
+            "tet": 17295,
+            "nodes": [
+              4310,
+              2310,
+              3594,
+              1661
+            ],
+            "pinned_nodes": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "surface_nodes": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "rest_mean_ratio_quality": 0.9481091918768842,
+            "rest_edge_basis_condition": 2.3832760297830626,
+            "rest_edge_range_m": [
+              0.015237558282698467,
+              0.02124488905838875
+            ],
+            "rest_height_above_clamp_range_m": [
+              0.197643293682576,
+              0.21226973706865387
+            ],
+            "original_rest_volume_m3": 6.752346632453169e-07,
+            "incoming_J": 0.13057880653242013,
+            "unconstrained_base_J": -1.151066049605947,
+            "candidate_J": -1.2874448872928563,
+            "nodes_in_contact_rows": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "contact_correction_norm_m": [
+              0.0016278842018600751,
+              0.001830696919469234,
+              0.0021533713915120843,
+              0.0027744513780567468
+            ]
+          },
+          {
+            "tet": 23724,
+            "nodes": [
+              3072,
+              4310,
+              3594,
+              1661
+            ],
+            "pinned_nodes": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "surface_nodes": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "rest_mean_ratio_quality": 0.8796320461416371,
+            "rest_edge_basis_condition": 1.991739179277445,
+            "rest_edge_range_m": [
+              0.013759895837495414,
+              0.02124488905838875
+            ],
+            "rest_height_above_clamp_range_m": [
+              0.197643293682576,
+              0.21226973706865387
+            ],
+            "original_rest_volume_m3": 4.6002128677665205e-07,
+            "incoming_J": 0.001493959095030657,
+            "unconstrained_base_J": -1.2255939652860255,
+            "candidate_J": -1.3737000722952186,
+            "nodes_in_contact_rows": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "contact_correction_norm_m": [
+              0.002324860441157581,
+              0.0016278842018600751,
+              0.0021533713915120843,
+              0.0027744513780567468
+            ]
+          }
+        ],
+        "nearby_saved_frames": [
+          {
+            "step": 420,
+            "minimum_J": 0.5740462589115807,
+            "minimum_tet": 10185,
+            "failed_tet_J": [
+              0.8429234266137684,
+              0.7492482524262892,
+              0.7473162942134252,
+              0.8028954743395482,
+              0.758724222370874,
+              0.7952363875355436
+            ]
+          },
+          {
+            "step": 450,
+            "minimum_J": 0.3628958614775871,
+            "minimum_tet": 19459,
+            "failed_tet_J": [
+              0.6350751487343592,
+              0.5920957830759661,
+              0.5842210681537563,
+              0.6460221315068102,
+              0.5275437626921907,
+              0.573069681986908
+            ]
+          },
+          {
+            "step": 480,
+            "minimum_J": 0.017859974039002913,
+            "minimum_tet": 23724,
+            "failed_tet_J": [
+              0.07300565982523566,
+              0.39556994656035693,
+              0.38140048808934673,
+              0.3192535399224064,
+              0.1435791192564465,
+              0.017859974039002913
+            ]
+          },
+          {
+            "step": 481,
+            "minimum_J": 0.001493959095030657,
+            "minimum_tet": 23724,
+            "failed_tet_J": [
+              0.05853392142789133,
+              0.3877959987962903,
+              0.3727869370082921,
+              0.30965449410380186,
+              0.13057880653242013,
+              0.001493959095030657
+            ]
+          }
+        ],
+        "slow_step": {
+          "step": 472,
+          "iterations": 4660,
+          "status": 0,
+          "contact_pairs": 297,
+          "seconds": 472.92340051000065
+        },
+        "slow_step_spatial_limitation": "No step-472 position/velocity or per-iteration states were saved. Exact stall location or mechanism cannot be established from the existing evidence. Nearby saved states at 450 and 480 show the minimum determinant in the subsurface probe corridor; this does not prove why step 472 took 4,660 iterations.",
+        "recommendation": "The clamp-interface remesh moved failure away from the clamp. These failing tets are well-shaped at rest but have 13.7\u201321.2 mm edges under a 20 mm diameter probe. One targeted interior/surface refinement trial is justified to assess spatial resolution; a generic quality pass is not supported, and refinement cannot yet be claimed to fix the trajectory.",
+        "local_evidence": "nsys/results/tessellation-fix/grid-exchange-swept/failure-spatial-audit.json",
+        "publication_scope": "Element indices and scalar diagnostics retained; private vertex and centroid coordinates omitted."
+      }
+    },
+    "reference-final-swept": {
+      "xy_m": [
+        0.73,
+        0.115
+      ],
+      "completed_substeps": 479,
+      "complete": false,
+      "failed_step": 480,
+      "failure": "Swept step produced an inverted or degenerate element; the input state was restored",
+      "failure_diagnostics": {
+        "solver_status": 64,
+        "contact_status": 0,
+        "count": 131,
+        "contact_iterations": 3,
+        "gap_residual": 8.866031269033905e-08,
+        "qp_status": 0,
+        "qp_residual": 1.7142292141420297e-18
+      },
+      "summary": {
+        "total_capped_steps": 0,
+        "contact_substeps": 288,
+        "max_iterations": 28,
+        "mean_iterations": 10.8580375782881,
+        "status": 64,
+        "elapsed_seconds_including_diagnostics": 605.2738186060014,
+        "max_probe_in_die_mm": 0.0,
+        "max_probe_in_display_mm": 0.0,
+        "max_die_in_probe_mm": 0.0,
+        "max_die_inverted_tets": 0,
+        "max_tool_inverted_tets": 0,
+        "max_die_max_displacement_mm": 62.86231994628906,
+        "max_die_rms_displacement_mm": 7.248426914215088,
+        "max_tool_max_tracking_error_mm": 3.3273679174949114e-05,
+        "max_tool_free_tracking_error_mm": 0.0,
+        "max_tool_root_tracking_error_mm": 3.3273679174949114e-05,
+        "max_max_contact_pairs": 143,
+        "die_min_jacobian": 0.004009761852265159,
+        "tool_min_jacobian": 0.9998372800055075
+      },
+      "local_evidence": "nsys/results/tessellation-fix/reference-final-swept/report.json",
+      "source_before": {
+        "combined_sha256": "149c1f2c519346a0eb051be0dfbaf5a57470b8de5066764c7e649a4e49a233da",
+        "files": {
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/__init__.py": "5d624166bc62b78e1c1dba8b9762dd2134af76123e31605b607e3e7282474f99",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/adjoint.py": "a3d92e3ffcbcf0622796ded8e46e405f83acded98ab344a15679c090acdaf866",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/anderson.py": "a3f76d850b58f94a96a24741d6f1f917a88a73da58528fcaff3eb64cab1b48f1",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/ccd.py": "271e9edb477b48c836dcf70c18913705f1458d182b167f1ce10e776e3fcc434a",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/contact.py": "cda692c522b469206722e8117d5d971bcfd9aee39a9014b3c6f06e8645648468",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/dense.py": "403ddf1744666ca7e6d7bf543b64abbc85f89cecba2748084ff446f7b4a1dc1f",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/exceptions.py": "aa66748ab9894e09de33819b5f844205e5caaa9b98ec8169b92958a98adc1a6f",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/kernels.py": "10e765379ba1f1a152d44028b3976f5dc361e51eab426c55dec22de5229a3b8e",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/mesh_contact.py": "f3a63dbd00e411345608755e80fddfe76e77898c249e81ac53f99cd711c4c3a9",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/projections.py": "9d41fffa594d4d2d87883895adb76e1378c1aabe734c2fd274f036095334f652",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/solver.py": "bb34b147b590026ddb1d16175a86313c6828df0d8b188a062830f362df548e39",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/sparse.py": "48f8afa2a8abc39429a418673d602cccc3a6bd5377be34294fe2aacf83014806",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_contact.py": "67e30a0dd33c16b96fca549e6c4594cfaeb2bd1ec80fd8cf04ce5386af754288",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_qp.py": "18706ea38933c6d54a3eeddf7bd1b0998d1aa4efbbfeb1f1ba5f9eec120d1309",
+          "src/newton_solver_diff_phd/examples/_diff_phd_poke.py": "0897f23ff1f8d516b4b7ba89b9d807d876604b055374e2148036cd8b980eaab6",
+          "src/newton_solver_diff_phd/examples/_diff_phd_poke_alignment.py": "86a88f110c4c7446b45175a83dd8e3c38828d35b166135988b01cf157c32bbf4",
+          "src/newton_solver_diff_phd/examples/example_softbody_diff_phd_ur5_poke.py": "68a953647f971c12ab84f85b7d66e95309fdfd83265142adcc77b00c670c6887"
+        }
+      },
+      "source_after": {
+        "combined_sha256": "149c1f2c519346a0eb051be0dfbaf5a57470b8de5066764c7e649a4e49a233da",
+        "files": {
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/__init__.py": "5d624166bc62b78e1c1dba8b9762dd2134af76123e31605b607e3e7282474f99",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/adjoint.py": "a3d92e3ffcbcf0622796ded8e46e405f83acded98ab344a15679c090acdaf866",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/anderson.py": "a3f76d850b58f94a96a24741d6f1f917a88a73da58528fcaff3eb64cab1b48f1",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/ccd.py": "271e9edb477b48c836dcf70c18913705f1458d182b167f1ce10e776e3fcc434a",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/contact.py": "cda692c522b469206722e8117d5d971bcfd9aee39a9014b3c6f06e8645648468",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/dense.py": "403ddf1744666ca7e6d7bf543b64abbc85f89cecba2748084ff446f7b4a1dc1f",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/exceptions.py": "aa66748ab9894e09de33819b5f844205e5caaa9b98ec8169b92958a98adc1a6f",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/kernels.py": "10e765379ba1f1a152d44028b3976f5dc361e51eab426c55dec22de5229a3b8e",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/mesh_contact.py": "f3a63dbd00e411345608755e80fddfe76e77898c249e81ac53f99cd711c4c3a9",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/projections.py": "9d41fffa594d4d2d87883895adb76e1378c1aabe734c2fd274f036095334f652",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/solver.py": "bb34b147b590026ddb1d16175a86313c6828df0d8b188a062830f362df548e39",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/sparse.py": "48f8afa2a8abc39429a418673d602cccc3a6bd5377be34294fe2aacf83014806",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_contact.py": "67e30a0dd33c16b96fca549e6c4594cfaeb2bd1ec80fd8cf04ce5386af754288",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_qp.py": "18706ea38933c6d54a3eeddf7bd1b0998d1aa4efbbfeb1f1ba5f9eec120d1309",
+          "src/newton_solver_diff_phd/examples/_diff_phd_poke.py": "0897f23ff1f8d516b4b7ba89b9d807d876604b055374e2148036cd8b980eaab6",
+          "src/newton_solver_diff_phd/examples/_diff_phd_poke_alignment.py": "86a88f110c4c7446b45175a83dd8e3c38828d35b166135988b01cf157c32bbf4",
+          "src/newton_solver_diff_phd/examples/example_softbody_diff_phd_ur5_poke.py": "68a953647f971c12ab84f85b7d66e95309fdfd83265142adcc77b00c670c6887"
+        }
+      },
+      "source_unchanged": true,
+      "qp_implementation_override": null,
+      "failed_elements": {
+        "scope": "All Jacobians use the original model.tet_poses reference matrix (stored float32 inverse rest shape promoted to double), not the preceding simulated state. No simulator rerun or source changes.",
+        "solver_status": 64,
+        "failed_step": 480,
+        "invalid_candidate_tets": 1,
+        "candidate_min_jacobian": -0.14004237290402835,
+        "stored_candidate_min_jacobian": -0.14004338444889944,
+        "incoming_min_jacobian": 0.004009760745794483,
+        "elements": [
+          {
+            "tet": 3855,
+            "nodes": [
+              23,
+              94,
+              5966,
+              936
+            ],
+            "pinned_count": 0,
+            "pinned_nodes": [],
+            "rest_mean_ratio": 0.5271843182657532,
+            "jacobian_relative_to_solver_rest": {
+              "position": 0.004009760745794483,
+              "contact_base": 0.02906041568117284,
+              "candidate": -0.14004237290402835,
+              "stored_candidate": -0.14004338444889944
+            },
+            "surface_nodes": [
+              23,
+              94,
+              936
+            ],
+            "distance_to_fixed_nodes_min_m": 0.2230608238201363,
+            "contact_correction_lengths_mm": [
+              7.943317079735312,
+              5.9502863884239385,
+              0.899390020407548,
+              7.528179006133358
+            ],
+            "step_displacement_lengths_mm": [
+              0.4602577728788068,
+              0.4945894283580043,
+              3.474496275174357,
+              0.47236767869947804
+            ]
+          }
+        ]
+      }
+    },
+    "reference-aligned-swept": {
+      "xy_m": [
+        0.7,
+        0.089
+      ],
+      "completed_substeps": 475,
+      "complete": false,
+      "failed_step": 476,
+      "failure": "Swept contact rejected the step (continuous collision search unresolved); the input state was restored",
+      "failure_diagnostics": {
+        "solver_status": 32,
+        "contact_status": 2,
+        "count": 140,
+        "contact_iterations": 4,
+        "gap_residual": 5.767955557622884e-17,
+        "qp_status": 0,
+        "qp_residual": 5.260161512804047e-19
+      },
+      "summary": {
+        "total_capped_steps": 0,
+        "contact_substeps": 222,
+        "max_iterations": 32,
+        "mean_iterations": 10.99578947368421,
+        "status": 32,
+        "elapsed_seconds_including_diagnostics": 464.67339000599895,
+        "max_probe_in_die_mm": 0.0,
+        "max_probe_in_display_mm": 0.0,
+        "max_die_in_probe_mm": 0.0,
+        "max_die_inverted_tets": 0,
+        "max_tool_inverted_tets": 0,
+        "max_die_max_displacement_mm": 61.049068450927734,
+        "max_die_rms_displacement_mm": 8.02501392364502,
+        "max_tool_max_tracking_error_mm": 3.321002276319646e-05,
+        "max_tool_free_tracking_error_mm": 0.0,
+        "max_tool_root_tracking_error_mm": 3.321002276319646e-05,
+        "max_max_contact_pairs": 299,
+        "die_min_jacobian": 0.008202615715152597,
+        "tool_min_jacobian": 0.9998360144790828
+      },
+      "local_evidence": "nsys/results/tessellation-fix/reference-aligned-swept/report.json",
+      "source_before": {
+        "combined_sha256": "149c1f2c519346a0eb051be0dfbaf5a57470b8de5066764c7e649a4e49a233da",
+        "files": {
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/__init__.py": "5d624166bc62b78e1c1dba8b9762dd2134af76123e31605b607e3e7282474f99",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/adjoint.py": "a3d92e3ffcbcf0622796ded8e46e405f83acded98ab344a15679c090acdaf866",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/anderson.py": "a3f76d850b58f94a96a24741d6f1f917a88a73da58528fcaff3eb64cab1b48f1",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/ccd.py": "271e9edb477b48c836dcf70c18913705f1458d182b167f1ce10e776e3fcc434a",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/contact.py": "cda692c522b469206722e8117d5d971bcfd9aee39a9014b3c6f06e8645648468",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/dense.py": "403ddf1744666ca7e6d7bf543b64abbc85f89cecba2748084ff446f7b4a1dc1f",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/exceptions.py": "aa66748ab9894e09de33819b5f844205e5caaa9b98ec8169b92958a98adc1a6f",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/kernels.py": "10e765379ba1f1a152d44028b3976f5dc361e51eab426c55dec22de5229a3b8e",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/mesh_contact.py": "f3a63dbd00e411345608755e80fddfe76e77898c249e81ac53f99cd711c4c3a9",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/projections.py": "9d41fffa594d4d2d87883895adb76e1378c1aabe734c2fd274f036095334f652",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/solver.py": "bb34b147b590026ddb1d16175a86313c6828df0d8b188a062830f362df548e39",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/sparse.py": "48f8afa2a8abc39429a418673d602cccc3a6bd5377be34294fe2aacf83014806",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_contact.py": "67e30a0dd33c16b96fca549e6c4594cfaeb2bd1ec80fd8cf04ce5386af754288",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_qp.py": "18706ea38933c6d54a3eeddf7bd1b0998d1aa4efbbfeb1f1ba5f9eec120d1309",
+          "src/newton_solver_diff_phd/examples/_diff_phd_poke.py": "0897f23ff1f8d516b4b7ba89b9d807d876604b055374e2148036cd8b980eaab6",
+          "src/newton_solver_diff_phd/examples/_diff_phd_poke_alignment.py": "86a88f110c4c7446b45175a83dd8e3c38828d35b166135988b01cf157c32bbf4",
+          "src/newton_solver_diff_phd/examples/example_softbody_diff_phd_ur5_poke.py": "68a953647f971c12ab84f85b7d66e95309fdfd83265142adcc77b00c670c6887"
+        }
+      },
+      "source_after": {
+        "combined_sha256": "149c1f2c519346a0eb051be0dfbaf5a57470b8de5066764c7e649a4e49a233da",
+        "files": {
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/__init__.py": "5d624166bc62b78e1c1dba8b9762dd2134af76123e31605b607e3e7282474f99",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/adjoint.py": "a3d92e3ffcbcf0622796ded8e46e405f83acded98ab344a15679c090acdaf866",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/anderson.py": "a3f76d850b58f94a96a24741d6f1f917a88a73da58528fcaff3eb64cab1b48f1",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/ccd.py": "271e9edb477b48c836dcf70c18913705f1458d182b167f1ce10e776e3fcc434a",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/contact.py": "cda692c522b469206722e8117d5d971bcfd9aee39a9014b3c6f06e8645648468",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/dense.py": "403ddf1744666ca7e6d7bf543b64abbc85f89cecba2748084ff446f7b4a1dc1f",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/exceptions.py": "aa66748ab9894e09de33819b5f844205e5caaa9b98ec8169b92958a98adc1a6f",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/kernels.py": "10e765379ba1f1a152d44028b3976f5dc361e51eab426c55dec22de5229a3b8e",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/mesh_contact.py": "f3a63dbd00e411345608755e80fddfe76e77898c249e81ac53f99cd711c4c3a9",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/projections.py": "9d41fffa594d4d2d87883895adb76e1378c1aabe734c2fd274f036095334f652",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/solver.py": "bb34b147b590026ddb1d16175a86313c6828df0d8b188a062830f362df548e39",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/sparse.py": "48f8afa2a8abc39429a418673d602cccc3a6bd5377be34294fe2aacf83014806",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_contact.py": "67e30a0dd33c16b96fca549e6c4594cfaeb2bd1ec80fd8cf04ce5386af754288",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_qp.py": "18706ea38933c6d54a3eeddf7bd1b0998d1aa4efbbfeb1f1ba5f9eec120d1309",
+          "src/newton_solver_diff_phd/examples/_diff_phd_poke.py": "0897f23ff1f8d516b4b7ba89b9d807d876604b055374e2148036cd8b980eaab6",
+          "src/newton_solver_diff_phd/examples/_diff_phd_poke_alignment.py": "86a88f110c4c7446b45175a83dd8e3c38828d35b166135988b01cf157c32bbf4",
+          "src/newton_solver_diff_phd/examples/example_softbody_diff_phd_ur5_poke.py": "68a953647f971c12ab84f85b7d66e95309fdfd83265142adcc77b00c670c6887"
+        }
+      },
+      "source_unchanged": true,
+      "qp_implementation_override": null,
+      "failed_elements": {
+        "scope": "All Jacobians use the original model.tet_poses reference matrix (stored float32 inverse rest shape promoted to double), not the preceding simulated state. No simulator rerun or source changes.",
+        "solver_status": 32,
+        "failed_step": 476,
+        "invalid_candidate_tets": 0,
+        "candidate_min_jacobian": 0.008202615482976652,
+        "stored_candidate_min_jacobian": 0.008202615482976652,
+        "incoming_min_jacobian": 0.008202615482976652,
+        "elements": [],
+        "candidate_scope": "SweptContact.project restores its output to the step-start state when contact_status is nonzero. The saved candidate here equals incoming position, so these Jacobians audit the restored state, not the unresolved trial."
+      }
+    },
+    "graded-swept": {
+      "xy_m": [
+        0.73,
+        0.115
+      ],
+      "completed_substeps": 423,
+      "complete": false,
+      "failed_step": 424,
+      "failure": "Swept step produced an inverted or degenerate element; the input state was restored",
+      "failure_diagnostics": {
+        "solver_status": 64,
+        "contact_status": 0,
+        "count": 506,
+        "contact_iterations": 8,
+        "gap_residual": 3.312566608808251e-08,
+        "qp_status": 0,
+        "qp_residual": 3.836110083767024e-17
+      },
+      "summary": {
+        "total_capped_steps": 0,
+        "contact_substeps": 232,
+        "max_iterations": 585,
+        "mean_iterations": 7.732860520094563,
+        "status": 64,
+        "elapsed_seconds_including_diagnostics": 268.20016815500276,
+        "max_probe_in_die_mm": 0.0,
+        "max_probe_in_display_mm": 0.0,
+        "max_die_in_probe_mm": 0.0,
+        "max_die_inverted_tets": 0,
+        "max_tool_inverted_tets": 0,
+        "max_die_max_displacement_mm": 37.2736930847168,
+        "max_die_rms_displacement_mm": 16.746566772460938,
+        "max_tool_max_tracking_error_mm": 3.20939368817032e-05,
+        "max_tool_free_tracking_error_mm": 0.0,
+        "max_tool_root_tracking_error_mm": 3.20939368817032e-05,
+        "max_max_contact_pairs": 495,
+        "die_min_jacobian": 0.008848599509370227,
+        "tool_min_jacobian": 0.9999890235655114
+      },
+      "local_evidence": "nsys/results/tessellation-fix/graded-swept/report.json",
+      "source_before": {
+        "combined_sha256": "149c1f2c519346a0eb051be0dfbaf5a57470b8de5066764c7e649a4e49a233da",
+        "files": {
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/__init__.py": "5d624166bc62b78e1c1dba8b9762dd2134af76123e31605b607e3e7282474f99",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/adjoint.py": "a3d92e3ffcbcf0622796ded8e46e405f83acded98ab344a15679c090acdaf866",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/anderson.py": "a3f76d850b58f94a96a24741d6f1f917a88a73da58528fcaff3eb64cab1b48f1",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/ccd.py": "271e9edb477b48c836dcf70c18913705f1458d182b167f1ce10e776e3fcc434a",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/contact.py": "cda692c522b469206722e8117d5d971bcfd9aee39a9014b3c6f06e8645648468",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/dense.py": "403ddf1744666ca7e6d7bf543b64abbc85f89cecba2748084ff446f7b4a1dc1f",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/exceptions.py": "aa66748ab9894e09de33819b5f844205e5caaa9b98ec8169b92958a98adc1a6f",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/kernels.py": "10e765379ba1f1a152d44028b3976f5dc361e51eab426c55dec22de5229a3b8e",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/mesh_contact.py": "f3a63dbd00e411345608755e80fddfe76e77898c249e81ac53f99cd711c4c3a9",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/projections.py": "9d41fffa594d4d2d87883895adb76e1378c1aabe734c2fd274f036095334f652",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/solver.py": "bb34b147b590026ddb1d16175a86313c6828df0d8b188a062830f362df548e39",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/sparse.py": "48f8afa2a8abc39429a418673d602cccc3a6bd5377be34294fe2aacf83014806",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_contact.py": "67e30a0dd33c16b96fca549e6c4594cfaeb2bd1ec80fd8cf04ce5386af754288",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_qp.py": "18706ea38933c6d54a3eeddf7bd1b0998d1aa4efbbfeb1f1ba5f9eec120d1309",
+          "src/newton_solver_diff_phd/examples/_diff_phd_poke.py": "0897f23ff1f8d516b4b7ba89b9d807d876604b055374e2148036cd8b980eaab6",
+          "src/newton_solver_diff_phd/examples/_diff_phd_poke_alignment.py": "86a88f110c4c7446b45175a83dd8e3c38828d35b166135988b01cf157c32bbf4",
+          "src/newton_solver_diff_phd/examples/example_softbody_diff_phd_ur5_poke.py": "68a953647f971c12ab84f85b7d66e95309fdfd83265142adcc77b00c670c6887"
+        }
+      },
+      "source_after": {
+        "combined_sha256": "149c1f2c519346a0eb051be0dfbaf5a57470b8de5066764c7e649a4e49a233da",
+        "files": {
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/__init__.py": "5d624166bc62b78e1c1dba8b9762dd2134af76123e31605b607e3e7282474f99",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/adjoint.py": "a3d92e3ffcbcf0622796ded8e46e405f83acded98ab344a15679c090acdaf866",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/anderson.py": "a3f76d850b58f94a96a24741d6f1f917a88a73da58528fcaff3eb64cab1b48f1",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/ccd.py": "271e9edb477b48c836dcf70c18913705f1458d182b167f1ce10e776e3fcc434a",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/contact.py": "cda692c522b469206722e8117d5d971bcfd9aee39a9014b3c6f06e8645648468",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/dense.py": "403ddf1744666ca7e6d7bf543b64abbc85f89cecba2748084ff446f7b4a1dc1f",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/exceptions.py": "aa66748ab9894e09de33819b5f844205e5caaa9b98ec8169b92958a98adc1a6f",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/kernels.py": "10e765379ba1f1a152d44028b3976f5dc361e51eab426c55dec22de5229a3b8e",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/mesh_contact.py": "f3a63dbd00e411345608755e80fddfe76e77898c249e81ac53f99cd711c4c3a9",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/projections.py": "9d41fffa594d4d2d87883895adb76e1378c1aabe734c2fd274f036095334f652",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/solver.py": "bb34b147b590026ddb1d16175a86313c6828df0d8b188a062830f362df548e39",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/sparse.py": "48f8afa2a8abc39429a418673d602cccc3a6bd5377be34294fe2aacf83014806",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_contact.py": "67e30a0dd33c16b96fca549e6c4594cfaeb2bd1ec80fd8cf04ce5386af754288",
+          "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_qp.py": "18706ea38933c6d54a3eeddf7bd1b0998d1aa4efbbfeb1f1ba5f9eec120d1309",
+          "src/newton_solver_diff_phd/examples/_diff_phd_poke.py": "0897f23ff1f8d516b4b7ba89b9d807d876604b055374e2148036cd8b980eaab6",
+          "src/newton_solver_diff_phd/examples/_diff_phd_poke_alignment.py": "86a88f110c4c7446b45175a83dd8e3c38828d35b166135988b01cf157c32bbf4",
+          "src/newton_solver_diff_phd/examples/example_softbody_diff_phd_ur5_poke.py": "68a953647f971c12ab84f85b7d66e95309fdfd83265142adcc77b00c670c6887"
+        }
+      },
+      "source_unchanged": true,
+      "qp_implementation_override": null,
+      "failure_spatial_audit": {
+        "scope": "Spatial audit of accepted step 423 and rejected step 424 of the graded mesh. Uses the actual solver original rest gradients from Newton model.tet_poses, not the previous deformed state. Initial unshifted model coordinates define rest quality.",
+        "failure_archive_sha256": "44739ad9f80d04265bc8cd46b8fa6740ace2597cc67929bb96d6c046821f4d5b",
+        "failed_step": 424,
+        "failure_status": {
+          "solver_status": 64,
+          "contact_status": 0,
+          "count": 506,
+          "contact_iterations": 8,
+          "gap_residual": 3.312566608808251e-08,
+          "qp_status": 0,
+          "qp_residual": 3.836110083767024e-17
+        },
+        "rest_basis_initial_jacobian_range": [
+          0.9999970363424945,
+          1.0000021372771766
+        ],
+        "failed_tets": [
+          {
+            "tet": 2787,
+            "nodes": [
+              613,
+              3033,
+              612,
+              605
+            ],
+            "pinned_nodes": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "surface_nodes": [
+              true,
+              false,
+              true,
+              true
+            ],
+            "rest_mean_ratio_quality": 0.9562484461452113,
+            "rest_edge_basis_condition": 1.9427266392417086,
+            "rest_edge_range_m": [
+              0.004291164304131286,
+              0.005848929281751224
+            ],
+            "rest_height_above_clamp_range_m": [
+              0.2264821665921219,
+              0.23048199588441926
+            ],
+            "original_rest_volume_m3": 1.6386907319915794e-08,
+            "incoming_J": 0.12865336887677548,
+            "unconstrained_base_J": -0.3041758629230286,
+            "candidate_J": -0.5505577820313237,
+            "nodes_in_contact_rows": [
+              true,
+              false,
+              true,
+              true
+            ],
+            "contact_correction_norm_m": [
+              0.0033303901591757983,
+              0.0028210659856439516,
+              0.0033147856822063402,
+              0.0025068719529894646
+            ],
+            "incoming_centroid_unsigned_distance_to_probe_surface_m": 0.0007852305840843377,
+            "incoming_node_unsigned_distance_to_probe_surface_m": [
+              0.0011858097130660523,
+              0.002092780478926472,
+              0.0008723985340821654,
+              0.0015257293863733857
+            ]
+          },
+          {
+            "tet": 18765,
+            "nodes": [
+              605,
+              3033,
+              614,
+              613
+            ],
+            "pinned_nodes": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "surface_nodes": [
+              true,
+              false,
+              true,
+              true
+            ],
+            "rest_mean_ratio_quality": 0.7290975722383704,
+            "rest_edge_basis_condition": 5.3014946396245435,
+            "rest_edge_range_m": [
+              0.002721239938781187,
+              0.005848929281751224
+            ],
+            "rest_height_above_clamp_range_m": [
+              0.2264821665921219,
+              0.23048199588441926
+            ],
+            "original_rest_volume_m3": 8.193435700032196e-09,
+            "incoming_J": 0.0652652103267727,
+            "unconstrained_base_J": -0.534818989741439,
+            "candidate_J": -0.715068641659283,
+            "nodes_in_contact_rows": [
+              true,
+              false,
+              true,
+              true
+            ],
+            "contact_correction_norm_m": [
+              0.0025068719529894646,
+              0.0028210659856439516,
+              0.0028935367565083867,
+              0.0033303901591757983
+            ],
+            "incoming_centroid_unsigned_distance_to_probe_surface_m": 0.0009520121881190817,
+            "incoming_node_unsigned_distance_to_probe_surface_m": [
+              0.0015257293863733857,
+              0.002092780478926472,
+              0.001834648721735837,
+              0.0011858097130660523
+            ]
+          },
+          {
+            "tet": 18890,
+            "nodes": [
+              1803,
+              3033,
+              5000,
+              612
+            ],
+            "pinned_nodes": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "surface_nodes": [
+              false,
+              false,
+              false,
+              true
+            ],
+            "rest_mean_ratio_quality": 0.9643157441332088,
+            "rest_edge_basis_condition": 2.6394998948752297,
+            "rest_edge_range_m": [
+              0.0048997696071700035,
+              0.006613088451804351
+            ],
+            "rest_height_above_clamp_range_m": [
+              0.22544781738901215,
+              0.23045776659631806
+            ],
+            "original_rest_volume_m3": 2.0252407724259567e-08,
+            "incoming_J": 0.09882048631667052,
+            "unconstrained_base_J": -0.05860510662244974,
+            "candidate_J": -0.31082206048636557,
+            "nodes_in_contact_rows": [
+              false,
+              false,
+              false,
+              true
+            ],
+            "contact_correction_norm_m": [
+              0.002808363071548016,
+              0.0028210659856439516,
+              0.0025338199464959173,
+              0.0033147856822063402
+            ],
+            "incoming_centroid_unsigned_distance_to_probe_surface_m": 0.0013793866971374689,
+            "incoming_node_unsigned_distance_to_probe_surface_m": [
+              0.0035801534932791363,
+              0.002092780478926472,
+              0.0022822157102074165,
+              0.0008723985340821654
+            ]
+          },
+          {
+            "tet": 18930,
+            "nodes": [
+              612,
+              1803,
+              667,
+              5000
+            ],
+            "pinned_nodes": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "surface_nodes": [
+              true,
+              false,
+              true,
+              false
+            ],
+            "rest_mean_ratio_quality": 0.9381403234571885,
+            "rest_edge_basis_condition": 2.2098387245595497,
+            "rest_edge_range_m": [
+              0.004635261024108646,
+              0.006395668902276437
+            ],
+            "rest_height_above_clamp_range_m": [
+              0.22544781738901215,
+              0.23060075813913422
+            ],
+            "original_rest_volume_m3": 1.678352346385596e-08,
+            "incoming_J": 0.2110466835291824,
+            "unconstrained_base_J": 0.06697135443134812,
+            "candidate_J": -0.13773499391284202,
+            "nodes_in_contact_rows": [
+              true,
+              false,
+              true,
+              false
+            ],
+            "contact_correction_norm_m": [
+              0.0033147856822063402,
+              0.002808363071548016,
+              0.003056856949285744,
+              0.0025338199464959173
+            ],
+            "incoming_centroid_unsigned_distance_to_probe_surface_m": 0.0008279784814113066,
+            "incoming_node_unsigned_distance_to_probe_surface_m": [
+              0.0008723985340821654,
+              0.0035801534932791363,
+              0.001568757482072276,
+              0.0022822157102074165
+            ]
+          },
+          {
+            "tet": 18931,
+            "nodes": [
+              661,
+              1803,
+              667,
+              612
+            ],
+            "pinned_nodes": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "surface_nodes": [
+              true,
+              false,
+              true,
+              true
+            ],
+            "rest_mean_ratio_quality": 0.7218410327162347,
+            "rest_edge_basis_condition": 3.2005241861298948,
+            "rest_edge_range_m": [
+              0.0027212443295550983,
+              0.006395668902276437
+            ],
+            "rest_height_above_clamp_range_m": [
+              0.22544781738901215,
+              0.23060075813913422
+            ],
+            "original_rest_volume_m3": 1.0619839957792205e-08,
+            "incoming_J": 0.012295963685691183,
+            "unconstrained_base_J": -0.28627672898207795,
+            "candidate_J": -0.5519992522859978,
+            "nodes_in_contact_rows": [
+              true,
+              false,
+              true,
+              true
+            ],
+            "contact_correction_norm_m": [
+              0.003588254213508409,
+              0.002808363071548016,
+              0.003056856949285744,
+              0.0033147856822063402
+            ],
+            "incoming_centroid_unsigned_distance_to_probe_surface_m": 0.0008376300588473584,
+            "incoming_node_unsigned_distance_to_probe_surface_m": [
+              0.0007278281656418849,
+              0.0035801534932791363,
+              0.001568757482072276,
+              0.0008723985340821654
+            ]
+          },
+          {
+            "tet": 32291,
+            "nodes": [
+              614,
+              3033,
+              4849,
+              613
+            ],
+            "pinned_nodes": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "surface_nodes": [
+              true,
+              false,
+              false,
+              true
+            ],
+            "rest_mean_ratio_quality": 0.7925864749737703,
+            "rest_edge_basis_condition": 3.545661925553579,
+            "rest_edge_range_m": [
+              0.002721239938781187,
+              0.005321095900677929
+            ],
+            "rest_height_above_clamp_range_m": [
+              0.2264821665921219,
+              0.2303390043416031
+            ],
+            "original_rest_volume_m3": 6.926376502034673e-09,
+            "incoming_J": 0.00884859975160355,
+            "unconstrained_base_J": -0.5974685307988952,
+            "candidate_J": -0.776729376472355,
+            "nodes_in_contact_rows": [
+              true,
+              false,
+              false,
+              true
+            ],
+            "contact_correction_norm_m": [
+              0.0028935367565083867,
+              0.0028210659856439516,
+              0.003155491921853167,
+              0.0033303901591757983
+            ],
+            "incoming_centroid_unsigned_distance_to_probe_surface_m": 0.0013452730271657609,
+            "incoming_node_unsigned_distance_to_probe_surface_m": [
+              0.001834648721735837,
+              0.002092780478926472,
+              0.0027824568561808163,
+              0.0011858097130660523
+            ]
+          }
+        ],
+        "nearby_saved_frames": [
+          {
+            "step": 360,
+            "minimum_J": 0.7363048302358868,
+            "minimum_tet": 22160,
+            "failed_tet_J": [
+              0.9455738527873925,
+              0.953127612029242,
+              0.9519618252188426,
+              0.9485940841388946,
+              0.9446310519396518,
+              0.9824181901192132
+            ]
+          },
+          {
+            "step": 390,
+            "minimum_J": 0.5278059503415001,
+            "minimum_tet": 22174,
+            "failed_tet_J": [
+              0.830318952328918,
+              0.8521359506921016,
+              0.6266652534852086,
+              0.7612979688455391,
+              0.6825335478035629,
+              0.9412336872930438
+            ]
+          },
+          {
+            "step": 420,
+            "minimum_J": 0.07891624846079402,
+            "minimum_tet": 32291,
+            "failed_tet_J": [
+              0.17308726194520324,
+              0.1207161928172651,
+              0.16217114033685712,
+              0.25475208634073115,
+              0.0812910210389805,
+              0.07891624846079402
+            ]
+          },
+          {
+            "step": 423,
+            "minimum_J": 0.00884859975160355,
+            "minimum_tet": 32291,
+            "failed_tet_J": [
+              0.12865336887677548,
+              0.0652652103267727,
+              0.09882048631667052,
+              0.2110466835291824,
+              0.012295963685691183,
+              0.00884859975160355
+            ]
+          }
+        ],
+        "slow_step": {
+          "step": 401,
+          "iterations": 585,
+          "status": 0,
+          "contact_pairs": 339,
+          "seconds": 68.34169245399971
+        },
+        "slow_step_spatial_limitation": "Checkpoint positions and velocities exist every 10 accepted steps from 400. No per-iteration state was recorded for the slowest step; its exact mechanism is not determined by this static audit.",
+        "recommendation": "The graded mesh improves probe-region resolution and rest shape quality but fails earlier in the prescribed trajectory. Do not adopt it as a fix or continue blind mesh refinement. The failure requires a mechanical-solver/material-branch investigation with matched original equations.",
+        "checkpoint_determinants": [
+          {
+            "step": 400,
+            "minimum_J": 0.35588992902368044,
+            "minimum_tet": 18952,
+            "failed_tet_J": [
+              0.6177062706647871,
+              0.5950313005630468,
+              0.5579642918290941,
+              0.5992668406361122,
+              0.42716044297686373,
+              0.6551657977772106
+            ]
+          },
+          {
+            "step": 410,
+            "minimum_J": 0.27581347951377,
+            "minimum_tet": 18931,
+            "failed_tet_J": [
+              0.3353175158356408,
+              0.31168509164591096,
+              0.32099723066046854,
+              0.3919500315799562,
+              0.27581347951377,
+              0.3119344889582456
+            ]
+          },
+          {
+            "step": 420,
+            "minimum_J": 0.07891624846079402,
+            "minimum_tet": 32291,
+            "failed_tet_J": [
+              0.17308726194520324,
+              0.1207161928172651,
+              0.16217114033685712,
+              0.25475208634073115,
+              0.0812910210389805,
+              0.07891624846079402
+            ]
+          }
+        ],
+        "distance_scope": "Unsigned closest point to every actual probe boundary triangle in accepted step 423, evaluated from saved incoming world coordinates. This is distance to probe surface, not vertical depth or a signed penetration test.",
+        "local_evidence": "nsys/results/tessellation-fix/graded-swept/failure-spatial-audit.json",
+        "publication_scope": "Element indices and scalar diagnostics retained; private vertex and centroid coordinates omitted."
+      }
+    }
+  },
+  "native_reference": {
+    "format": "newton.diff_phd.original_tessellation_native_comparison.v1",
+    "date": "2026-11-02",
+    "scope": "Original generated UR5 die/probe mesh validation. No production solver changes in this diagnostic. Matching-input forward comparisons use the native AlgPhD method and original penalty contact, not the optional swept extension. No full port trajectory, backward, training or collision-prevention claim.",
+    "fixture": {
+      "fixture_sha256": "a9717a9713524ffac8ab42724140859703d08419d61aaadef21ea13f2c651f96",
+      "recording": "src/newton_solver_diff_phd/examples/assets/pokeflex_local/recording_reference.json",
+      "recording_sha256": "c0a9b368eecff7c654ee7c458cfba431f6e85973c49630db1481c71435df06e8",
+      "vertices": 7388,
+      "soft_vertices": 6223,
+      "tets": 31518,
+      "die_tets": 27129,
+      "prescribed": 659,
+      "free_probe_nodes": 1129,
+      "min_rest_det": 4.4228699547679855e-11,
+      "rest_pose_float32_abs_error_max": 0.0018369146541772352,
+      "rest_pose_float32_relative_frobenius_error": 3.566253941966186e-08,
+      "note": "Common float32 vertices/materials/endpoint commands. Native computes exact double rest inverses; production port stores float32 rest inverses; this discrepancy is measured, not overridden."
+    },
+    "reference_method_dispatch": {
+      "python_default_name": "pd_eigen_alg4",
+      "python_source": "/home/beer/Dev/Robotics/DiffPhD/python/example/dice_material_optimize.py:662",
+      "actual_dispatch": "Generic ForwardProjectiveDynamics/PdNonlinearSolve; force-gradient convergence. The name alg4 does not dispatch to AlgPhD in this revision.",
+      "cpp_source": "/home/beer/Dev/Robotics/DiffPhD-reference-build/cpp/core/src/fem/deformable_projective_dynamics_forward.cpp:537",
+      "alg_phd_method": "pd_eigen_alg_phd",
+      "alg_phd_stop_rule": "position/projection fixed point; distinct from generic PD force-gradient convergence"
+    },
+    "matching_inputs": {
+      "description": "Identical float32-representable rest vertices, material parameters, incoming q/v and endpoint commands; same tetrahedral topology, pins, dt 1/900, damping0.30 and penalty law. Native double rest inverses differ from Newton stored float32 inverses by the measured 3.57e-8 relative Frobenius norm.",
+      "steps": [
+        1,
+        270,
+        360,
+        420,
+        451
+      ],
+      "maximum_nodal_position_difference_m": 3.36201674106019e-08,
+      "maximum_nodal_velocity_difference_m_s": 4.6825060297711623e-07,
+      "maximum_nodal_force_difference_n": 4.860859221048156e-12,
+      "maximum_force_relative_l2_difference": 5.959880200116406e-14,
+      "iterations_equal": true,
+      "all_port_status_zero": true,
+      "all_native_converged": true,
+      "details": "contact-comparison.json",
+      "rest_replays": "first3-comparison.json",
+      "factor_reuse_scope": "Corrected diagnostic force history copies in cached repeat; cache contains exact CSR from first production run, and every q/v output was bitwise identical in cached and uncached repeats. No factor approximation.",
+      "loaded_port_sources": {
+        "src/newton_solver_diff_phd/_src/solvers/diff_phd/__init__.py": "5d624166bc62b78e1c1dba8b9762dd2134af76123e31605b607e3e7282474f99",
+        "src/newton_solver_diff_phd/_src/solvers/diff_phd/adjoint.py": "a3d92e3ffcbcf0622796ded8e46e405f83acded98ab344a15679c090acdaf866",
+        "src/newton_solver_diff_phd/_src/solvers/diff_phd/anderson.py": "a3f76d850b58f94a96a24741d6f1f917a88a73da58528fcaff3eb64cab1b48f1",
+        "src/newton_solver_diff_phd/_src/solvers/diff_phd/ccd.py": "271e9edb477b48c836dcf70c18913705f1458d182b167f1ce10e776e3fcc434a",
+        "src/newton_solver_diff_phd/_src/solvers/diff_phd/contact.py": "cda692c522b469206722e8117d5d971bcfd9aee39a9014b3c6f06e8645648468",
+        "src/newton_solver_diff_phd/_src/solvers/diff_phd/dense.py": "403ddf1744666ca7e6d7bf543b64abbc85f89cecba2748084ff446f7b4a1dc1f",
+        "src/newton_solver_diff_phd/_src/solvers/diff_phd/exceptions.py": "aa66748ab9894e09de33819b5f844205e5caaa9b98ec8169b92958a98adc1a6f",
+        "src/newton_solver_diff_phd/_src/solvers/diff_phd/kernels.py": "10e765379ba1f1a152d44028b3976f5dc361e51eab426c55dec22de5229a3b8e",
+        "src/newton_solver_diff_phd/_src/solvers/diff_phd/mesh_contact.py": "f3a63dbd00e411345608755e80fddfe76e77898c249e81ac53f99cd711c4c3a9",
+        "src/newton_solver_diff_phd/_src/solvers/diff_phd/projections.py": "9d41fffa594d4d2d87883895adb76e1378c1aabe734c2fd274f036095334f652",
+        "src/newton_solver_diff_phd/_src/solvers/diff_phd/solver.py": "bb34b147b590026ddb1d16175a86313c6828df0d8b188a062830f362df548e39",
+        "src/newton_solver_diff_phd/_src/solvers/diff_phd/sparse.py": "48f8afa2a8abc39429a418673d602cccc3a6bd5377be34294fe2aacf83014806",
+        "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_contact.py": "67e30a0dd33c16b96fca549e6c4594cfaeb2bd1ec80fd8cf04ce5386af754288",
+        "src/newton_solver_diff_phd/_src/solvers/diff_phd/swept_qp.py": "18706ea38933c6d54a3eeddf7bd1b0998d1aa4efbbfeb1f1ba5f9eec120d1309"
+      }
+    },
+    "native_shared_float32_alg_phd": {
+      "source_report": "native-phd1050.json",
+      "source_report_sha256": "67e602929ccfaba662f096ad7bf95acb85cbf62f4f60afc8c5871ee1af8dee26",
+      "method": "pd_eigen_alg_phd",
+      "completed_steps": 1050,
+      "first_inverted_step": 321,
+      "steps_with_inverted_elements": 89,
+      "minimum_determinant_ratio": -4.1046816582228525,
+      "maximum_simultaneously_inverted_tets": 17,
+      "maximum_iterations": 6,
+      "all_reported_converged": true,
+      "sum_per_step_wall_seconds": 206.20764092793252,
+      "timing_scope": "CPU reference, including contact-force read and determinant diagnostics; concurrent CPU work and periodic archive writes. Not an isolated throughput comparison.",
+      "sampled_overlap": {
+        "report": "native-phd1050-overlap.json",
+        "max_probe_in_die_mm": 99.79239654541016,
+        "max_die_in_probe_mm": 7.659568786621094,
+        "scope": "Every 30th state plus endpoints. Boundary vertices and triangle centroids from native double trajectory sampled against oriented tetrahedral boundary using Warp CPU float32 winding signed distance. Penalty mode. Not a nonintersection proof; inverted elements can invalidate closed-volume interpretation.",
+        "largest_probe_in_die_at_noninverted_sample": {
+          "step": 720,
+          "die_in_probe_mm": 0.0,
+          "probe_in_die_mm": 99.79239654541016,
+          "die_samples_inside_10um": 0,
+          "probe_samples_inside_10um": 2450
+        }
+      }
+    },
+    "native_unrounded_alg_phd": {
+      "source_report": "native-unrounded-phd1050.json",
+      "source_report_sha256": "0acd8da427ab059260629a093597052e36ead48cda7e887920da721c8e114a9e",
+      "method": "pd_eigen_alg_phd",
+      "completed_steps": 1050,
+      "first_inverted_step": 322,
+      "steps_with_inverted_elements": 485,
+      "minimum_determinant_ratio": -3.0543520901672325,
+      "maximum_simultaneously_inverted_tets": 15,
+      "maximum_iterations": 7,
+      "all_reported_converged": true,
+      "sum_per_step_wall_seconds": 215.01619933304028,
+      "timing_scope": "CPU reference, including contact-force read and determinant diagnostics; concurrent CPU work and periodic archive writes. Not an isolated throughput comparison.",
+      "sampled_overlap": {
+        "report": "native-unrounded-phd1050-overlap.json",
+        "max_probe_in_die_mm": 99.67452239990234,
+        "max_die_in_probe_mm": 9.179644584655762,
+        "scope": "Every 30th state plus endpoints. Boundary vertices and triangle centroids from native double trajectory sampled against oriented tetrahedral boundary using Warp CPU float32 winding signed distance. Penalty mode. Not a nonintersection proof; inverted elements can invalidate closed-volume interpretation.",
+        "largest_probe_in_die_at_noninverted_sample": {
+          "step": 870,
+          "die_in_probe_mm": 4.505776882171631,
+          "probe_in_die_mm": 76.19567108154297,
+          "die_samples_inside_10um": 2,
+          "probe_samples_inside_10um": 1963
+        }
+      }
+    },
+    "native_unrounded_python_default": {
+      "source_report": "native-unrounded-alg4.json",
+      "method": "pd_eigen_alg4",
+      "completed_steps": 30,
+      "failure": {
+        "step": 31,
+        "type": "RuntimeError",
+        "message": "\u001b[6;30;91mPD method fails to converge.\u001b[0m",
+        "seconds": 28.08929683700262
+      },
+      "scope": "Execute original build_sim/FK/keyframes with cached original mesh-function outputs.\n\nThe physics functions are compiled unchanged from original source AST to avoid\nunrelated rendering imports unavailable in the compiled native environment.\nCached prep_slab_tet/prep_cylinder_tet outputs were independently produced by\nexecuting those original functions. No float32 rounding, scene transform,\nmaterial rounding, or port code is used in this run.\n",
+      "parameters": {
+        "young": 500000.0,
+        "poisson": 0.4,
+        "dt": 0.0011111111111111111,
+        "velocity_damping": 0.3,
+        "world_z_translation": 0.0,
+        "round_to_float32": false
+      },
+      "original_options": {
+        "max_pd_iter": 5000,
+        "max_ls_iter": 10,
+        "abs_tol": 1e-09,
+        "rel_tol": 0.0001,
+        "verbose": 0,
+        "thread_ct": 8,
+        "use_bfgs": 0,
+        "use_acc": 1,
+        "use_sparse": 0,
+        "project_newton": 1,
+        "use_abs": 1,
+        "aa_window": 5,
+        "backward_grad_clip_norm": 1000.0
+      },
+      "native_binary_sha256": "75d03471d4c0a88088977257fcb6ab1e263e1ccf0af612ce370e7ee513e7a134",
+      "sources": {
+        "/home/beer/Dev/Robotics/DiffPhD/python/example/ur5_poke_demo.py": "98b11525a4b53cfbcc94e797af59960d5aa7fbc3ca41cd56115f18cf93530776",
+        "/home/beer/Dev/Robotics/DiffPhD/python/example/dice_material_optimize.py": "dd1377d474cb45512bf05d02f3675e5312be5e33bcb9a0e4f75f609053b578bb",
+        "/home/beer/Dev/Robotics/DiffPhD-reference-build/python/py_diff_pd/common/tet_mesh.py": "7a0d8a7485d82b75c7c68c89b4a9e0f347991b8905f54e3a12f6b7bb38b0f50a",
+        "/tmp/original_reference_die_geometry.npz": "5099d692036583880ef66f894794ac8ebd9da829ca8ba4005c72d22ce75117de",
+        "/tmp/original_reference_probe_geometry.npz": "4ad7668d5c1b39c4049abdb8e223499ff97117f290184d80f06cf490503ef8e9"
+      }
+    },
+    "legacy_port_setup_observation": {
+      "source_report": "port-first3.json",
+      "first_step_seconds": 369.34638255900063,
+      "warm_steps_seconds": [
+        0.5122740270016948,
+        0.5109415159968194
+      ],
+      "bottleneck": "Repeated faulthandler snapshots during a second setup were inside sparse._inverse_rows, constructing the exact factor. These timings precede the independent setup optimization and are not current-version performance claims."
+    },
+    "interpretation": [
+      "The matching-input penalty force and one-step update agree closely with executed native AlgPhD on the actual irregular original mesh, including contact states. This is stronger than comparing only iteration counts.",
+      "The unrounded original-source AlgPhD trajectory also inverts elements and permits deep penalty penetration. A tessellation match alone therefore does not establish a collision-safe full demo.",
+      "The original Python default method name selects generic PD in this C++ revision and failed at the first moving substep even without float32 conversion or coordinate translation. This is a separate method result, not an AlgPhD parity failure.",
+      "Signed-distance samples establish observed penetration only; they do not prove global nonintersection, and inverted volume meshes compromise inside/outside interpretation."
+    ],
+    "scripts": {
+      "compare_mesh.py": "d8c601b8acd7b88e36b031b5869dd5b848c8acadc39156a0f3f2a1f4580f9545",
+      "native_unrounded.py": "a683deef6fb49641509f3a314a605e16b1da91ff18b336f361bdca1458ca2b45",
+      "measure_native.py": "2c85a2db6eba48efb6d003257604d334ad0699952bcc28dcc55dcb94bbe7281a"
+    },
+    "optimized_factor_equivalence": {
+      "report": "../penalty-factor-equality.json",
+      "sha256": "37082353b700abb8bbaf7875701ba9a92b1cea83d134ce276fed8ad6bb46a582",
+      "scope": "Final production SparseInverse on original-mesh penalty-contact matrix against factors saved by an independent replay using the prior implementation. Complete CPU constructor timing is one sample with concurrent workloads.",
+      "size": 7388,
+      "matrix_nnz": 85242,
+      "factor_nnz": 8170084,
+      "constructor_seconds": 41.462210129000596,
+      "bitwise_equal_legacy": {
+        "s_offsets": true,
+        "s_columns": true,
+        "s_values": true,
+        "st_offsets": true,
+        "st_columns": true,
+        "st_values": true,
+        "permutation": true
+      },
+      "source_sha256": "48f8afa2a8abc39429a418673d602cccc3a6bd5377be34294fe2aacf83014806",
+      "matrix_sha256": "f1f154e5f72f4a6242edb69e252a049d14f44e3e8f181281f3f4276bb4894353",
+      "legacy_factor_sha256": "3accaa781ab8bb6cffaf93de94d6c1248c28de7a58e9ddc7422a3daf9b247737"
+    },
+    "pre_rebake_asset_matches_tested_common_inputs": {
+      "report": "current-asset-common-input-equality.json",
+      "common_fixture_sha256": "a9717a9713524ffac8ab42724140859703d08419d61aaadef21ea13f2c651f96",
+      "bitwise_equal": {
+        "rest_vertices": true,
+        "tets": true,
+        "mu": true,
+        "lambda": true,
+        "dirichlet": true,
+        "faces_a": true,
+        "faces_b": true,
+        "tool_endpoints": true,
+        "rest_poses": true
+      },
+      "pre_rebake_manifest_sha256": "fc9d8df2f912e09d378b5158469c699027e77970886d46895ecddb8c4b84892b"
+    },
+    "current_asset_matches_tested_common_inputs": {
+      "report": "nsys/results/tessellation-fix/reference-rebake-equivalence.json",
+      "current_manifest_sha256": "d5bbc2decceb8557dc3d2263843729cfea10b62550bea47a710fcdae4749095f",
+      "common_fixture_sha256": "a9717a9713524ffac8ab42724140859703d08419d61aaadef21ea13f2c651f96",
+      "identical_physics_fields": {
+        "rest_vertices": "e39647a473b6e64d4a0cd8dd0ab7e89112da185fcec2e0d7cf826060813ca976",
+        "tets": "4605d26424fc3be87b91b7ba3e98f95d52184abd11dd7924bb3bfa689fe28d25",
+        "targets": "4a509bab2d1d3dfb692de2885580affc07f0253505b3742642be38cc8366d8c3",
+        "dirichlet": "f746a8914761df4fd7571cad91d1f7ca550c507a84d451b7d592c6523808dc1d",
+        "mu": "26818af59f48bc76673f5c1e88b8732fca457b4c501a43c97c372ce9ea8523b2",
+        "lambda": "b635ca876639c8ddcc909f7e45734f5aeb574d34146554dd8f46b22d7fa27da6",
+        "density": "6fac440655568a2ee02e10ac9f94bc870626556b934aa3e1d3d9a715331cdf34",
+        "dt": "9b430e862ae31c7abd60ea1f0fe62c12b455803fbb4de6b8a408b76e3a471ea9",
+        "damping": "186b4ce7fc00a72bd6530e35af307df73e3acebb3bfdb56116fde39a8e0df89b",
+        "faces_a": "d73546b45616684bdc5c79daf3a5e1fc37ff35ee00059dd96812260a372ca620",
+        "faces_b": "7d1f0ce342c286b80da0e7ad1fc85ece8979c95817377336066b72b7c17e7149",
+        "contact_parameters": "230d1ebab21d267dd1f53243816395e0677cc49c50de938ba4ab7f39e5997467",
+        "soft_count": "44b1b024ad0dcd4b6d3b97d893b7b76c53c3dada7cf3e1cd923e92a62653ecaa",
+        "rest_poses": "eabaa623667e062a7511276ef130739b49ef29908d5e5e47bd233d3ce2b970a3"
+      },
+      "scope": "Current post-rebake physical inputs are bitwise identical to the tested native fixture. Only provenance metadata and two display embeddings change."
+    }
+  },
+  "limitations": [
+    "The mesh experiment is not installed as the default asset. Better rest shape metrics are not proof of a positive full trajectory.",
+    "The spatially graded candidate is also not adopted: six well-shaped, finely resolved surface elements invert at rejected step424. Five already invert before the final contact correction. Improved tessellation alone did not fix the full motion.",
+    "Grid experiment loaded the staged contact-exchange module before its production integration, and the earlier factor implementation. Its source files changed on disk during the run; it is not labeled a frozen final-source run.",
+    "Full original-asset swept run uses unchanged final production source and rejects an inverted surface element at step480. Contact certification succeeds at that rejected step.",
+    "Sampled probe/surface overlap measurements are not exhaustive intersection proofs. Rejected steps roll back and do not advance the command clock.",
+    "Native AlgPhD full-cycle diagnostics use penalty contact; they are not validation of the optional swept extension. The original Python method name pd_eigen_alg4 dispatches to generic PD in the tested native revision.",
+    "Timing experiments ran alongside other workloads. CPU paired setup speedup is not GPU simulation FPS."
+  ],
+  "nsight": {
+    "captures": [
+      {
+        "directory": "nsys/results/20261102T180354.188516Z_softbody_diff_phd_swept_poke_pfe2pgyu",
+        "status": "failed",
+        "error": "Incomplete CUDA capture: CUPTI reports 56281 dropped/incomplete records",
+        "source_sha256": "f0de1b24574e14ca01cd7a5de95fa0dc083b9c891baebc2bf0aeb00194cc05e1",
+        "frames_completed": 90,
+        "loop_wall_seconds": 49.86771363000298
+      },
+      {
+        "directory": "nsys/results/20261102T180644.558505Z_softbody_diff_phd_swept_poke__b3jgo39",
+        "status": "failed",
+        "error": "Incomplete CUDA capture: CUPTI reports 14386 dropped/incomplete records",
+        "source_sha256": "f0de1b24574e14ca01cd7a5de95fa0dc083b9c891baebc2bf0aeb00194cc05e1",
+        "frames_completed": 25,
+        "loop_wall_seconds": 11.570684332997189
+      },
+      {
+        "directory": "nsys/results/20261102T180932.505702Z_softbody_diff_phd_swept_poke_i96zt29g",
+        "status": "complete",
+        "error": null,
+        "source_sha256": "f0de1b24574e14ca01cd7a5de95fa0dc083b9c891baebc2bf0aeb00194cc05e1",
+        "frames_completed": 90,
+        "loop_wall_seconds": 40.89940928899887
+      }
+    ],
+    "interpretation": "90-frame graph-mode capture records380 graph durations and zero explicit dropped records; CUDA/NVTX collection warnings remain. The two per-node captures lost records and are rejected for quantitative performance conclusions. Whole-graph mode cannot rank kernels inside graphs; concurrent workloads prevent a throughput comparison."
+  },
+  "graded_mesh_experiment": {
+    "tetgen_version": "0.8.4",
+    "source_archive_sha256": "d7cf62b43fbb51e1857c59c1961e120212790d0089e58c853a83e1cc935e6402",
+    "recipe": {
+      "fine_grid_spacing_m": 0.006,
+      "fine_distance_to_swept_probe_samples_m": 0.02,
+      "transition_grid_spacing_m": 0.012,
+      "transition_outer_distance_m": 0.055,
+      "trajectory_stride": 5,
+      "minimum_fine_distance_to_existing_vertex_m": 0.003,
+      "minimum_transition_distance_to_existing_vertex_m": 0.006,
+      "interior_points_require_positive_old_tet_barycentric_weights": true,
+      "seed_count": 2876,
+      "fine_seed_count": 2096,
+      "nobisect": false,
+      "minratio": 1.4,
+      "mindihedral": 10
+    },
+    "old": {
+      "nodes": 5353,
+      "tets": 29022,
+      "volume_m3": 0.01291469335889867,
+      "minimum_volume_m3": 6.690077096928586e-11,
+      "minimum_mean_ratio_quality": 0.009958790824675358,
+      "mean_ratio_quantiles": [
+        0.009958790824675358,
+        0.06678436785264742,
+        0.17719584630901097,
+        0.8555479474757199,
+        0.9975488039909721
+      ],
+      "maximum_edge_basis_condition": 1052.1998678426744,
+      "nonpositive_after_float32": 0,
+      "sweep_corridor_tets": 3516,
+      "sweep_corridor_edge_quantiles_m": [
+        0.0018840010237204932,
+        0.0042697111365569,
+        0.007702314400043628,
+        0.018380030858449532,
+        0.026968426115860214
+      ]
+    },
+    "new": {
+      "nodes": 12586,
+      "tets": 67725,
+      "volume_m3": 0.012914466959645607,
+      "minimum_volume_m3": 1.3531137583762044e-12,
+      "minimum_mean_ratio_quality": 0.020614153511127373,
+      "mean_ratio_quantiles": [
+        0.020614153511127373,
+        0.11743827418901537,
+        0.34279735124201205,
+        0.7888046829785818,
+        1.0000000000000002
+      ],
+      "maximum_edge_basis_condition": 663.0099536585825,
+      "nonpositive_after_float32": 0,
+      "sweep_corridor_tets": 19721,
+      "sweep_corridor_edge_quantiles_m": [
+        0.0010186681204444983,
+        0.004784467944376065,
+        0.0063149898542333854,
+        0.010392304845413257,
+        0.018914812800510092
+      ]
+    },
+    "pins": 1153,
+    "crossing_clamp_tets": 0,
+    "identical_outer_triangles": false,
+    "maximum_face_incidence": 2,
+    "embedding_rest_error_m": 2.5438405243138006e-16,
+    "embedding_weight_min": -0.22711115242828825,
+    "sampled_new_to_old_surface_max_m": 0.00023314105745906685,
+    "sampled_old_to_new_surface_max_m": 0.00021769639040873813,
+    "accepted_sampled_surface_tolerance_m": 0.00025,
+    "surface_comparison": "Both directions, all triangle vertices, edge midpoints, and centroids; sampled distances are not a certified global Hausdorff bound.",
+    "relative_volume_change": -1.7530362260412843e-05,
+    "maximum_new_boundary_vertex_distance_to_old_vertices_m": 0.024255463467944875,
+    "old_boundary_vertex_distance_to_new_vertices_max_m": 0.0,
+    "all_old_boundary_vertices_retained_exactly": true,
+    "preparation_scope": "Offline mesh-only candidate, full default probe sweep at placement(0.73,0.115). Original boundary vertex positions and clamp plane retained; boundary facets may be subdivided/merged with measured geometric deviation; no material, equations, trajectory, or solver changes. Not yet simulated.",
+    "adopted": false,
+    "result": "Rejects step424 for inversion. Better rest quality and finer local resolution did not produce a successful full motion."
+  },
+  "independent_review": {
+    "sparse": {
+      "finding": "No correctness issue found",
+      "evidence": "sparse-independent-review.json",
+      "cases": 160,
+      "byte_equal_to_pre_change": true
+    },
+    "dependent_exchange": {
+      "finding": "No correctness issue found; reduced re-solve and unchanged-W KKT certificate guard success",
+      "evidence": "dependent-exchange-independent-review.json",
+      "cases": 54,
+      "all_success": true
+    },
+    "preparation": {
+      "fixed": "Fixed nearest-128 false-outside embeddings with complete conservative containment fallback. Reference changes exactly 2 scan embeddings; actual FEM vertices/tets/constraints unchanged. Public regression covers a valid elongated tetra beyond 130 closer centroids and genuine outside extrapolation.",
+      "no_private_asset_dependency_in_tests": true,
+      "lazy_optional_preparation_imports": true,
+      "tests": [
+        "tests.test_prepare_poke_reference.TestPokeReferenceEmbedding.test_containing_elongated_cell_outside_nearest_128_centroids",
+        "tests.test_prepare_poke_reference.TestPokeReferenceEmbedding.test_genuinely_outside_vertex_keeps_affine_extrapolation"
+      ]
+    },
+    "provenance_limitations": [
+      "Current original mesh recipe was independently compared with original function output; hashing another source checkout alone would not establish that this literal recipe matches a future changed original script.",
+      "Prepared USD assets have identity world transforms, metre units and Z up. Generic transformed custom assets would need consistent transforms for raw scan referencePoints as well as load_mesh volume geometry. Current prepared assets satisfy this convention."
+    ],
+    "rendering": {
+      "current": "White mesh is the embedded raw scan, not the tetrahedral collision boundary. No existing physical-boundary toggle was found in UR5 GUI.",
+      "recommendation": "Use display_q with scene data faces directly for a labeled physical-boundary view; keep embedded scan view explicit. Parent requested no visualization edits yet.",
+      "rest_distance_evidence": "scan-boundary-distance.json",
+      "limitation": "Maximum true rest scan protrusion is only 0.523 mm reference / 0.678 mm fine, so rest embedding discrepancy cannot explain centimeter-scale collision failures."
+    }
+  }
+}

@@ -1,5 +1,6 @@
 """Differentiable solvers for Newton."""
 
-from .diff_phd import BearProblem, PokeAlignmentProblem, SolverDiffPhD, command_poke_velocities, damp_poke_velocities
+from .diff_pd import SolverDiffPD
+from .diff_phd import SolverDiffPhD
 
-__all__ = ["BearProblem", "SolverDiffPhD", "PokeAlignmentProblem", "command_poke_velocities", "damp_poke_velocities"]
+__all__ = ["SolverDiffPD", "SolverDiffPhD"]

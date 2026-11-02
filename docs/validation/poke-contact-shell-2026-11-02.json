@@ -1,0 +1,821 @@
+{
+  "date": "2026-11-02",
+  "scope": "CPU re-evaluation of only normal contact on 36 saved frame-end positions. No simulation, native C++ execution, velocity reconstruction or friction evaluation. These are instantaneous frame-end forces, not the start-of-substep forces used by the saved rollout.",
+  "equation": {
+    "closest_point": "c = closest point on a triangle to vertex p; d = ||p-c|| is unsigned",
+    "activation": "d < r",
+    "normal": "n = (p-c)/d when d > machine epsilon; face normal fallback at zero distance",
+    "force_on_vertex": "kn * (r-d) * n when active, otherwise zero",
+    "force_on_triangle_vertex_j": "-barycentric_weight_j * force_on_vertex",
+    "area_weighting": false,
+    "signed_inside_detection": false,
+    "time_of_impact_detection": false
+  },
+  "parameters": {
+    "contact_radius_m": 0.00055,
+    "die_vertex_to_probe_face_kn_N_per_m": 5000.0,
+    "probe_vertex_to_die_face_kn_N_per_m": 50000.0,
+    "diagnostic_kf_N_s_per_m": 0.0,
+    "diagnostic_velocity_m_per_s": 0.0,
+    "maximum_normal_force_per_pair_N": {
+      "die_to_probe": 2.75,
+      "probe_to_die": 27.5
+    }
+  },
+  "source_comparison": {
+    "statement": "Read-only inspection confirms the same activation, sign, magnitude and barycentric reaction equations.",
+    "native_executed_for_this_audit": false,
+    "reference_revision": "d319435373a8a94aac2035bfe41f16f49bc1d2a1",
+    "reference_equation_lines": [
+      171,
+      207
+    ],
+    "port_equation_lines": [
+      102,
+      126
+    ],
+    "reference": {
+      "path": "/home/beer/Dev/Robotics/DiffPhD/cpp/core/src/state_force/mesh_contact_state_force.cpp",
+      "sha256": "8a1c21c2a01e75abe3b96d55d489040c7d659786e5f5cd365288a33a9ae3b2f0"
+    },
+    "port": {
+      "path": "/home/beer/Dev/Robotics/NewtonSolvers/newton-solver-diff-phd/src/newton_solver_diff_phd/_src/solvers/diff_phd/mesh_contact.py",
+      "sha256": "f3a63dbd00e411345608755e80fddfe76e77898c249e81ac53f99cd711c4c3a9"
+    }
+  },
+  "inputs": {
+    "saved_positions": {
+      "path": "/home/beer/Dev/Robotics/NewtonSolvers/newton-solver-diff-phd/nsys/results/contact-investigation/original-training/default_initial_position.npz",
+      "sha256": "4852dbb4d5c973de45ada7c77b5b622a96b27b2052b40fa41dd495cfbebce200"
+    },
+    "recording_manifest": {
+      "path": "/home/beer/Dev/Robotics/NewtonSolvers/newton-solver-diff-phd/src/newton_solver_diff_phd/examples/assets/pokeflex_local/recording_fine.json",
+      "sha256": "832232b83003dcbc8b8b9905b2050c1e7f0bcee55cfce8c16aea600c6a9b7657"
+    },
+    "recording_array": {
+      "path": "/home/beer/Dev/Robotics/NewtonSolvers/newton-solver-diff-phd/src/newton_solver_diff_phd/examples/assets/pokeflex_local/recording_fine.npz",
+      "sha256": "4aeb1351b84a084872ffc67cabace6af66240612a465b1dbdb5b7ba3151c4cb5"
+    },
+    "geometry": {
+      "path": "/home/beer/Dev/Robotics/NewtonSolvers/newton-solver-diff-phd/src/newton_solver_diff_phd/examples/assets/pokeflex_local/die_fine.usdc",
+      "sha256": "c6ce2c9771baf05945dfccbcd5c3da830c329faaf30e478d1950d97817616256"
+    },
+    "probe": {
+      "path": "/home/beer/Dev/Robotics/NewtonSolvers/newton-solver-diff-phd/src/newton_solver_diff_phd/examples/assets/poke_probe.usda",
+      "sha256": "bd74aed7c3bf52cc3ec97cec47e8ce97df952f35b968fda2637548079571f7a1"
+    },
+    "rollout_report": {
+      "path": "/home/beer/Dev/Robotics/NewtonSolvers/newton-solver-diff-phd/docs/validation/poke-reference-training-2026-11-02.json",
+      "sha256": "67c6c149c5644027e4aa064c2120ab162a661f7415d97bba08779ff05feed027"
+    },
+    "diagnostic_script": {
+      "path": "/home/beer/Dev/Robotics/NewtonSolvers/newton-solver-diff-phd/nsys/results/contact-investigation/audit_contact_shell.py",
+      "sha256": "1925a086d0e222aef53faac80f5e50995044a4a70514a69a164c3176d7d098f0"
+    }
+  },
+  "device": "cpu",
+  "warp_version": "1.17.0",
+  "numpy_version": "2.5.4",
+  "frame_count": 36,
+  "zero_contact_source_frame_intervals_inclusive": [
+    [
+      18,
+      25
+    ],
+    [
+      27,
+      27
+    ],
+    [
+      38,
+      45
+    ],
+    [
+      52,
+      53
+    ]
+  ],
+  "maximum_force_balance_norm_N": 3.947276143652292e-14,
+  "frames": [
+    {
+      "source_frame": 18,
+      "observation_index": 0,
+      "die_vertex_to_probe_face_pairs": 0,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 0,
+      "normal_net_die_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_net_probe_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_die_node_force_norm_sum_N": 0.0,
+      "normal_die_node_force_norm_max_N": 0.0,
+      "total_force_balance_norm_N": 0.0
+    },
+    {
+      "source_frame": 19,
+      "observation_index": 1,
+      "die_vertex_to_probe_face_pairs": 0,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 0,
+      "normal_net_die_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_net_probe_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_die_node_force_norm_sum_N": 0.0,
+      "normal_die_node_force_norm_max_N": 0.0,
+      "total_force_balance_norm_N": 0.0
+    },
+    {
+      "source_frame": 20,
+      "observation_index": 2,
+      "die_vertex_to_probe_face_pairs": 0,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 0,
+      "normal_net_die_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_net_probe_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_die_node_force_norm_sum_N": 0.0,
+      "normal_die_node_force_norm_max_N": 0.0,
+      "total_force_balance_norm_N": 0.0
+    },
+    {
+      "source_frame": 21,
+      "observation_index": 3,
+      "die_vertex_to_probe_face_pairs": 0,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 0,
+      "normal_net_die_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_net_probe_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_die_node_force_norm_sum_N": 0.0,
+      "normal_die_node_force_norm_max_N": 0.0,
+      "total_force_balance_norm_N": 0.0
+    },
+    {
+      "source_frame": 22,
+      "observation_index": 4,
+      "die_vertex_to_probe_face_pairs": 0,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 0,
+      "normal_net_die_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_net_probe_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_die_node_force_norm_sum_N": 0.0,
+      "normal_die_node_force_norm_max_N": 0.0,
+      "total_force_balance_norm_N": 0.0
+    },
+    {
+      "source_frame": 23,
+      "observation_index": 5,
+      "die_vertex_to_probe_face_pairs": 0,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 0,
+      "normal_net_die_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_net_probe_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_die_node_force_norm_sum_N": 0.0,
+      "normal_die_node_force_norm_max_N": 0.0,
+      "total_force_balance_norm_N": 0.0
+    },
+    {
+      "source_frame": 24,
+      "observation_index": 6,
+      "die_vertex_to_probe_face_pairs": 0,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 0,
+      "normal_net_die_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_net_probe_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_die_node_force_norm_sum_N": 0.0,
+      "normal_die_node_force_norm_max_N": 0.0,
+      "total_force_balance_norm_N": 0.0
+    },
+    {
+      "source_frame": 25,
+      "observation_index": 7,
+      "die_vertex_to_probe_face_pairs": 0,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 0,
+      "normal_net_die_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_net_probe_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_die_node_force_norm_sum_N": 0.0,
+      "normal_die_node_force_norm_max_N": 0.0,
+      "total_force_balance_norm_N": 0.0
+    },
+    {
+      "source_frame": 26,
+      "observation_index": 8,
+      "die_vertex_to_probe_face_pairs": 4,
+      "probe_vertex_to_die_face_pairs": 8,
+      "total_pairs": 12,
+      "normal_net_die_force_N": [
+        -0.3027123869525006,
+        0.07132679486349675,
+        -15.36024883655417
+      ],
+      "normal_net_probe_force_N": [
+        0.3027123869525006,
+        -0.07132679486349675,
+        15.360248836554167
+      ],
+      "normal_die_node_force_norm_sum_N": 15.375140395799924,
+      "normal_die_node_force_norm_max_N": 3.172338970667483,
+      "total_force_balance_norm_N": 0.0
+    },
+    {
+      "source_frame": 27,
+      "observation_index": 9,
+      "die_vertex_to_probe_face_pairs": 0,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 0,
+      "normal_net_die_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_net_probe_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_die_node_force_norm_sum_N": 0.0,
+      "normal_die_node_force_norm_max_N": 0.0,
+      "total_force_balance_norm_N": 0.0
+    },
+    {
+      "source_frame": 28,
+      "observation_index": 10,
+      "die_vertex_to_probe_face_pairs": 34,
+      "probe_vertex_to_die_face_pairs": 29,
+      "total_pairs": 63,
+      "normal_net_die_force_N": [
+        -26.21476157166167,
+        17.85482204566945,
+        -259.20454418737467
+      ],
+      "normal_net_probe_force_N": [
+        26.214761571661665,
+        -17.85482204566945,
+        259.20454418737467
+      ],
+      "normal_die_node_force_norm_sum_N": 268.1175539858661,
+      "normal_die_node_force_norm_max_N": 67.83628784562988,
+      "total_force_balance_norm_N": 3.947276143652292e-14
+    },
+    {
+      "source_frame": 29,
+      "observation_index": 11,
+      "die_vertex_to_probe_face_pairs": 6,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 6,
+      "normal_net_die_force_N": [
+        -4.062005759614947,
+        2.4158250216980344,
+        0.03539950364531269
+      ],
+      "normal_net_probe_force_N": [
+        4.062005759614947,
+        -2.4158250216980344,
+        -0.035399503645312684
+      ],
+      "normal_die_node_force_norm_sum_N": 6.086457939169028,
+      "normal_die_node_force_norm_max_N": 1.8953219913247075,
+      "total_force_balance_norm_N": 4.041607881448676e-16
+    },
+    {
+      "source_frame": 30,
+      "observation_index": 12,
+      "die_vertex_to_probe_face_pairs": 5,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 5,
+      "normal_net_die_force_N": [
+        -2.2211350227962567,
+        2.5353521700759742,
+        0.038765765299071636
+      ],
+      "normal_net_probe_force_N": [
+        2.2211350227962567,
+        -2.5353521700759747,
+        -0.038765765299071636
+      ],
+      "normal_die_node_force_norm_sum_N": 6.555334553421321,
+      "normal_die_node_force_norm_max_N": 1.8606359751475001,
+      "total_force_balance_norm_N": 7.89055138781392e-16
+    },
+    {
+      "source_frame": 31,
+      "observation_index": 13,
+      "die_vertex_to_probe_face_pairs": 1,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 1,
+      "normal_net_die_force_N": [
+        -2.077001041267468,
+        0.5568254055929139,
+        0.061387896715183986
+      ],
+      "normal_net_probe_force_N": [
+        2.077001041267468,
+        -0.556825405592914,
+        -0.06138789671518398
+      ],
+      "normal_die_node_force_norm_sum_N": 2.1512220553915333,
+      "normal_die_node_force_norm_max_N": 2.1512220553915333,
+      "total_force_balance_norm_N": 5.561946577567963e-17
+    },
+    {
+      "source_frame": 32,
+      "observation_index": 14,
+      "die_vertex_to_probe_face_pairs": 6,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 6,
+      "normal_net_die_force_N": [
+        1.5120851170976315,
+        2.492862547449383,
+        -0.06629267134325952
+      ],
+      "normal_net_probe_force_N": [
+        -1.5120851170976313,
+        -2.492862547449383,
+        0.06629267134325952
+      ],
+      "normal_die_node_force_norm_sum_N": 5.191934847834775,
+      "normal_die_node_force_norm_max_N": 2.73748965083389,
+      "total_force_balance_norm_N": 2.5954452647071144e-16
+    },
+    {
+      "source_frame": 33,
+      "observation_index": 15,
+      "die_vertex_to_probe_face_pairs": 11,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 11,
+      "normal_net_die_force_N": [
+        1.4047437119658739,
+        -0.5552488232256592,
+        -0.04867420191740043
+      ],
+      "normal_net_probe_force_N": [
+        -1.4047437119658746,
+        0.555248823225659,
+        0.04867420191740043
+      ],
+      "normal_die_node_force_norm_sum_N": 12.116354916714725,
+      "normal_die_node_force_norm_max_N": 2.3528583291774154,
+      "total_force_balance_norm_N": 5.551548787055441e-16
+    },
+    {
+      "source_frame": 34,
+      "observation_index": 16,
+      "die_vertex_to_probe_face_pairs": 7,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 7,
+      "normal_net_die_force_N": [
+        -4.843364602859889,
+        0.7645605712653902,
+        0.3763098228817806
+      ],
+      "normal_net_probe_force_N": [
+        4.843364602859889,
+        -0.7645605712653898,
+        -0.3763098228817807
+      ],
+      "normal_die_node_force_norm_sum_N": 8.629518345355724,
+      "normal_die_node_force_norm_max_N": 2.198410184946273,
+      "total_force_balance_norm_N": 2.2247786310271853e-16
+    },
+    {
+      "source_frame": 35,
+      "observation_index": 17,
+      "die_vertex_to_probe_face_pairs": 6,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 6,
+      "normal_net_die_force_N": [
+        1.6231736874537215,
+        0.8296560158493688,
+        -0.13203380825647004
+      ],
+      "normal_net_probe_force_N": [
+        -1.6231736874537215,
+        -0.8296560158493684,
+        0.13203380825647004
+      ],
+      "normal_die_node_force_norm_sum_N": 7.780563846645069,
+      "normal_die_node_force_norm_max_N": 2.3924514290087004,
+      "total_force_balance_norm_N": 9.053860682492399e-17
+    },
+    {
+      "source_frame": 36,
+      "observation_index": 18,
+      "die_vertex_to_probe_face_pairs": 5,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 5,
+      "normal_net_die_force_N": [
+        4.369590880659417,
+        -5.136315854634217,
+        -0.4468665842111708
+      ],
+      "normal_net_probe_force_N": [
+        -4.369590880659417,
+        5.1363158546342165,
+        0.44686658421117076
+      ],
+      "normal_die_node_force_norm_sum_N": 7.117793061463342,
+      "normal_die_node_force_norm_max_N": 2.645489886611105,
+      "total_force_balance_norm_N": 1.22614398128331e-16
+    },
+    {
+      "source_frame": 37,
+      "observation_index": 19,
+      "die_vertex_to_probe_face_pairs": 19,
+      "probe_vertex_to_die_face_pairs": 7,
+      "total_pairs": 26,
+      "normal_net_die_force_N": [
+        -4.645765099499495,
+        8.640049845369175,
+        -11.915168286081897
+      ],
+      "normal_net_probe_force_N": [
+        4.645765099499491,
+        -8.640049845369175,
+        11.915168286081906
+      ],
+      "normal_die_node_force_norm_sum_N": 97.33388770628507,
+      "normal_die_node_force_norm_max_N": 25.47066897888589,
+      "total_force_balance_norm_N": 6.9083533889788784e-15
+    },
+    {
+      "source_frame": 38,
+      "observation_index": 20,
+      "die_vertex_to_probe_face_pairs": 0,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 0,
+      "normal_net_die_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_net_probe_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_die_node_force_norm_sum_N": 0.0,
+      "normal_die_node_force_norm_max_N": 0.0,
+      "total_force_balance_norm_N": 0.0
+    },
+    {
+      "source_frame": 39,
+      "observation_index": 21,
+      "die_vertex_to_probe_face_pairs": 0,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 0,
+      "normal_net_die_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_net_probe_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_die_node_force_norm_sum_N": 0.0,
+      "normal_die_node_force_norm_max_N": 0.0,
+      "total_force_balance_norm_N": 0.0
+    },
+    {
+      "source_frame": 40,
+      "observation_index": 22,
+      "die_vertex_to_probe_face_pairs": 0,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 0,
+      "normal_net_die_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_net_probe_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_die_node_force_norm_sum_N": 0.0,
+      "normal_die_node_force_norm_max_N": 0.0,
+      "total_force_balance_norm_N": 0.0
+    },
+    {
+      "source_frame": 41,
+      "observation_index": 23,
+      "die_vertex_to_probe_face_pairs": 0,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 0,
+      "normal_net_die_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_net_probe_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_die_node_force_norm_sum_N": 0.0,
+      "normal_die_node_force_norm_max_N": 0.0,
+      "total_force_balance_norm_N": 0.0
+    },
+    {
+      "source_frame": 42,
+      "observation_index": 24,
+      "die_vertex_to_probe_face_pairs": 0,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 0,
+      "normal_net_die_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_net_probe_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_die_node_force_norm_sum_N": 0.0,
+      "normal_die_node_force_norm_max_N": 0.0,
+      "total_force_balance_norm_N": 0.0
+    },
+    {
+      "source_frame": 43,
+      "observation_index": 25,
+      "die_vertex_to_probe_face_pairs": 0,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 0,
+      "normal_net_die_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_net_probe_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_die_node_force_norm_sum_N": 0.0,
+      "normal_die_node_force_norm_max_N": 0.0,
+      "total_force_balance_norm_N": 0.0
+    },
+    {
+      "source_frame": 44,
+      "observation_index": 26,
+      "die_vertex_to_probe_face_pairs": 0,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 0,
+      "normal_net_die_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_net_probe_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_die_node_force_norm_sum_N": 0.0,
+      "normal_die_node_force_norm_max_N": 0.0,
+      "total_force_balance_norm_N": 0.0
+    },
+    {
+      "source_frame": 45,
+      "observation_index": 27,
+      "die_vertex_to_probe_face_pairs": 0,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 0,
+      "normal_net_die_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_net_probe_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_die_node_force_norm_sum_N": 0.0,
+      "normal_die_node_force_norm_max_N": 0.0,
+      "total_force_balance_norm_N": 0.0
+    },
+    {
+      "source_frame": 46,
+      "observation_index": 28,
+      "die_vertex_to_probe_face_pairs": 1,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 1,
+      "normal_net_die_force_N": [
+        0.20056848877247788,
+        -0.7541123245924042,
+        -0.024532206854015564
+      ],
+      "normal_net_probe_force_N": [
+        -0.20056848877247785,
+        0.7541123245924042,
+        0.024532206854015564
+      ],
+      "normal_die_node_force_norm_sum_N": 0.7807143818092269,
+      "normal_die_node_force_norm_max_N": 0.7807143818092269,
+      "total_force_balance_norm_N": 3.487357818407424e-17
+    },
+    {
+      "source_frame": 47,
+      "observation_index": 29,
+      "die_vertex_to_probe_face_pairs": 5,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 5,
+      "normal_net_die_force_N": [
+        0.6632424822509961,
+        -1.1870092771482872,
+        -0.028886867792537598
+      ],
+      "normal_net_probe_force_N": [
+        -0.6632424822509964,
+        1.1870092771482867,
+        0.028886867792537595
+      ],
+      "normal_die_node_force_norm_sum_N": 7.06068690991805,
+      "normal_die_node_force_norm_max_N": 2.794713284712228,
+      "total_force_balance_norm_N": 3.9013252197511304e-16
+    },
+    {
+      "source_frame": 48,
+      "observation_index": 30,
+      "die_vertex_to_probe_face_pairs": 6,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 6,
+      "normal_net_die_force_N": [
+        -1.5332588897895858,
+        0.45826524274032066,
+        0.10709252825547108
+      ],
+      "normal_net_probe_force_N": [
+        1.5332588897895851,
+        -0.4582652427403199,
+        -0.10709252825547105
+      ],
+      "normal_die_node_force_norm_sum_N": 9.536987657750181,
+      "normal_die_node_force_norm_max_N": 3.8004291818987017,
+      "total_force_balance_norm_N": 6.855472665535873e-16
+    },
+    {
+      "source_frame": 49,
+      "observation_index": 31,
+      "die_vertex_to_probe_face_pairs": 3,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 3,
+      "normal_net_die_force_N": [
+        -0.12267013919146205,
+        -1.5154697696183725,
+        0.005748971909705433
+      ],
+      "normal_net_probe_force_N": [
+        0.12267013919146202,
+        1.5154697696183723,
+        -0.005748971909705432
+      ],
+      "normal_die_node_force_norm_sum_N": 2.79339282671444,
+      "normal_die_node_force_norm_max_N": 2.1435998297674734,
+      "total_force_balance_norm_N": 2.5219950184283274e-16
+    },
+    {
+      "source_frame": 50,
+      "observation_index": 32,
+      "die_vertex_to_probe_face_pairs": 4,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 4,
+      "normal_net_die_force_N": [
+        -3.2461522831713783,
+        -0.7844406974625358,
+        0.08206309099332804
+      ],
+      "normal_net_probe_force_N": [
+        3.2461522831713774,
+        0.7844406974625359,
+        -0.08206309099332804
+      ],
+      "normal_die_node_force_norm_sum_N": 5.8589108653592685,
+      "normal_die_node_force_norm_max_N": 2.3467295063508127,
+      "total_force_balance_norm_N": 4.519911814586809e-16
+    },
+    {
+      "source_frame": 51,
+      "observation_index": 33,
+      "die_vertex_to_probe_face_pairs": 4,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 4,
+      "normal_net_die_force_N": [
+        -0.9608188185604052,
+        0.07503260796598935,
+        0.007916029305702394
+      ],
+      "normal_net_probe_force_N": [
+        0.9608188185604053,
+        -0.07503260796598937,
+        -0.007916029305702395
+      ],
+      "normal_die_node_force_norm_sum_N": 1.257779610608333,
+      "normal_die_node_force_norm_max_N": 0.8235551305901909,
+      "total_force_balance_norm_N": 2.862293735361732e-17
+    },
+    {
+      "source_frame": 52,
+      "observation_index": 34,
+      "die_vertex_to_probe_face_pairs": 0,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 0,
+      "normal_net_die_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_net_probe_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_die_node_force_norm_sum_N": 0.0,
+      "normal_die_node_force_norm_max_N": 0.0,
+      "total_force_balance_norm_N": 0.0
+    },
+    {
+      "source_frame": 53,
+      "observation_index": 35,
+      "die_vertex_to_probe_face_pairs": 0,
+      "probe_vertex_to_die_face_pairs": 0,
+      "total_pairs": 0,
+      "normal_net_die_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_net_probe_force_N": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal_die_node_force_norm_sum_N": 0.0,
+      "normal_die_node_force_norm_max_N": 0.0,
+      "total_force_balance_norm_N": 0.0
+    }
+  ]
+}

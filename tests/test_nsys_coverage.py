@@ -174,7 +174,7 @@ class TestGraphCoverage(unittest.TestCase):
             database(directory, kernels=[(1, 7)], diagnostics=[(2, "Not all CUDA events might have been collected.")])
             coverage = report.inspect_graph_coverage(directory)
             metadata = {
-                "example": "bear",
+                "example": "scene",
                 "status": "complete",
                 "git": {"commit": "abc"},
                 "source_sha256": "digest",

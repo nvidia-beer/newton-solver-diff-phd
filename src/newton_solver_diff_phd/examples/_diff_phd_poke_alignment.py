@@ -1,0 +1,776 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 The Newton Developers
+# SPDX-License-Identifier: Apache-2.0
+
+"""Fit a die's placement or homogeneous stiffness to a recorded poke sequence."""
+
+import warnings
+from contextlib import nullcontext
+from time import perf_counter
+
+import newton
+import numpy as np
+import warp as wp
+
+from ._progress import _Progress
+
+
+@wp.kernel
+def _assign_material(
+    parameters: wp.array[wp.float64],
+    young_reference: wp.float64,
+    poisson_reference: wp.float64,
+    fit_young: int,
+    die_tets: wp.array[int],
+    original: wp.array2d[float],
+    materials: wp.array2d[float],
+):
+    i = wp.tid()
+    mu = float(original[i, 0])
+    lame = float(original[i, 1])
+    if die_tets[i] != 0:
+        young = wp.float64(young_reference)
+        poisson = wp.float64(poisson_reference)
+        if fit_young != 0:
+            young *= wp.exp(parameters[0])
+        else:
+            poisson = wp.float64(parameters[0])
+        mu = float(young / (wp.float64(2.0) * (wp.float64(1.0) + poisson)))
+        lame = float(young * poisson / ((wp.float64(1.0) + poisson) * (wp.float64(1.0) - wp.float64(2.0) * poisson)))
+    materials[i, 0] = mu
+    materials[i, 1] = lame
+    materials[i, 2] = original[i, 2]
+
+
+@wp.kernel
+def _initialize_positions(
+    rest: wp.array[wp.vec3],
+    parameters: wp.array[wp.float64],
+    reference: wp.vec2d,
+    soft_count: int,
+    positions: wp.array[wp.vec3],
+):
+    i = wp.tid()
+    value = wp.vec3d(rest[i])
+    if i < soft_count:
+        value += wp.vec3d(parameters[0] - reference[0], parameters[1] - reference[1], wp.float64(0.0))
+    positions[i] = wp.vec3(value)
+
+
+@wp.kernel
+def command_poke_positions(
+    positions: wp.array[wp.vec3],
+    endpoints: wp.array2d[wp.vec3],
+    step: int,
+    soft_count: int,
+    out: wp.array[wp.vec3],
+):
+    i = wp.tid()
+    if i < soft_count:
+        out[i] = positions[i]
+    else:
+        out[i] = endpoints[step + 1, i - soft_count]
+
+
+@wp.kernel(enable_backward=False)
+def _count_mesh_contact(pairs: wp.array[wp.int32], count: wp.array[wp.int32]):
+    if pairs[0] > 0:
+        count[0] = count[0] + 1
+
+
+@wp.kernel(enable_backward=False)
+def _count_boundary_contact(multipliers: wp.array[wp.float64], count: wp.array[wp.int32]):
+    for i in range(multipliers.shape[0]):
+        if multipliers[i] > wp.float64(0.0):
+            count[0] = count[0] + 1
+            return
+
+
+@wp.kernel
+def damp_poke_velocities(
+    velocities: wp.array[wp.vec3],
+    damping: float,
+    out: wp.array[wp.vec3],
+):
+    i = wp.tid()
+    out[i] = velocities[i] * damping
+
+
+@wp.kernel
+def _sample_surface(
+    q: wp.array[wp.vec3],
+    indices: wp.array[wp.vec4i],
+    weights: wp.array[wp.vec4d],
+    points: wp.array[wp.vec3d],
+):
+    i = wp.tid()
+    value = wp.vec3d(0.0)
+    for j in range(4):
+        if indices[i][j] >= 0:
+            value += weights[i][j] * wp.vec3d(q[indices[i][j]])
+    points[i] = value
+
+
+@wp.kernel(enable_backward=False)
+def _nearest_points(source: wp.array[wp.vec3d], target: wp.array[wp.vec3d], nearest: wp.array[int]):
+    i = wp.tid()
+    best_distance = wp.float64(wp.inf)
+    best = int(0)
+    for j in range(target.shape[0]):
+        distance = wp.length_sq(source[i] - target[j])
+        if distance < best_distance:
+            best_distance = distance
+            best = j
+    nearest[i] = best
+
+
+@wp.kernel
+def _chamfer_forward(
+    points: wp.array[wp.vec3d],
+    target: wp.array[wp.vec3d],
+    nearest: wp.array[int],
+    loss: wp.array[wp.float64],
+):
+    i = wp.tid()
+    delta = points[i] - target[nearest[i]]
+    wp.atomic_add(loss, 0, wp.float64(0.5) * wp.dot(delta, delta) / wp.float64(points.shape[0]))
+
+
+@wp.kernel
+def _chamfer_reverse(
+    points: wp.array[wp.vec3d],
+    target: wp.array[wp.vec3d],
+    nearest: wp.array[int],
+    loss: wp.array[wp.float64],
+):
+    i = wp.tid()
+    delta = points[nearest[i]] - target[i]
+    wp.atomic_add(loss, 0, wp.float64(0.5) * wp.dot(delta, delta) / wp.float64(target.shape[0]))
+
+
+class PokeAlignmentProblem:
+    """Optimize die placement or stiffness using native implicit adjoints.
+
+    The die occupies the first ``soft_count`` particles; every remaining
+    particle belongs to the tool, whose root particles are prescribed and whose
+    other particles may move freely. All targets and tool endpoints are
+    fixed world coordinates [m]. ``fit_mode="position"`` varies initial x/y
+    translation. ``fit_mode="stiffness"`` holds ``initial_xy`` fixed and varies
+    one log Young's modulus, with fixed ``poisson`` and unchanged tool material.
+    ``fit_mode="compressibility"`` instead varies Poisson's ratio at fixed
+    placement and Young's modulus; material parameters are never jointly fit.
+    This calibrates stiffness within the supplied geometry, mass and contact
+    model; motion alone need not identify the physical material uniquely.
+    The loss sums symmetric, mean squared vertex Chamfer distances [m²] over
+    observed frames. Optional fixed tetrahedral embeddings let the loss use
+    sampled recorded-surface vertices instead of the coarse FEM boundary.
+
+    The die and tool interact through the solver's reference mesh
+    ``frictional_boundary`` or its ``mesh_contact`` state force. Gradients are
+    the solver's reference derivatives: state gradients ignore contact (the
+    boundary's state adjoint is contact-free, the ``mesh_contact``
+    ``BackwardForce`` is zero), so with contact they hold each step's contact
+    force fixed. The reference also applies clipping and divergence safeguards
+    in its backward solve; their use is reported. Nearest-neighbor associations
+    are held fixed in the derivative. The optimizer uses these native gradients.
+    Bounded L-BFGS uses a projected search direction and Armijo
+    backtracking; ``optimizer="gradient_descent"`` retains the legacy update.
+    ``velocity_damping`` retains this fraction of every particle velocity after each
+    physical substep, and its chain rule is included in the recorded rollout.
+    Construction performs no rollout; call :meth:`prepare` when ready to evaluate
+    the initial guess.
+    """
+
+    def __init__(
+        self,
+        model,
+        solver,
+        soft_count,
+        surface_indices,
+        tool_positions,
+        targets,
+        *,
+        initial_xy=(0.73, 0.115),
+        reference_xy=(0.70, 0.089),
+        frame_dt=1.0 / 30.0,
+        substeps=1,
+        progress=False,
+        bounds=((0.62, 0.80), (0.02, 0.18)),
+        surface_embedding=None,
+        optimizer="lbfgs",
+        history_size=5,
+        velocity_damping=1.0,
+        fit_mode="position",
+        young=5e5,
+        poisson=0.4,
+        young_bounds=(2e4, 2e6),
+        poisson_bounds=(0.05, 0.45),
+    ):
+        if isinstance(substeps, bool) or int(substeps) != substeps or substeps < 1:
+            raise ValueError("substeps must be a positive integer")
+        if not np.isfinite(frame_dt) or frame_dt <= 0.0:
+            raise ValueError("frame_dt must be finite and positive")
+        if isinstance(soft_count, bool) or int(soft_count) != soft_count or not 0 < soft_count < model.particle_count:
+            raise ValueError("soft_count must leave nonempty die and tool particles")
+        if solver.model is not model or (solver.mesh_contact_pairs is None and solver.contact_multipliers is None):
+            raise ValueError("Use this model's SolverDiffPhD with a mesh frictional_boundary or mesh_contact")
+        if optimizer not in ("lbfgs", "gradient_descent", "gd"):
+            raise ValueError("optimizer must be 'lbfgs' or 'gradient_descent'")
+        if isinstance(history_size, bool) or int(history_size) != history_size or history_size < 1:
+            raise ValueError("history_size must be a positive integer")
+        if not np.isfinite(velocity_damping) or not 0.0 <= velocity_damping <= 1.0:
+            raise ValueError("velocity_damping must be finite and between zero and one")
+        if fit_mode not in ("position", "stiffness", "compressibility"):
+            raise ValueError("fit_mode must be 'position', 'stiffness' or 'compressibility'")
+        if not np.isfinite(young) or young <= 0.0 or not np.isfinite(poisson) or not 0.0 <= poisson < 0.5:
+            raise ValueError("young must be finite and positive and poisson must be in [0,0.5)")
+        young_limits = np.asarray(young_bounds, dtype=np.float64)
+        if (
+            young_limits.shape != (2,)
+            or not np.isfinite(young_limits).all()
+            or not 0.0 < young_limits[0] < young_limits[1]
+            or (fit_mode == "stiffness" and not young_limits[0] <= young <= young_limits[1])
+        ):
+            raise ValueError("young_bounds must be positive ordered bounds containing the stiffness initial guess")
+        poisson_limits = np.asarray(poisson_bounds, dtype=np.float64)
+        if (
+            poisson_limits.shape != (2,)
+            or not np.isfinite(poisson_limits).all()
+            or not 0.0 <= poisson_limits[0] < poisson_limits[1] < 0.5
+            or (fit_mode == "compressibility" and not poisson_limits[0] <= poisson <= poisson_limits[1])
+        ):
+            raise ValueError("poisson_bounds must be ordered in [0,0.5) and contain the compressibility initial guess")
+        self.model, self.solver, self.device = model, solver, model.device
+        self.fit_mode, self.poisson_reference = fit_mode, float(poisson)
+        self.young_reference, self.young_bounds = float(young), young_limits.copy()
+        self.poisson_bounds = poisson_limits.copy()
+        self.parameter_names = {"position": ("x", "y"), "stiffness": ("log_young",), "compressibility": ("poisson",)}[
+            fit_mode
+        ]
+        self.optimizer = "gradient_descent" if optimizer == "gd" else optimizer
+        self.history_size, self.velocity_damping = int(history_size), float(velocity_damping)
+        self._curvature = []
+        self.soft_count = int(soft_count)
+        self.frame_dt, self.substeps = float(frame_dt), int(substeps)
+        self.dt, self.progress = self.frame_dt / self.substeps, bool(progress)
+        self.reference_xy = np.array(reference_xy, dtype=np.float64, copy=True)
+        self.initial_x = np.array(initial_xy, dtype=np.float64, copy=True)
+        self.bounds = np.array(bounds, dtype=np.float64, copy=True)
+        if (
+            self.reference_xy.shape != (2,)
+            or self.initial_x.shape != (2,)
+            or self.bounds.shape != (2, 2)
+            or not np.isfinite(self.reference_xy).all()
+            or not np.isfinite(self.initial_x).all()
+            or not np.isfinite(self.bounds).all()
+            or np.any(self.bounds[:, 0] >= self.bounds[:, 1])
+            or np.any(self.initial_x < self.bounds[:, 0])
+            or np.any(self.initial_x > self.bounds[:, 1])
+        ):
+            raise ValueError("Provide finite reference/initial x/y and ordered bounds containing the initial guess")
+        if not np.any(model.particle_inv_mass.numpy()[self.soft_count :] == 0.0):
+            raise ValueError("The tool must have prescribed root particles with zero inverse mass")
+        target_arrays = [np.array(points, dtype=np.float64, copy=True) for points in targets]
+        if not target_arrays or any(
+            points.ndim != 2 or points.shape[1] != 3 or not len(points) or not np.isfinite(points).all()
+            for points in target_arrays
+        ):
+            raise ValueError("targets must contain nonempty finite (point_count,3) observed frames")
+        self.frames = len(target_arrays)
+        self.steps = self.frames * self.substeps
+        endpoints = np.array(tool_positions, dtype=np.float32, copy=True)
+        if (
+            endpoints.shape != (self.steps + 1, model.particle_count - self.soft_count, 3)
+            or not np.isfinite(endpoints).all()
+        ):
+            raise ValueError("tool_positions must contain every substep endpoint, including the initial pose")
+        rest = model.particle_q.numpy().copy()
+        if not np.allclose(rest[self.soft_count :], endpoints[0], rtol=0.0, atol=1e-7):
+            raise ValueError("The initial tool endpoints must match the model's initial tool positions")
+        lower = rest[: self.soft_count, :2].min(axis=0) + self.bounds[:, 0] - self.reference_xy
+        upper = rest[: self.soft_count, :2].max(axis=0) + self.bounds[:, 1] - self.reference_xy
+        # Parameters are float64, but their translated native positions are
+        # float32. Sub-ULP line-search trials cannot resolve a reliable fit step.
+        spatial_scale = np.maximum(np.abs(lower), np.abs(upper)).astype(np.float32)
+        self.position_resolution_m = np.spacing(spatial_scale).astype(np.float64)
+        self.initial_xy, self.xy_bounds = self.initial_x.copy(), self.bounds.copy()
+        self._fixed_xy = wp.array(self.initial_xy, dtype=wp.float64, device=self.device)
+        if fit_mode != "position":
+            tets = model.tet_indices.numpy().reshape(-1, 4)
+            die_tets = np.all(tets < self.soft_count, axis=1)
+            if not die_tets.any() or np.any(np.any(tets < self.soft_count, axis=1) != die_tets):
+                raise ValueError("Material fitting requires die tetrahedra separate from the tool")
+            self._die_tets = wp.array(die_tets.astype(np.int32), dtype=int, device=self.device)
+            self._original_materials = wp.clone(model.tet_materials, requires_grad=False)
+            model.tet_materials.requires_grad = True
+            self.initial_x = np.array([0.0 if fit_mode == "stiffness" else self.poisson_reference])
+            self.bounds = (np.log(young_limits / self.young_reference) if fit_mode == "stiffness" else poisson_limits)[
+                None, :
+            ]
+        self.rest = wp.array(rest, dtype=wp.vec3, device=self.device)
+        self.tool_positions = wp.array(endpoints, dtype=wp.vec3, device=self.device)
+        self.targets = [wp.array(points, dtype=wp.vec3d, device=self.device) for points in target_arrays]
+        self.target_positions = target_arrays
+        self.surface_indices = np.array(surface_indices, dtype=np.int32, copy=True)
+        if (
+            self.surface_indices.ndim != 1
+            or not len(self.surface_indices)
+            or np.any(self.surface_indices < 0)
+            or np.any(self.surface_indices >= self.soft_count)
+        ):
+            raise ValueError("surface_indices must index a nonempty subset of die particles")
+        if surface_embedding is None:
+            ids = np.full((len(self.surface_indices), 4), -1, dtype=np.int32)
+            ids[:, 0] = self.surface_indices
+            weights = np.zeros_like(ids, dtype=np.float64)
+            weights[:, 0] = 1.0
+        else:
+            ids = np.asarray(surface_embedding[0], dtype=np.int32)
+            weights = np.asarray(surface_embedding[1], dtype=np.float64)
+            if (
+                ids.ndim != 2
+                or ids.shape[1] != 4
+                or not len(ids)
+                or weights.shape != ids.shape
+                or np.any(ids < 0)
+                or np.any(ids >= self.soft_count)
+                or not np.isfinite(weights).all()
+                or not np.allclose(weights.sum(axis=1), 1.0, rtol=0.0, atol=1e-6)
+            ):
+                raise ValueError("surface_embedding requires valid (sample_count,4) die indices and affine weights")
+        self.embedding_indices = wp.array(ids, dtype=wp.vec4i, device=self.device)
+        self.embedding_weights = wp.array(weights, dtype=wp.vec4d, device=self.device)
+        embedded_rest = np.sum(rest[np.maximum(ids, 0)] * weights[:, :, None], axis=1)
+        self.surface_extent_m = float(np.max(np.ptp(embedded_rest, axis=0)))
+        self.parameters = wp.array(self.initial_x, dtype=wp.float64, device=self.device, requires_grad=True)
+        self.states = [model.state(requires_grad=True) for _ in range(self.steps + 1)]
+        # Distinct target arrays preserve the boundary-gradient chain on Tape;
+        # incoming qd remains the physical velocity used by the state force.
+        self.dirichlet_positions = [
+            wp.empty(model.particle_count, dtype=wp.vec3, device=self.device, requires_grad=True)
+            for _ in range(self.steps)
+        ]
+        for state in self.states:
+            state.particle_f.requires_grad = False
+            state.particle_f.zero_()
+        self.solver_states = self.states[1:]
+        if self.velocity_damping != 1.0:
+            # Preserve raw solver outputs for its adjoint; damping writes a
+            # distinct velocity buffer consumed by the next substep.
+            self.solver_states = []
+            for state in self.states[1:]:
+                raw = model.state(requires_grad=True)
+                raw.particle_q = state.particle_q
+                raw.particle_f = state.particle_f
+                self.solver_states.append(raw)
+        self.control = model.control()
+        self.surface_points = [
+            wp.empty(len(ids), dtype=wp.vec3d, device=self.device, requires_grad=True) for _ in range(self.frames)
+        ]
+        self.forward_nearest = [wp.empty(len(ids), dtype=int, device=self.device) for _ in range(self.frames)]
+        self.reverse_nearest = [wp.empty(len(points), dtype=int, device=self.device) for points in target_arrays]
+        self.loss = wp.zeros(1, dtype=wp.float64, device=self.device, requires_grad=True)
+        self._contact_count = wp.zeros(1, dtype=wp.int32, device=self.device)
+        self.x = self.initial_x.copy()
+        self.value = self.gradient = self.positions = self.initial_positions = self.initial_loss = None
+        self.iteration, self.contact_steps = 0, 0
+        self.history = []
+        self.finished, self.stop_reason = False, "not prepared"
+        self.step_size = {"position": 0.012, "stiffness": 0.25, "compressibility": 0.05}[fit_mode]
+        self._tape = None
+        self._timing_totals = {
+            "forward_seconds": 0.0,
+            "backward_seconds": 0.0,
+            "forward_rollouts": 0,
+            "backward_rollouts": 0,
+        }
+        self.last_training_timing = None
+
+    def _rollout(self, parameters, *, record, stage):
+        values = np.asarray(parameters, dtype=np.float64)
+        if values.shape != self.initial_x.shape or not np.isfinite(values).all():
+            raise ValueError(f"Expected finite parameters {self.parameter_names}")
+        started = perf_counter()
+        if self.fit_mode != "position":
+            self._material_from_parameters(values)
+        if self._tape is not None:
+            self._tape.zero()
+        self.parameters.assign(values)
+        self.states[0].particle_qd.zero_()
+        self.loss.zero_()
+        tape = wp.Tape() if record else None
+        self._tape = tape
+        self._contact_count.zero_()
+        if self.fit_mode != "position":
+            # Invalidate the factor outside Tape; the differentiable material
+            # assignment below supplies the native implicit material VJP.
+            self.solver.notify_model_changed(newton.ModelFlags.MODEL_PROPERTIES)
+        with tape if tape is not None else nullcontext():
+            if self.fit_mode != "position":
+                wp.launch(
+                    _assign_material,
+                    self.model.tet_count,
+                    inputs=[
+                        self.parameters,
+                        self.young_reference,
+                        self.poisson_reference,
+                        int(self.fit_mode == "stiffness"),
+                        self._die_tets,
+                        self._original_materials,
+                    ],
+                    outputs=[self.model.tet_materials],
+                    device=self.device,
+                )
+            wp.launch(
+                _initialize_positions,
+                self.model.particle_count,
+                inputs=[
+                    self.rest,
+                    self.parameters if self.fit_mode == "position" else self._fixed_xy,
+                    wp.vec2d(*self.reference_xy),
+                    self.soft_count,
+                ],
+                outputs=[self.states[0].particle_q],
+                device=self.device,
+            )
+        backward = _Progress(f"die alignment: {stage} / backward", self.frames, self.progress)
+        with _Progress(f"die alignment: {stage} / forward", self.frames, self.progress) as forward:
+            for frame in range(self.frames):
+                with tape if tape is not None else nullcontext():
+                    if tape is not None and self.progress:
+                        tape.record_func(lambda done=self.frames - frame: backward.update(done), [])
+                    for substep in range(self.substeps):
+                        i = frame * self.substeps + substep
+                        wp.launch(
+                            command_poke_positions,
+                            self.model.particle_count,
+                            inputs=[
+                                self.states[i].particle_q,
+                                self.tool_positions,
+                                i,
+                                self.soft_count,
+                            ],
+                            outputs=[self.dirichlet_positions[i]],
+                            device=self.device,
+                        )
+                        self.solver.step(
+                            self.states[i],
+                            self.solver_states[i],
+                            self.control,
+                            None,
+                            self.dt,
+                            dirichlet_positions=self.dirichlet_positions[i],
+                        )
+                        if self.velocity_damping != 1.0:
+                            wp.launch(
+                                damp_poke_velocities,
+                                self.model.particle_count,
+                                inputs=[
+                                    self.solver_states[i].particle_qd,
+                                    self.velocity_damping,
+                                ],
+                                outputs=[self.states[i + 1].particle_qd],
+                                device=self.device,
+                            )
+                        if self.solver.mesh_contact_pairs is not None:
+                            wp.launch(
+                                _count_mesh_contact,
+                                1,
+                                inputs=[self.solver.mesh_contact_pairs],
+                                outputs=[self._contact_count],
+                                device=self.device,
+                                record_tape=False,
+                            )
+                        else:
+                            wp.launch(
+                                _count_boundary_contact,
+                                1,
+                                inputs=[self.solver.contact_multipliers],
+                                outputs=[self._contact_count],
+                                device=self.device,
+                                record_tape=False,
+                            )
+                    wp.launch(
+                        _sample_surface,
+                        len(self.embedding_indices),
+                        inputs=[
+                            self.states[(frame + 1) * self.substeps].particle_q,
+                            self.embedding_indices,
+                            self.embedding_weights,
+                        ],
+                        outputs=[self.surface_points[frame]],
+                        device=self.device,
+                    )
+                # The selected closest-point branches are fixed for reverse mode.
+                for source, target, nearest in (
+                    (self.surface_points[frame], self.targets[frame], self.forward_nearest[frame]),
+                    (self.targets[frame], self.surface_points[frame], self.reverse_nearest[frame]),
+                ):
+                    wp.launch(
+                        _nearest_points, len(source), inputs=[source, target], outputs=[nearest], device=self.device
+                    )
+                with tape if tape is not None else nullcontext():
+                    for kernel, nearest in (
+                        (_chamfer_forward, self.forward_nearest[frame]),
+                        (_chamfer_reverse, self.reverse_nearest[frame]),
+                    ):
+                        wp.launch(
+                            kernel,
+                            len(nearest),
+                            inputs=[self.surface_points[frame], self.targets[frame], nearest],
+                            outputs=[self.loss],
+                            device=self.device,
+                        )
+                forward.update(frame + 1)
+            # These existing result reads complete GPU work before reporting
+            # elapsed time; no per-frame or per-substep synchronization is added.
+            value = float(self.loss.numpy()[0])
+            self.contact_steps = int(self._contact_count.numpy()[0])
+        self._timing_totals["forward_seconds"] += perf_counter() - started
+        self._timing_totals["forward_rollouts"] += 1
+        self._check_solver()
+        if not np.isfinite(value):
+            raise RuntimeError("Recorded-data alignment produced a nonfinite loss")
+        return value, tape, backward
+
+    def _check_solver(self):
+        # One status read per rollout or backward pass. Like the reference, a
+        # step that reaches max_iterations keeps its last iterate and only warns.
+        bits = self.solver.read_status()
+        if bits & 1:
+            warnings.warn("Some poke steps reached max_iterations; their last iterates were kept", stacklevel=3)
+        if bits & 8:
+            warnings.warn("Some poke adjoint solves reached max_iterations; reference outputs were kept", stacklevel=3)
+        if bits & 16:
+            warnings.warn("Reference adjoint clipping or divergence safeguards were used", stacklevel=3)
+        if bits & ~(1 | 8 | 16):
+            self.solver.status.fill_(bits & ~(1 | 8 | 16))
+            self.solver.check_status()
+
+    def _backward(self, tape, progress):
+        started = perf_counter()
+        with progress:
+            tape.backward(self.loss)
+            gradient = self.parameters.grad.numpy().copy()
+        self._timing_totals["backward_seconds"] += perf_counter() - started
+        self._timing_totals["backward_rollouts"] += 1
+        self._check_solver()
+        if not np.isfinite(gradient).all():
+            raise RuntimeError("Recorded-data alignment produced a nonfinite implicit gradient")
+        return gradient
+
+    def _positions(self):
+        return np.stack([self.states[i * self.substeps].particle_q.numpy() for i in range(self.frames + 1)])
+
+    def evaluate(self, parameters, gradients=True, *, save_trajectory=True, stage="trajectory"):
+        """Return loss [m²], native parameter gradient, and optional frame positions [m]."""
+        value, tape, progress = self._rollout(parameters, record=gradients, stage=stage)
+        gradient = self._backward(tape, progress) if gradients else None
+        return value, gradient, self._positions() if save_trajectory else None
+
+    def _material_from_parameters(self, parameters):
+        with np.errstate(over="ignore", under="ignore"):
+            young = (
+                float(self.young_reference * np.exp(parameters[0]))
+                if self.fit_mode == "stiffness"
+                else self.young_reference
+            )
+        poisson = float(parameters[0]) if self.fit_mode == "compressibility" else self.poisson_reference
+        if not np.isfinite(young) or young <= 0.0 or not np.isfinite(poisson) or not 0.0 <= poisson < 0.5:
+            raise ValueError("Parameters must decode to finite positive Young's modulus and Poisson ratio in [0,0.5)")
+        return young, poisson
+
+    @property
+    def xy(self):
+        """Accepted initial die placement [m], fixed during material fitting."""
+        return (self.x if self.fit_mode == "position" else self.initial_xy).copy()
+
+    @property
+    def young(self):
+        """Accepted homogeneous Young's modulus [Pa]."""
+        return self._material_from_parameters(self.x)[0]
+
+    @property
+    def poisson(self):
+        """Accepted Poisson's ratio, fixed except during compressibility fitting."""
+        return self._material_from_parameters(self.x)[1]
+
+    @property
+    def rms_surface_error_m(self):
+        """Frame-normalized symmetric Chamfer RMS [m] of the accepted trajectory."""
+        return None if self.value is None else float(np.sqrt(self.value / self.frames))
+
+    @property
+    def normalized_rms_surface_error(self):
+        """RMS divided by the longest initial sampled-surface extent; None for a point."""
+        if self.value is None or self.surface_extent_m == 0.0:
+            return None
+        return self.rms_surface_error_m / self.surface_extent_m
+
+    def prepare(self):
+        """Evaluate initial parameters once, after the viewer can show its geometry."""
+        if self.value is not None:
+            return
+        started, previous_timing = perf_counter(), self._timing_totals.copy()
+        self.value, self.gradient, self.initial_positions = self.evaluate(self.x, stage="initial guess")
+        self.positions = self.initial_positions.copy()
+        self.initial_loss = self.value
+        self.stop_reason = "training"
+        timing = self._finish_training_timing(started, previous_timing)
+        self.history.append(
+            {
+                "iteration": 0,
+                "xy": self.xy.tolist(),
+                "young_pa": self.young,
+                "poisson": self.poisson,
+                "loss": self.value,
+                "rms_surface_error_m": self.rms_surface_error_m,
+                "seconds": timing["seconds"],
+                "timing": timing,
+            }
+        )
+
+    def _finish_training_timing(self, started, previous):
+        """Separate completed training work from viewer trajectory playback."""
+        timing = {key: value - previous[key] for key, value in self._timing_totals.items()}
+        timing.update(
+            seconds=perf_counter() - started,
+            frames_per_rollout=self.frames,
+            substeps_per_frame=self.substeps,
+            steps_per_rollout=self.steps,
+            forward_substeps=timing["forward_rollouts"] * self.steps,
+            backward_substeps=timing["backward_rollouts"] * self.steps,
+        )
+        self.last_training_timing = timing
+        return timing
+
+    def _projected_gradient(self):
+        blocked = ((self.x <= self.bounds[:, 0]) & (self.gradient > 0.0)) | (
+            (self.x >= self.bounds[:, 1]) & (self.gradient < 0.0)
+        )
+        return np.where(blocked, 0.0, self.gradient)
+
+    def _lbfgs_direction(self, projected_gradient):
+        q = projected_gradient.copy()
+        coefficients = []
+        for s, y, rho in reversed(self._curvature):
+            alpha = rho * float(s @ q)
+            coefficients.append(alpha)
+            q -= alpha * y
+        if self._curvature:
+            s, y, _ = self._curvature[-1]
+            scale = float(s @ y) / float(y @ y)
+        else:
+            scale = self.step_size / float(np.linalg.norm(projected_gradient))
+        direction = scale * q
+        for (s, y, rho), alpha in zip(self._curvature, reversed(coefficients), strict=True):
+            direction += s * (alpha - rho * float(y @ direction))
+        direction *= -1.0
+        direction[(self.x <= self.bounds[:, 0]) & (direction < 0.0)] = 0.0
+        direction[(self.x >= self.bounds[:, 1]) & (direction > 0.0)] = 0.0
+        if not np.isfinite(direction).all() or float(self.gradient @ direction) >= 0.0:
+            self._curvature.clear()
+            direction = -self.step_size * projected_gradient / np.linalg.norm(projected_gradient)
+        return direction
+
+    def optimize_step(self):
+        """Take one bounded analytic-gradient update, retaining its accepted tape."""
+        self.prepare()
+        if self.finished:
+            return False
+        started, previous_timing = perf_counter(), self._timing_totals.copy()
+        lbfgs = self.optimizer == "lbfgs"
+        projected_gradient = self._projected_gradient() if lbfgs else self.gradient
+        magnitude = float(np.linalg.norm(projected_gradient))
+        if magnitude < 1e-9:
+            self.finished = True
+            self.stop_reason = "projected gradient converged" if lbfgs else "gradient converged"
+            self._finish_training_timing(started, previous_timing)
+            return False
+        direction = self._lbfgs_direction(projected_gradient) if lbfgs else -self.gradient / magnitude
+        distance = 1.0 if lbfgs else self.step_size
+        accepted_contact_steps = self.contact_steps
+        reason = "line search exhausted"
+        for backtrack in range(20 if lbfgs else 6):
+            candidate = np.clip(self.x + distance * direction, self.bounds[:, 0], self.bounds[:, 1])
+            step = candidate - self.x
+            if self.fit_mode == "position":
+                unresolved = np.all(np.abs(step) < self.position_resolution_m)
+            else:
+                # Identical float32 Lame parameters produce the same simulation,
+                # even if their float64 log-E values differ.
+                materials = []
+                for parameters in (self.x, candidate):
+                    young, poisson = self._material_from_parameters(parameters)
+                    materials.append(
+                        np.array(
+                            [young / (2 * (1 + poisson)), young * poisson / ((1 + poisson) * (1 - 2 * poisson))],
+                            dtype=np.float32,
+                        )
+                    )
+                unresolved = np.array_equal(*materials)
+            if unresolved:
+                reason = "state precision stagnation"
+                break
+            slope = float(self.gradient @ step)
+            if lbfgs and slope >= 0.0:
+                distance *= 0.5
+                continue
+            try:
+                value, tape, progress = self._rollout(candidate, record=True, stage=f"trial {self.iteration + 1}")
+                sufficient = value < self.value and value <= self.value + 1e-4 * slope
+                if not (sufficient if lbfgs else value < self.value - 1e-12):
+                    distance *= 0.5
+                    continue
+                gradient = self._backward(tape, progress)
+            except self.solver.ConvergenceError:
+                distance *= 0.5
+                continue
+            if lbfgs:
+                change = gradient - self.gradient
+                curvature = float(step @ change)
+                if curvature > 1e-10 * np.linalg.norm(step) * np.linalg.norm(change):
+                    self._curvature.append((step, change, 1.0 / curvature))
+                    del self._curvature[: -self.history_size]
+            self.x, self.value, self.gradient = candidate, value, gradient
+            self.positions = self._positions()
+            self.iteration += 1
+            timing = self._finish_training_timing(started, previous_timing)
+            self.history.append(
+                {
+                    "iteration": self.iteration,
+                    "xy": self.xy.tolist(),
+                    "young_pa": self.young,
+                    "poisson": self.poisson,
+                    "loss": self.value,
+                    "rms_surface_error_m": self.rms_surface_error_m,
+                    "step": float(np.linalg.norm(step)),
+                    "backtracks": backtrack,
+                    "seconds": timing["seconds"],
+                    "timing": timing,
+                }
+            )
+            if not lbfgs and backtrack == 0:
+                limit = {"position": 0.024, "stiffness": 0.5, "compressibility": 0.1}[self.fit_mode]
+                self.step_size = min(limit, self.step_size * 1.3)
+            return True
+        self.contact_steps = accepted_contact_steps
+        self.finished, self.stop_reason = True, reason
+        self._finish_training_timing(started, previous_timing)
+        return False
+
+    def check_gradient(self, epsilon=None):
+        """Check derivatives with steps of 0.1 mm, 0.01 log-E or 0.001 Poisson ratio."""
+        if epsilon is None:
+            epsilon = {"position": 1e-4, "stiffness": 1e-2, "compressibility": 1e-3}[self.fit_mode]
+        if not np.isfinite(epsilon) or epsilon <= 0.0:
+            raise ValueError("epsilon must be finite and positive")
+        _, analytic, _ = self.evaluate(self.x, save_trajectory=False, stage="gradient check")
+        numeric = np.empty_like(self.x)
+        for axis in range(len(self.x)):
+            delta = np.zeros_like(self.x)
+            delta[axis] = epsilon
+            plus = self.evaluate(self.x + delta, gradients=False, save_trajectory=False)[0]
+            minus = self.evaluate(self.x - delta, gradients=False, save_trajectory=False)[0]
+            numeric[axis] = (plus - minus) / (2.0 * epsilon)
+        relative = np.abs(analytic - numeric) / np.maximum(np.maximum(np.abs(analytic), np.abs(numeric)), 1e-12)
+        return {"analytic": analytic, "finite_difference": numeric, "relative_error": relative, "epsilon": epsilon}

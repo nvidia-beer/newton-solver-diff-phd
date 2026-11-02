@@ -1,0 +1,1739 @@
+{
+  "format": "newton.diff_phd.poke_surface_comparison.v1",
+  "units": "metres, except training_chamfer_m2 and training_chamfer_sum_m2 in square metres",
+  "definitions": {
+    "directional": "Unsigned nearest-triangle distance from every source mesh vertex to the full opposite mesh; RMS, numpy linear p95, maximum.",
+    "symmetric_rms": "sqrt(0.5 * (mean(white_to_scan^2) + mean(scan_to_white^2)))",
+    "symmetric_p95": "max(p95(white_to_scan), p95(scan_to_white)); not a pooled percentile",
+    "aggregate": "Frame 0 excluded; RMS gives equal weight to each remaining frame and to each direction, regardless of vertex counts.",
+    "frozen_frame0": "The embedded white surface at trajectory frame 0 is held fixed in world coordinates against every recorded frame.",
+    "training_chamfer": "When samples exist: 0.5*mean nearest-vertex squared distance each direction, using target_vertex_indices[0] and target_points[frame], as in fast training. Sum excludes frame 0."
+  },
+  "scope": "No rigid registration, per-frame alignment, simulation or geometry modification. CPU Warp mesh queries use float32 geometry; embeddings and metric reductions use float64. Vertex sampling is not surface-area weighting, signed penetration or a continuous Hausdorff distance. No collision or tetrahedron-inversion pass can be inferred from these metrics. Frozen baseline includes initial placement error.",
+  "counts": {
+    "frames": 36,
+    "die_particles": 3663,
+    "trajectory_particles": 3689,
+    "ignored_extra_particles": 26,
+    "white_vertices": 13781,
+    "white_triangles": 26804,
+    "training_white_samples": 1024
+  },
+  "frames": [
+    {
+      "index": 0,
+      "frame_id": 18,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.02251462601319619,
+          "p95_m": 0.036812674254179,
+          "max_m": 0.03969883918762207,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.022850402563484973,
+          "p95_m": 0.03688283637166023,
+          "max_m": 0.03969884663820267,
+          "vertices": 13781
+        },
+        "symmetric_rms_m": 0.022683135605857174,
+        "symmetric_p95_m": 0.03688283637166023,
+        "max_distance_m": 0.03969884663820267,
+        "training_chamfer_m2": 0.00058781646625563
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.02251462601319619,
+          "p95_m": 0.036812674254179,
+          "max_m": 0.03969883918762207,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.022850402563484973,
+          "p95_m": 0.03688283637166023,
+          "max_m": 0.03969884663820267,
+          "vertices": 13781
+        },
+        "symmetric_rms_m": 0.022683135605857174,
+        "symmetric_p95_m": 0.03688283637166023,
+        "max_distance_m": 0.03969884663820267,
+        "training_chamfer_m2": 0.00058781646625563
+      }
+    },
+    {
+      "index": 1,
+      "frame_id": 19,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.02665274754239681,
+          "p95_m": 0.04369434714317322,
+          "max_m": 0.04836518317461014,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.027161605164444647,
+          "p95_m": 0.04373657219111919,
+          "max_m": 0.04809073731303215,
+          "vertices": 15279
+        },
+        "symmetric_rms_m": 0.026908379240191384,
+        "symmetric_p95_m": 0.04373657219111919,
+        "max_distance_m": 0.04836518317461014,
+        "training_chamfer_m2": 0.0008104817617670182
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.026652747657874735,
+          "p95_m": 0.043694350868463516,
+          "max_m": 0.04836518317461014,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.027161605333854883,
+          "p95_m": 0.04373657219111919,
+          "max_m": 0.04809073731303215,
+          "vertices": 15279
+        },
+        "symmetric_rms_m": 0.02690837938288407,
+        "symmetric_p95_m": 0.04373657219111919,
+        "max_distance_m": 0.04836518317461014,
+        "training_chamfer_m2": 0.0008104817700939462
+      }
+    },
+    {
+      "index": 2,
+      "frame_id": 20,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.030328956801722554,
+          "p95_m": 0.050163384526968,
+          "max_m": 0.05414716154336929,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03107724599228734,
+          "p95_m": 0.05050550233572721,
+          "max_m": 0.05623126029968262,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.030705380954694994,
+        "symmetric_p95_m": 0.05050550233572721,
+        "max_distance_m": 0.05623126029968262,
+        "training_chamfer_m2": 0.000988487288501671
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.03032895692565042,
+          "p95_m": 0.050163399428129196,
+          "max_m": 0.05414716154336929,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.031077246236792855,
+          "p95_m": 0.05050550643354654,
+          "max_m": 0.05623126029968262,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.03070538113963263,
+        "symmetric_p95_m": 0.05050550643354654,
+        "max_distance_m": 0.05623126029968262,
+        "training_chamfer_m2": 0.000988487297392426
+      }
+    },
+    {
+      "index": 3,
+      "frame_id": 21,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.030948248324284725,
+          "p95_m": 0.05090644210577011,
+          "max_m": 0.055099595338106155,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03167177965751258,
+          "p95_m": 0.051325653679668896,
+          "max_m": 0.05742403864860535,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.03131210389781897,
+        "symmetric_p95_m": 0.051325653679668896,
+        "max_distance_m": 0.05742403864860535,
+        "training_chamfer_m2": 0.001025711789018224
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.030948248478858898,
+          "p95_m": 0.05090644210577011,
+          "max_m": 0.055099595338106155,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03167177980431778,
+          "p95_m": 0.05132566541433334,
+          "max_m": 0.05742403864860535,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.03131210404845372,
+        "symmetric_p95_m": 0.05132566541433334,
+        "max_distance_m": 0.05742403864860535,
+        "training_chamfer_m2": 0.0010257117979604376
+      }
+    },
+    {
+      "index": 4,
+      "frame_id": 22,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.03070988182560732,
+          "p95_m": 0.05094919726252556,
+          "max_m": 0.05494459345936775,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.0313598364319757,
+          "p95_m": 0.05131724458187818,
+          "max_m": 0.05723738297820091,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.031036560559951205,
+        "symmetric_p95_m": 0.05131724458187818,
+        "max_distance_m": 0.05723738297820091,
+        "training_chamfer_m2": 0.0010089860496688002
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.030709881888857257,
+          "p95_m": 0.05094919726252556,
+          "max_m": 0.05494459345936775,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03135983667076269,
+          "p95_m": 0.051317240484058856,
+          "max_m": 0.05723738297820091,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.031036560711880396,
+        "symmetric_p95_m": 0.051317240484058856,
+        "max_distance_m": 0.05723738297820091,
+        "training_chamfer_m2": 0.0010089860588966995
+      }
+    },
+    {
+      "index": 5,
+      "frame_id": 23,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.030824292464383563,
+          "p95_m": 0.050985440611839294,
+          "max_m": 0.05521920695900917,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.031610199403164736,
+          "p95_m": 0.05145109929144382,
+          "max_m": 0.057449717074632645,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.03121971902690421,
+        "symmetric_p95_m": 0.05145109929144382,
+        "max_distance_m": 0.057449717074632645,
+        "training_chamfer_m2": 0.0010200845630064675
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.030824292601619997,
+          "p95_m": 0.050985440611839294,
+          "max_m": 0.05521920695900917,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03161019964142737,
+          "p95_m": 0.05145108923316002,
+          "max_m": 0.057449717074632645,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.031219719215274663,
+        "symmetric_p95_m": 0.05145108923316002,
+        "max_distance_m": 0.057449717074632645,
+        "training_chamfer_m2": 0.0010200845719887746
+      }
+    },
+    {
+      "index": 6,
+      "frame_id": 24,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.030871109676586614,
+          "p95_m": 0.050969772040843964,
+          "max_m": 0.05469405651092529,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.031592473831696596,
+          "p95_m": 0.051305901259183884,
+          "max_m": 0.05693899840116501,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.03123387436318359,
+        "symmetric_p95_m": 0.051305901259183884,
+        "max_distance_m": 0.05693899840116501,
+        "training_chamfer_m2": 0.0010211836617194281
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.030871109720049427,
+          "p95_m": 0.050969772040843964,
+          "max_m": 0.05469405651092529,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03159247397568801,
+          "p95_m": 0.05130591355264187,
+          "max_m": 0.05693899840116501,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.031233874457484895,
+        "symmetric_p95_m": 0.05130591355264187,
+        "max_distance_m": 0.05693899840116501,
+        "training_chamfer_m2": 0.0010211836706595482
+      }
+    },
+    {
+      "index": 7,
+      "frame_id": 25,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.03108420928583741,
+          "p95_m": 0.051227737218141556,
+          "max_m": 0.05538276955485344,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03169511575843986,
+          "p95_m": 0.05157882161438465,
+          "max_m": 0.05775321647524834,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.03139114867177246,
+        "symmetric_p95_m": 0.05157882161438465,
+        "max_distance_m": 0.05775321647524834,
+        "training_chamfer_m2": 0.001029825392873938
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.03108599240406491,
+          "p95_m": 0.05121978744864464,
+          "max_m": 0.05535851791501045,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03170220689718284,
+          "p95_m": 0.05158572718501091,
+          "max_m": 0.05775778740644455,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.031395611523725483,
+        "symmetric_p95_m": 0.05158572718501091,
+        "max_distance_m": 0.05775778740644455,
+        "training_chamfer_m2": 0.0010301385577166236
+      }
+    },
+    {
+      "index": 8,
+      "frame_id": 26,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.030974604986983158,
+          "p95_m": 0.05105094239115715,
+          "max_m": 0.0556376688182354,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.031650904228439976,
+          "p95_m": 0.051582157239317895,
+          "max_m": 0.057217881083488464,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.03131458041054934,
+        "symmetric_p95_m": 0.051582157239317895,
+        "max_distance_m": 0.057217881083488464,
+        "training_chamfer_m2": 0.0010251124064897337
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.03098348796027254,
+          "p95_m": 0.05104163661599159,
+          "max_m": 0.055567242205142975,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.031679300566131066,
+          "p95_m": 0.05157827660441398,
+          "max_m": 0.057251084595918655,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.03133332579334362,
+        "symmetric_p95_m": 0.05157827660441398,
+        "max_distance_m": 0.057251084595918655,
+        "training_chamfer_m2": 0.0010264203937149752
+      }
+    },
+    {
+      "index": 9,
+      "frame_id": 27,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.03085719953206869,
+          "p95_m": 0.05091763660311699,
+          "max_m": 0.05520394444465637,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03154966440737119,
+          "p95_m": 0.05149730499833822,
+          "max_m": 0.0573996938765049,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.031205352803482647,
+        "symmetric_p95_m": 0.05149730499833822,
+        "max_distance_m": 0.0573996938765049,
+        "training_chamfer_m2": 0.001018451703928287
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.030874416686920206,
+          "p95_m": 0.05094493553042412,
+          "max_m": 0.05522081255912781,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03159334067835778,
+          "p95_m": 0.051530438289046285,
+          "max_m": 0.05740570276975632,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.031235947088061482,
+        "symmetric_p95_m": 0.051530438289046285,
+        "max_distance_m": 0.05740570276975632,
+        "training_chamfer_m2": 0.0010204953705889503
+      }
+    },
+    {
+      "index": 10,
+      "frame_id": 28,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.03078805168635311,
+          "p95_m": 0.0511789545416832,
+          "max_m": 0.05535006895661354,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03142271732458286,
+          "p95_m": 0.05156722608953714,
+          "max_m": 0.0574108250439167,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.031107003156059493,
+        "symmetric_p95_m": 0.05156722608953714,
+        "max_distance_m": 0.0574108250439167,
+        "training_chamfer_m2": 0.0010124738695269004
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.030843161409056588,
+          "p95_m": 0.051182154566049576,
+          "max_m": 0.05526917427778244,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.031524197601198435,
+          "p95_m": 0.05160230565816164,
+          "max_m": 0.0574474073946476,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.031185538636558152,
+        "symmetric_p95_m": 0.05160230565816164,
+        "max_distance_m": 0.0574474073946476,
+        "training_chamfer_m2": 0.0010176771874889309
+      }
+    },
+    {
+      "index": 11,
+      "frame_id": 29,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.030533853282134295,
+          "p95_m": 0.05103716626763344,
+          "max_m": 0.05520065873861313,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03119366123198994,
+          "p95_m": 0.0516368392854929,
+          "max_m": 0.057456307113170624,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.030865520385302558,
+        "symmetric_p95_m": 0.0516368392854929,
+        "max_distance_m": 0.057456307113170624,
+        "training_chamfer_m2": 0.0009966668546731033
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.030633412930822158,
+          "p95_m": 0.0511292889714241,
+          "max_m": 0.055198170244693756,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03134087290484037,
+          "p95_m": 0.05175822433084249,
+          "max_m": 0.05744344741106033,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.03098916183303139,
+        "symmetric_p95_m": 0.05175822433084249,
+        "max_distance_m": 0.05744344741106033,
+        "training_chamfer_m2": 0.0010046274216088612
+      }
+    },
+    {
+      "index": 12,
+      "frame_id": 30,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.03043878898956421,
+          "p95_m": 0.05038723349571228,
+          "max_m": 0.05460137873888016,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.031156876834707612,
+          "p95_m": 0.05116359815001488,
+          "max_m": 0.05684126168489456,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.03079992572429644,
+        "symmetric_p95_m": 0.05116359815001488,
+        "max_distance_m": 0.05684126168489456,
+        "training_chamfer_m2": 0.0009951353578322446
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.030522964922627467,
+          "p95_m": 0.0504821352660656,
+          "max_m": 0.05461152270436287,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03126480076505005,
+          "p95_m": 0.05122585687786341,
+          "max_m": 0.0568450503051281,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.03089610941968439,
+        "symmetric_p95_m": 0.05122585687786341,
+        "max_distance_m": 0.0568450503051281,
+        "training_chamfer_m2": 0.0010013165966712174
+      }
+    },
+    {
+      "index": 13,
+      "frame_id": 31,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.02991996761827679,
+          "p95_m": 0.04965736344456673,
+          "max_m": 0.053973741829395294,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.030543756416655413,
+          "p95_m": 0.05058017689734697,
+          "max_m": 0.055873092263936996,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.030233470842087502,
+        "symmetric_p95_m": 0.05058017689734697,
+        "max_distance_m": 0.055873092263936996,
+        "training_chamfer_m2": 0.0009604394346686351
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.02998149684188366,
+          "p95_m": 0.049666374921798706,
+          "max_m": 0.05402146652340889,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.030610906041183064,
+          "p95_m": 0.050590310432016845,
+          "max_m": 0.05605379492044449,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.03029783590903827,
+        "symmetric_p95_m": 0.050590310432016845,
+        "max_distance_m": 0.05605379492044449,
+        "training_chamfer_m2": 0.0009644385331513225
+      }
+    },
+    {
+      "index": 14,
+      "frame_id": 32,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.029885564132719745,
+          "p95_m": 0.048990096896886826,
+          "max_m": 0.05363915115594864,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03040598442112422,
+          "p95_m": 0.0500609815120697,
+          "max_m": 0.055549368262290955,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.03014689728768579,
+        "symmetric_p95_m": 0.0500609815120697,
+        "max_distance_m": 0.055549368262290955,
+        "training_chamfer_m2": 0.0009569385127034306
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.02993137675916762,
+          "p95_m": 0.048994388431310654,
+          "max_m": 0.05370273068547249,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.030450771901306288,
+          "p95_m": 0.05007929075509309,
+          "max_m": 0.05565439909696579,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.030192191242808333,
+        "symmetric_p95_m": 0.05007929075509309,
+        "max_distance_m": 0.05565439909696579,
+        "training_chamfer_m2": 0.0009597981210960213
+      }
+    },
+    {
+      "index": 15,
+      "frame_id": 33,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.029755980600871784,
+          "p95_m": 0.04827088862657547,
+          "max_m": 0.05327650159597397,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03015975928494334,
+          "p95_m": 0.049483147263526914,
+          "max_m": 0.05490986257791519,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.029958550212294852,
+        "symmetric_p95_m": 0.049483147263526914,
+        "max_distance_m": 0.05490986257791519,
+        "training_chamfer_m2": 0.0009473365084854898
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.029799331044219765,
+          "p95_m": 0.04830173775553703,
+          "max_m": 0.05332879722118378,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.030197444261108437,
+          "p95_m": 0.04949938245117664,
+          "max_m": 0.054975930601358414,
+          "vertices": 15910
+        },
+        "symmetric_rms_m": 0.029999048073111843,
+        "symmetric_p95_m": 0.04949938245117664,
+        "max_distance_m": 0.054975930601358414,
+        "training_chamfer_m2": 0.0009499217860030917
+      }
+    },
+    {
+      "index": 16,
+      "frame_id": 34,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.029934720947872657,
+          "p95_m": 0.0480152927339077,
+          "max_m": 0.05465846136212349,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.029575723747087106,
+          "p95_m": 0.04869842045009136,
+          "max_m": 0.05465005710721016,
+          "vertices": 14115
+        },
+        "symmetric_rms_m": 0.02975576375587609,
+        "symmetric_p95_m": 0.04869842045009136,
+        "max_distance_m": 0.05465846136212349,
+        "training_chamfer_m2": 0.000940593568745671
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.029986679100607403,
+          "p95_m": 0.048081956803798676,
+          "max_m": 0.05477341264486313,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.02962255744641772,
+          "p95_m": 0.04871795624494552,
+          "max_m": 0.0549275241792202,
+          "vertices": 14115
+        },
+        "symmetric_rms_m": 0.029805174325518737,
+        "symmetric_p95_m": 0.04871795624494552,
+        "max_distance_m": 0.0549275241792202,
+        "training_chamfer_m2": 0.0009435676951628157
+      }
+    },
+    {
+      "index": 17,
+      "frame_id": 35,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.030368492854075686,
+          "p95_m": 0.048643168061971664,
+          "max_m": 0.05844061076641083,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.029609354449203807,
+          "p95_m": 0.04874721951782703,
+          "max_m": 0.06263411045074463,
+          "vertices": 14115
+        },
+        "symmetric_rms_m": 0.029991325655317667,
+        "symmetric_p95_m": 0.04874721951782703,
+        "max_distance_m": 0.06263411045074463,
+        "training_chamfer_m2": 0.0009545263611867205
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.03043054063185459,
+          "p95_m": 0.04872126132249832,
+          "max_m": 0.058583877980709076,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.02966508740050501,
+          "p95_m": 0.04880994670093059,
+          "max_m": 0.06289444118738174,
+          "vertices": 14115
+        },
+        "symmetric_rms_m": 0.030050251360234526,
+        "symmetric_p95_m": 0.04880994670093059,
+        "max_distance_m": 0.06289444118738174,
+        "training_chamfer_m2": 0.0009580507288367825
+      }
+    },
+    {
+      "index": 18,
+      "frame_id": 36,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.030986457520252416,
+          "p95_m": 0.051419612020254135,
+          "max_m": 0.06413256376981735,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.029575475225481693,
+          "p95_m": 0.049048894271254535,
+          "max_m": 0.06956226378679276,
+          "vertices": 14115
+        },
+        "symmetric_rms_m": 0.03028918358480044,
+        "symmetric_p95_m": 0.051419612020254135,
+        "max_distance_m": 0.06956226378679276,
+        "training_chamfer_m2": 0.000968510175660419
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.031057523225076406,
+          "p95_m": 0.05161650478839874,
+          "max_m": 0.06430505216121674,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.029635398293064927,
+          "p95_m": 0.04910551719367504,
+          "max_m": 0.06981661170721054,
+          "vertices": 14115
+        },
+        "symmetric_rms_m": 0.030354790238648958,
+        "symmetric_p95_m": 0.05161650478839874,
+        "max_distance_m": 0.06981661170721054,
+        "training_chamfer_m2": 0.0009724303891666507
+      }
+    },
+    {
+      "index": 19,
+      "frame_id": 37,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.03168549583050878,
+          "p95_m": 0.057128675282001495,
+          "max_m": 0.06908795237541199,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.029717936872271037,
+          "p95_m": 0.05052696391940117,
+          "max_m": 0.07919538766145706,
+          "vertices": 14115
+        },
+        "symmetric_rms_m": 0.030717474000717213,
+        "symmetric_p95_m": 0.057128675282001495,
+        "max_distance_m": 0.07919538766145706,
+        "training_chamfer_m2": 0.0009920999746985178
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.0317774640123026,
+          "p95_m": 0.05738213658332825,
+          "max_m": 0.06926288455724716,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.02980041290509038,
+          "p95_m": 0.05067758671939373,
+          "max_m": 0.07980761677026749,
+          "vertices": 14115
+        },
+        "symmetric_rms_m": 0.030804803427120456,
+        "symmetric_p95_m": 0.05738213658332825,
+        "max_distance_m": 0.07980761677026749,
+        "training_chamfer_m2": 0.0009974283357072303
+      }
+    },
+    {
+      "index": 20,
+      "frame_id": 38,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.03264612102256911,
+          "p95_m": 0.06244799867272377,
+          "max_m": 0.0753684863448143,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.030014556986971593,
+          "p95_m": 0.05409240238368511,
+          "max_m": 0.08561427146196365,
+          "vertices": 14115
+        },
+        "symmetric_rms_m": 0.03135795631848793,
+        "symmetric_p95_m": 0.06244799867272377,
+        "max_distance_m": 0.08561427146196365,
+        "training_chamfer_m2": 0.0010298387902394207
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.03271192473277859,
+          "p95_m": 0.06261784583330154,
+          "max_m": 0.0754811018705368,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.030065849946599915,
+          "p95_m": 0.0541934598237276,
+          "max_m": 0.08579584956169128,
+          "vertices": 14115
+        },
+        "symmetric_rms_m": 0.03141675789076933,
+        "symmetric_p95_m": 0.06261784583330154,
+        "max_distance_m": 0.08579584956169128,
+        "training_chamfer_m2": 0.0010334451801566166
+      }
+    },
+    {
+      "index": 21,
+      "frame_id": 39,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.03384689620065918,
+          "p95_m": 0.06730330735445023,
+          "max_m": 0.08267798274755478,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.030399200848938747,
+          "p95_m": 0.05806079246103763,
+          "max_m": 0.0924953892827034,
+          "vertices": 14115
+        },
+        "symmetric_rms_m": 0.0321692694560532,
+        "symmetric_p95_m": 0.06730330735445023,
+        "max_distance_m": 0.0924953892827034,
+        "training_chamfer_m2": 0.0010784853711032095
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.03389079307164744,
+          "p95_m": 0.06739990413188934,
+          "max_m": 0.08273040503263474,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.030433304531194097,
+          "p95_m": 0.05808549299836156,
+          "max_m": 0.0926135778427124,
+          "vertices": 14115
+        },
+        "symmetric_rms_m": 0.03220847621134556,
+        "symmetric_p95_m": 0.06739990413188934,
+        "max_distance_m": 0.0926135778427124,
+        "training_chamfer_m2": 0.001080934440890707
+      }
+    },
+    {
+      "index": 22,
+      "frame_id": 40,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.0351292507028377,
+          "p95_m": 0.07085921615362167,
+          "max_m": 0.08757680654525757,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03127592054333332,
+          "p95_m": 0.060525698587298345,
+          "max_m": 0.09831690043210983,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.033258438483907526,
+        "symmetric_p95_m": 0.07085921615362167,
+        "max_distance_m": 0.09831690043210983,
+        "training_chamfer_m2": 0.0011505042598565938
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.03515863071233966,
+          "p95_m": 0.07093827426433563,
+          "max_m": 0.08759938925504684,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03129991125576287,
+          "p95_m": 0.06060774028301238,
+          "max_m": 0.0983804240822792,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.03328523515153006,
+        "symmetric_p95_m": 0.07093827426433563,
+        "max_distance_m": 0.0983804240822792,
+        "training_chamfer_m2": 0.0011523439608837403
+      }
+    },
+    {
+      "index": 23,
+      "frame_id": 41,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.036120573679800344,
+          "p95_m": 0.07377639412879944,
+          "max_m": 0.0923980176448822,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.0317002827567863,
+          "p95_m": 0.062385405227541914,
+          "max_m": 0.10479096323251724,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.033982376092749074,
+        "symmetric_p95_m": 0.07377639412879944,
+        "max_distance_m": 0.10479096323251724,
+        "training_chamfer_m2": 0.001192027857700347
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.03614059598768667,
+          "p95_m": 0.07379478961229324,
+          "max_m": 0.09239915758371353,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.031718607398890264,
+          "p95_m": 0.062392846867442106,
+          "max_m": 0.10482987761497498,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.03400156418218234,
+        "symmetric_p95_m": 0.07379478961229324,
+        "max_distance_m": 0.10482987761497498,
+        "training_chamfer_m2": 0.0011933526351866547
+      }
+    },
+    {
+      "index": 24,
+      "frame_id": 42,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.036851674092915954,
+          "p95_m": 0.07553364336490631,
+          "max_m": 0.095389224588871,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.031680920501062804,
+          "p95_m": 0.0627733841538429,
+          "max_m": 0.10427182167768478,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.03436369164718158,
+        "symmetric_p95_m": 0.07553364336490631,
+        "max_distance_m": 0.10427182167768478,
+        "training_chamfer_m2": 0.0012148814695431853
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.036866118574223,
+          "p95_m": 0.07555557042360306,
+          "max_m": 0.09537847340106964,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03169559655746692,
+          "p95_m": 0.06282387748360628,
+          "max_m": 0.10429678112268448,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.03437820195896216,
+        "symmetric_p95_m": 0.07555557042360306,
+        "max_distance_m": 0.10429678112268448,
+        "training_chamfer_m2": 0.0012159016452843278
+      }
+    },
+    {
+      "index": 25,
+      "frame_id": 43,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.037065818934727976,
+          "p95_m": 0.07672248035669327,
+          "max_m": 0.09635496139526367,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03167879210866521,
+          "p95_m": 0.0633390240371227,
+          "max_m": 0.10617247968912125,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.034477679756373315,
+        "symmetric_p95_m": 0.07672248035669327,
+        "max_distance_m": 0.10617247968912125,
+        "training_chamfer_m2": 0.0012208590675798563
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.037076751339889094,
+          "p95_m": 0.07673315703868866,
+          "max_m": 0.09634001553058624,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.0316910887330421,
+          "p95_m": 0.06339279040694235,
+          "max_m": 0.10620082914829254,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.03448920552147813,
+        "symmetric_p95_m": 0.07673315703868866,
+        "max_distance_m": 0.10620082914829254,
+        "training_chamfer_m2": 0.001221651421869135
+      }
+    },
+    {
+      "index": 26,
+      "frame_id": 44,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.036090430720662356,
+          "p95_m": 0.07499829679727554,
+          "max_m": 0.09449264407157898,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.030914996656342803,
+          "p95_m": 0.06193960532546042,
+          "max_m": 0.10351409763097763,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.033602501453497594,
+        "symmetric_p95_m": 0.07499829679727554,
+        "max_distance_m": 0.10351409763097763,
+        "training_chamfer_m2": 0.0011627385726657071
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.036099498542891746,
+          "p95_m": 0.07500164955854416,
+          "max_m": 0.09447658061981201,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.0309257458724698,
+          "p95_m": 0.06194084659218785,
+          "max_m": 0.10353880375623703,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.03361231584417255,
+        "symmetric_p95_m": 0.07500164955854416,
+        "max_distance_m": 0.10353880375623703,
+        "training_chamfer_m2": 0.0011634168479803804
+      }
+    },
+    {
+      "index": 27,
+      "frame_id": 45,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.03421080201681949,
+          "p95_m": 0.07074353098869324,
+          "max_m": 0.08894915878772736,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.029799161166844567,
+          "p95_m": 0.059068142622709256,
+          "max_m": 0.0959077924489975,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.03208090538686212,
+        "symmetric_p95_m": 0.07074353098869324,
+        "max_distance_m": 0.0959077924489975,
+        "training_chamfer_m2": 0.0010694919203928014
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.03421914488805442,
+          "p95_m": 0.07077159732580185,
+          "max_m": 0.08893691748380661,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.029808721683181397,
+          "p95_m": 0.05911367945373056,
+          "max_m": 0.09592000395059586,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.03208979405710661,
+        "symmetric_p95_m": 0.07077159732580185,
+        "max_distance_m": 0.09592000395059586,
+        "training_chamfer_m2": 0.0010700913568508364
+      }
+    },
+    {
+      "index": 28,
+      "frame_id": 46,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.0320478424391359,
+          "p95_m": 0.06539572775363922,
+          "max_m": 0.08027290552854538,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.02884550043787484,
+          "p95_m": 0.05579678490757941,
+          "max_m": 0.09049563854932785,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.030488744648764384,
+        "symmetric_p95_m": 0.06539572775363922,
+        "max_distance_m": 0.09049563854932785,
+        "training_chamfer_m2": 0.000979893074779017
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.03198031029895728,
+          "p95_m": 0.06521274149417877,
+          "max_m": 0.08011803776025772,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.02879952983896993,
+          "p95_m": 0.055747485533356664,
+          "max_m": 0.09018754214048386,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.03043150641821164,
+        "symmetric_p95_m": 0.06521274149417877,
+        "max_distance_m": 0.09018754214048386,
+        "training_chamfer_m2": 0.0009765411328409056
+      }
+    },
+    {
+      "index": 29,
+      "frame_id": 47,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.03019784082305411,
+          "p95_m": 0.05817446857690811,
+          "max_m": 0.07034461945295334,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.028216004893342646,
+          "p95_m": 0.05044756531715391,
+          "max_m": 0.08097626268863678,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.029223727709822112,
+        "symmetric_p95_m": 0.05817446857690811,
+        "max_distance_m": 0.08097626268863678,
+        "training_chamfer_m2": 0.000915354707474406
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.030132220788433414,
+          "p95_m": 0.05800236389040947,
+          "max_m": 0.07019127905368805,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.028165794455506266,
+          "p95_m": 0.05028126165270805,
+          "max_m": 0.08070168644189835,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.029165585087159884,
+        "symmetric_p95_m": 0.05800236389040947,
+        "max_distance_m": 0.08070168644189835,
+        "training_chamfer_m2": 0.0009120754826569413
+      }
+    },
+    {
+      "index": 30,
+      "frame_id": 48,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.029073799543269108,
+          "p95_m": 0.04972103610634804,
+          "max_m": 0.060835063457489014,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.028152976207737095,
+          "p95_m": 0.047268120199441904,
+          "max_m": 0.06982085108757019,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.028617091826700403,
+        "symmetric_p95_m": 0.04972103610634804,
+        "max_distance_m": 0.06982085108757019,
+        "training_chamfer_m2": 0.000889425009579412
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.029012572644947204,
+          "p95_m": 0.04956308752298355,
+          "max_m": 0.06067657843232155,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.028099979791536406,
+          "p95_m": 0.047167391702532764,
+          "max_m": 0.06962449848651886,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.028559921531431887,
+        "symmetric_p95_m": 0.04956308752298355,
+        "max_distance_m": 0.06962449848651886,
+        "training_chamfer_m2": 0.0008862623288528885
+      }
+    },
+    {
+      "index": 31,
+      "frame_id": 49,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.029106922449096073,
+          "p95_m": 0.04642003774642944,
+          "max_m": 0.05430678278207779,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.029112487308572667,
+          "p95_m": 0.047277223318815224,
+          "max_m": 0.05504339560866356,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.02910970501181262,
+        "symmetric_p95_m": 0.047277223318815224,
+        "max_distance_m": 0.05504339560866356,
+        "training_chamfer_m2": 0.0009242096756506455
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.029047062551615738,
+          "p95_m": 0.04637187346816063,
+          "max_m": 0.054147958755493164,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.02905452542375884,
+          "p95_m": 0.04722183756530285,
+          "max_m": 0.05485476553440094,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.029050794227329882,
+        "symmetric_p95_m": 0.04722183756530285,
+        "max_distance_m": 0.05485476553440094,
+        "training_chamfer_m2": 0.0009208008092861724
+      }
+    },
+    {
+      "index": 32,
+      "frame_id": 50,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.029550498839976097,
+          "p95_m": 0.04784086346626282,
+          "max_m": 0.053212329745292664,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.029931579682934726,
+          "p95_m": 0.049183314293622965,
+          "max_m": 0.05415783450007439,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.02974164961806338,
+        "symmetric_p95_m": 0.049183314293622965,
+        "max_distance_m": 0.05415783450007439,
+        "training_chamfer_m2": 0.0009647250654504288
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.02949834336430494,
+          "p95_m": 0.0477759912610054,
+          "max_m": 0.05308746173977852,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.029876776585796162,
+          "p95_m": 0.049133791029453276,
+          "max_m": 0.054081473499536514,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.02968816296435341,
+        "symmetric_p95_m": 0.049133791029453276,
+        "max_distance_m": 0.054081473499536514,
+        "training_chamfer_m2": 0.0009615510800553344
+      }
+    },
+    {
+      "index": 33,
+      "frame_id": 51,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.03066386296996639,
+          "p95_m": 0.050081733614206314,
+          "max_m": 0.05465041100978851,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.0311803072921732,
+          "p95_m": 0.051144973188638684,
+          "max_m": 0.056805502623319626,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.030923163284787225,
+        "symmetric_p95_m": 0.051144973188638684,
+        "max_distance_m": 0.056805502623319626,
+        "training_chamfer_m2": 0.0010413305952989911
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.03061368805479799,
+          "p95_m": 0.05003253370523453,
+          "max_m": 0.05462032929062843,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.031125003770988684,
+          "p95_m": 0.05107463635504245,
+          "max_m": 0.056723933666944504,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.030870404565380583,
+        "symmetric_p95_m": 0.05107463635504245,
+        "max_distance_m": 0.056723933666944504,
+        "training_chamfer_m2": 0.0010380170233503642
+      }
+    },
+    {
+      "index": 34,
+      "frame_id": 52,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.03186663175863747,
+          "p95_m": 0.05238751322031021,
+          "max_m": 0.05655108392238617,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03244945154374987,
+          "p95_m": 0.053356582298874855,
+          "max_m": 0.059425897896289825,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.03215936197385431,
+        "symmetric_p95_m": 0.053356582298874855,
+        "max_distance_m": 0.059425897896289825,
+        "training_chamfer_m2": 0.001121038955846935
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.03175461069469357,
+          "p95_m": 0.052264634519815445,
+          "max_m": 0.0564393624663353,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03231690860185168,
+          "p95_m": 0.053225500881671904,
+          "max_m": 0.05921144410967827,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.03203699331984809,
+        "symmetric_p95_m": 0.053225500881671904,
+        "max_distance_m": 0.05921144410967827,
+        "training_chamfer_m2": 0.0011131056465415567
+      }
+    },
+    {
+      "index": 35,
+      "frame_id": 53,
+      "trajectory": {
+        "white_to_scan": {
+          "rms_m": 0.034844791527520076,
+          "p95_m": 0.05805373936891556,
+          "max_m": 0.06164390966296196,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.0355364266613007,
+          "p95_m": 0.05901268497109413,
+          "max_m": 0.0656038150191307,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.03519230822530925,
+        "symmetric_p95_m": 0.05901268497109413,
+        "max_distance_m": 0.0656038150191307,
+        "training_chamfer_m2": 0.0013301499896701571
+      },
+      "frozen_frame0": {
+        "white_to_scan": {
+          "rms_m": 0.0347420768378384,
+          "p95_m": 0.0578976646065712,
+          "max_m": 0.06145535781979561,
+          "vertices": 13781
+        },
+        "scan_to_white": {
+          "rms_m": 0.03541279791527468,
+          "p95_m": 0.058859069272875784,
+          "max_m": 0.06538321822881699,
+          "vertices": 14235
+        },
+        "symmetric_rms_m": 0.035079040460040734,
+        "symmetric_p95_m": 0.058859069272875784,
+        "max_distance_m": 0.06538321822881699,
+        "training_chamfer_m2": 0.001321977006943029
+      }
+    }
+  ],
+  "aggregate_excluding_frame0": {
+    "trajectory": {
+      "frames": 35,
+      "symmetric_rms_m": 0.03121642894349896,
+      "mean_frame_symmetric_p95_m": 0.05629820091383798,
+      "worst_frame_symmetric_p95_m": 0.07672248035669327,
+      "max_distance_m": 0.10617247968912125,
+      "white_to_scan_rms_m": 0.031715089859304775,
+      "scan_to_white_rms_m": 0.030709671883386556,
+      "training_chamfer_sum_m2": 0.03595799961798581,
+      "training_chamfer_rms_m": 0.03205263511252605
+    },
+    "frozen_frame0": {
+      "frames": 35,
+      "symmetric_rms_m": 0.031227054805716317,
+      "mean_frame_symmetric_p95_m": 0.05630640458315611,
+      "worst_frame_symmetric_p95_m": 0.07673315703868866,
+      "max_distance_m": 0.10620082914829254,
+      "white_to_scan_rms_m": 0.03172437618606973,
+      "scan_to_white_rms_m": 0.030721683861454487,
+      "training_chamfer_sum_m2": 0.035982714283534896,
+      "training_chamfer_rms_m": 0.03206364843491988
+    },
+    "rms_improvement_over_frozen_m": 1.0625862217356757e-05,
+    "rms_improvement_over_frozen_fraction": 0.0003402774383773017
+  },
+  "inputs": {
+    "recording": {
+      "path": "/home/beer/Dev/Robotics/NewtonSolvers/newton-solver-diff-phd/src/newton_solver_diff_phd/examples/assets/pokeflex_local/recording_fine.json",
+      "sha256": "832232b83003dcbc8b8b9905b2050c1e7f0bcee55cfce8c16aea600c6a9b7657"
+    },
+    "trajectory": {
+      "path": "/home/beer/Dev/Robotics/NewtonSolvers/newton-solver-diff-phd/nsys/results/contact-investigation/original-training/default_initial_position.npz",
+      "sha256": "4852dbb4d5c973de45ada7c77b5b622a96b27b2052b40fa41dd495cfbebce200"
+    },
+    "comparison_tool": {
+      "path": "/home/beer/Dev/Robotics/NewtonSolvers/newton-solver-diff-phd/tools/compare_poke_recording.py",
+      "sha256": "f1d59554743ad1711f5efc483e2484a7757823674f82dc57796695368cc62289"
+    },
+    "manifest_geometry": {
+      "path": "/home/beer/Dev/Robotics/NewtonSolvers/newton-solver-diff-phd/src/newton_solver_diff_phd/examples/assets/pokeflex_local/die_fine.usdc",
+      "sha256": "c6ce2c9771baf05945dfccbcd5c3da830c329faaf30e478d1950d97817616256"
+    },
+    "manifest_recording": {
+      "path": "/home/beer/Dev/Robotics/NewtonSolvers/newton-solver-diff-phd/src/newton_solver_diff_phd/examples/assets/pokeflex_local/recording_fine.npz",
+      "sha256": "4aeb1351b84a084872ffc67cabace6af66240612a465b1dbdb5b7ba3151c4cb5"
+    }
+  },
+  "positions_key": "positions",
+  "created_utc": "2026-11-02T12:00:26.391393+00:00",
+  "rollout_provenance": {
+    "report": "docs/validation/poke-reference-training-2026-11-02.json",
+    "sha256": "67c6c149c5644027e4aa064c2120ab162a661f7415d97bba08779ff05feed027",
+    "run_label": "default_initial_position",
+    "position_xy_m": [
+      0.73,
+      0.115
+    ],
+    "reference_xy_m": [
+      0.7,
+      0.089
+    ],
+    "initial_white_offset_m": [
+      0.03,
+      0.026,
+      0
+    ],
+    "fitted_checkpoint": false,
+    "completed_steps": 1050,
+    "postprocess_only": true,
+    "scope": "Measurements use the saved real forward rollout identified by its report, not a new simulation run. Subsequent edits changed adjoint guards, startup/progress/restart UI, and descriptions; the saved solver and data fingerprints remain in the linked report."
+  },
+  "geometry_extrema": {
+    "definition": "Highest Z-coordinate of the complete surface at each frame, not tracked material displacement. Drop is relative to each surface at frame18. No alignment.",
+    "frames": [
+      {
+        "source_frame": 18,
+        "blue_top_drop_m": 0.0,
+        "white_top_drop_m": 0.0
+      },
+      {
+        "source_frame": 19,
+        "blue_top_drop_m": 0.0005513064515667576,
+        "white_top_drop_m": 0.0
+      },
+      {
+        "source_frame": 20,
+        "blue_top_drop_m": -0.00031860202866751397,
+        "white_top_drop_m": 0.0
+      },
+      {
+        "source_frame": 21,
+        "blue_top_drop_m": -0.0002670634652066073,
+        "white_top_drop_m": 0.0
+      },
+      {
+        "source_frame": 22,
+        "blue_top_drop_m": 0.000549744676916486,
+        "white_top_drop_m": 0.0
+      },
+      {
+        "source_frame": 23,
+        "blue_top_drop_m": 0.000874593804185253,
+        "white_top_drop_m": 0.0
+      },
+      {
+        "source_frame": 24,
+        "blue_top_drop_m": 0.0004716559443999069,
+        "white_top_drop_m": 0.0
+      },
+      {
+        "source_frame": 25,
+        "blue_top_drop_m": -0.0016195603123930202,
+        "white_top_drop_m": 0.00023913905612704678
+      },
+      {
+        "source_frame": 26,
+        "blue_top_drop_m": -0.0027940148494418615,
+        "white_top_drop_m": 0.0007308621376141411
+      },
+      {
+        "source_frame": 27,
+        "blue_top_drop_m": -0.0003389050991217668,
+        "white_top_drop_m": 0.0010065736481580378
+      },
+      {
+        "source_frame": 28,
+        "blue_top_drop_m": 0.0012259931005096925,
+        "white_top_drop_m": 0.0017516724976801012
+      },
+      {
+        "source_frame": 29,
+        "blue_top_drop_m": 0.00296581006097818,
+        "white_top_drop_m": 0.0019011750563640017
+      },
+      {
+        "source_frame": 30,
+        "blue_top_drop_m": 0.004180870738935638,
+        "white_top_drop_m": 0.0011193439855590737
+      },
+      {
+        "source_frame": 31,
+        "blue_top_drop_m": 0.005016420176862546,
+        "white_top_drop_m": 0.0006742064697711769
+      },
+      {
+        "source_frame": 32,
+        "blue_top_drop_m": 0.006045629671430575,
+        "white_top_drop_m": 0.0004653859882853828
+      },
+      {
+        "source_frame": 33,
+        "blue_top_drop_m": 0.0074793388004342765,
+        "white_top_drop_m": 0.000359912657125927
+      },
+      {
+        "source_frame": 34,
+        "blue_top_drop_m": 0.008394538745528146,
+        "white_top_drop_m": 0.00029673273485858465
+      },
+      {
+        "source_frame": 35,
+        "blue_top_drop_m": 0.010534170016481381,
+        "white_top_drop_m": 0.000282050840945236
+      },
+      {
+        "source_frame": 36,
+        "blue_top_drop_m": 0.012497320751947205,
+        "white_top_drop_m": 0.0002762395348178681
+      },
+      {
+        "source_frame": 37,
+        "blue_top_drop_m": 0.013838885176581328,
+        "white_top_drop_m": 0.0004626178560647176
+      },
+      {
+        "source_frame": 38,
+        "blue_top_drop_m": 0.01757621191482306,
+        "white_top_drop_m": 0.00015838953063673777
+      },
+      {
+        "source_frame": 39,
+        "blue_top_drop_m": 0.01983609983385176,
+        "white_top_drop_m": 8.576970164547726e-05
+      },
+      {
+        "source_frame": 40,
+        "blue_top_drop_m": 0.02336102521964839,
+        "white_top_drop_m": 5.1504531419666044e-05
+      },
+      {
+        "source_frame": 41,
+        "blue_top_drop_m": 0.026359632548283496,
+        "white_top_drop_m": 3.298247236077634e-05
+      },
+      {
+        "source_frame": 42,
+        "blue_top_drop_m": 0.027716814719421057,
+        "white_top_drop_m": 2.249108189783522e-05
+      },
+      {
+        "source_frame": 43,
+        "blue_top_drop_m": 0.027788656353336272,
+        "white_top_drop_m": 1.6337945220767924e-05
+      },
+      {
+        "source_frame": 44,
+        "blue_top_drop_m": 0.026479889196358963,
+        "white_top_drop_m": 1.1446714446139428e-05
+      },
+      {
+        "source_frame": 45,
+        "blue_top_drop_m": 0.022473937218260465,
+        "white_top_drop_m": 8.932321330867854e-06
+      },
+      {
+        "source_frame": 46,
+        "blue_top_drop_m": 0.01835241391603748,
+        "white_top_drop_m": -0.00029351635245966623
+      },
+      {
+        "source_frame": 47,
+        "blue_top_drop_m": 0.01275189001995114,
+        "white_top_drop_m": -0.0002425265797294518
+      },
+      {
+        "source_frame": 48,
+        "blue_top_drop_m": 0.008744376267202203,
+        "white_top_drop_m": -0.0002164529537300175
+      },
+      {
+        "source_frame": 49,
+        "blue_top_drop_m": 0.00575201603716835,
+        "white_top_drop_m": -0.00020751150106007588
+      },
+      {
+        "source_frame": 50,
+        "blue_top_drop_m": 0.0032969062868483112,
+        "white_top_drop_m": -0.00018657838248248293
+      },
+      {
+        "source_frame": 51,
+        "blue_top_drop_m": 0.002202102256966487,
+        "white_top_drop_m": -0.00018749621098063107
+      },
+      {
+        "source_frame": 52,
+        "blue_top_drop_m": 0.0013134524809282344,
+        "white_top_drop_m": -0.0008539317233294819
+      },
+      {
+        "source_frame": 53,
+        "blue_top_drop_m": 0.00010932422552312193,
+        "white_top_drop_m": -0.0004668573479821858
+      }
+    ],
+    "maximum_blue_top_drop_m": 0.027788656353336272,
+    "maximum_white_top_drop_m": 0.0019011750563640017
+  },
+  "experiment_inputs": {
+    "probe_motion": "Hand-authored reference UR5 FK trajectory, not measured probe poses.",
+    "time": "30Hz frame spacing is assumed; no timestamps in local recording.",
+    "white_blue_display_transform": "Same display-only Z translation; comparison uses unchanged recording coordinates."
+  },
+  "interpretation": "Recorded deformation is not reproduced: surface RMS improves only 0.034% over a completely frozen white cube. No physics acceptance is asserted; signed penetration is measured in the separate linked rollout report.",
+  "checks": {
+    "comparison_tool_unittest": "5 synthetic CPU tests passed in 0.831s",
+    "ruff": "check and format passed for 89 files",
+    "readme": "regenerated; git diff --check passed"
+  },
+  "local_private_figure": {
+    "path": "nsys/results/contact-investigation/blue-white-comparison-2026-11-02.png",
+    "sha256": "9e72c6d3186f4183c585d74530aaff0cfdd854604555cdb439942896140eb036",
+    "scope": "Local research figure; includes private scanned surface and is kept under ignored nsys/results."
+  }
+}

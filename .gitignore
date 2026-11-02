@@ -11,6 +11,7 @@ results/
 *.sqlite
 outputs/
 src/newton_solver_diff_phd/examples/assets/pokeflex_local/
+src/newton_solver_diff_phd/examples/assets/bunny_reference_local/
 
 # Viewer layout
 imgui.ini
